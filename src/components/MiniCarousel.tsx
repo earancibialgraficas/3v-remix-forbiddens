@@ -74,7 +74,7 @@ export default function MiniCarousel() {
   if (items.length === 0) return null;
 
   return (
-    <div className="right-panel-card relative w-full h-36 rounded overflow-hidden border border-border group shadow-lg bg-card">
+    <div className="right-panel-card melodia-rightbar-carousel relative w-full h-36 rounded overflow-hidden border border-border group shadow-lg bg-card" data-melodia-surface="rightbar-carousel">
       
       {/* 🔥 Renderizamos TODAS las diapositivas apiladas, pero solo mostramos la actual */}
       {items.map((item, index) => {

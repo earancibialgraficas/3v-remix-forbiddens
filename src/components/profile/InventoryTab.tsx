@@ -1250,6 +1250,12 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
     }
     return skinEntries.slice(0, 5);
   }, [activeAvatarFrame, activeEmulatorShell, activeProfileTransition, activeSkins]);
+  const getEquipmentBadgeText = (entry: (typeof activeEquipmentEntries)[number]) => {
+    if (entry.kind === 'avatar_frame') return 'Marco';
+    if (entry.kind === 'profile_transition') return 'Transicion';
+    if (entry.kind === 'emulator_shell') return 'Consola';
+    return 'Launcher';
+  };
   const activeSkinEntries = useMemo(
     () => Object.entries(activeSkins)
       .map(([skinType, skinSlug]) => {
@@ -1292,9 +1298,11 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
       setActiveSkins(prev => ({ ...prev, [skinType]: skinSlug }));
       window.dispatchEvent(new CustomEvent('forbiddens:active-skin-updated', { detail: { userId, skinType, skinSlug } }));
       toast({ title: "âœ… Skin Equipada", description: `Has activado la skin "${skin.name}"` });
+      return true;
     } catch (err: any) {
       console.error('Error activating skin:', err);
       toast({ title: "Error", description: err?.message || "No se pudo equipar la skin", variant: "destructive" });
+      return false;
     } finally {
       setBusy(false);
     }
@@ -1366,8 +1374,10 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
       setActiveSkins((prev) => ({ ...prev, avatar_frame: frameSlug }));
       window.dispatchEvent(new CustomEvent('forbiddens:active-avatar-frame-updated', { detail: { userId, frameSlug } }));
       toast({ title: "Marco equipado", description: `${frame.name} reemplazara el marco del tema en tu avatar.` });
+      return true;
     } catch (err: any) {
       toast({ title: "Error", description: err?.message || "No se pudo equipar el marco", variant: "destructive" });
+      return false;
     } finally {
       setBusy(false);
     }
@@ -1403,8 +1413,10 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
       window.dispatchEvent(new CustomEvent('forbiddens:active-profile-transition-updated', { detail: { userId, transitionSlug } }));
       window.dispatchEvent(new CustomEvent('forbiddens:play-profile-transition', { detail: { slug: transitionSlug } }));
       toast({ title: "Transicion equipada", description: `${transition.name} se reproducira en tu perfil publico.` });
+      return true;
     } catch (err: any) {
       toast({ title: "Error", description: err?.message || "No se pudo equipar la transicion", variant: "destructive" });
+      return false;
     } finally {
       setBusy(false);
     }
@@ -1440,11 +1452,65 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
       window.dispatchEvent(new CustomEvent('forbiddens:active-emulator-shell-updated', { detail: { userId, shellSlug } }));
       window.dispatchEvent(new CustomEvent('forbiddens:active-skin-updated', { detail: { userId, skinType: 'emulator_shell', skinSlug: shellSlug } }));
       toast({ title: "Consola equipada", description: `${shell.name} se aplicara a juegos NES web.` });
+      return true;
     } catch (err: any) {
       toast({ title: "Error", description: err?.message || "No se pudo equipar la consola", variant: "destructive" });
+      return false;
     } finally {
       setBusy(false);
     }
+  };
+
+  const canEquipStack = (item: any) =>
+    Boolean(item && (isSkinItem(item) || isAvatarFrameItem(item) || isProfileTransitionItem(item) || isEmulatorShellItem(item)));
+
+  const equipStack = async (item: any) => {
+    if (!item?.item_slug) return false;
+    if (isSkinItem(item)) return handleActivateSkin(item.item_slug);
+    if (isAvatarFrameItem(item)) return handleActivateAvatarFrame(item.item_slug);
+    if (isProfileTransitionItem(item)) return handleActivateProfileTransition(item.item_slug);
+    if (isEmulatorShellItem(item)) return handleActivateEmulatorShell(item.item_slug);
+    return false;
+  };
+
+  const handleEquipmentDrop = async (event: React.MouseEvent | React.DragEvent) => {
+    const item = cursorItemRef.current;
+    if (!item) return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (!canEquipStack(item)) {
+      toast({ title: "No equipable", description: "Este item no se puede colocar en equipamiento.", variant: "destructive" });
+      return;
+    }
+    const equipped = await equipStack(item);
+    if (equipped) commitCursorItem(null);
+  };
+
+  const isStackEquipped = (item: any) => {
+    if (!item?.item_slug) return false;
+    if (isSkinItem(item)) {
+      const skinType = (ALL_SKINS as any)[item.item_slug]?.type || 'launcher';
+      return activeSkins[skinType] === item.item_slug;
+    }
+    if (isAvatarFrameItem(item)) return activeAvatarFrameSlug === item.item_slug;
+    if (isProfileTransitionItem(item)) return activeProfileTransitionSlug === item.item_slug;
+    if (isEmulatorShellItem(item)) return activeEmulatorShellSlug === item.item_slug;
+    if (isBoosterItem(item)) return itemIsActive(item);
+    return false;
+  };
+
+  const getInventoryStatusBadge = (item: any, itemIsNew: boolean) => {
+    if (!item) return null;
+    if (isBoosterItem(item) && boosterUsedByMe(item) && boosterIsExpired(item)) {
+      return { label: "Vencido", tone: "expired" };
+    }
+    if (isStackEquipped(item)) {
+      return { label: "Activo", tone: "active" };
+    }
+    if (itemIsNew) {
+      return { label: "Nuevo", tone: "new" };
+    }
+    return null;
   };
 
   const convertStatToFcoin = async () => {
@@ -1657,10 +1723,10 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
 
   return (
     <div className="space-y-4 animate-in fade-in">
-      <div className="demoniaco-inventory-equipment-shell rounded border border-border bg-card p-4">
-        <div className="demoniaco-shell-ornaments" aria-hidden="true" />
-        <div className="inventory-equipment-grid grid gap-3 xl:grid-cols-2">
-        <div className="demoniaco-inventory-panel rounded border-2 border-[#5b4631] bg-[#2b2119] p-3 shadow-[inset_0_0_0_2px_rgba(255,255,255,0.06)]">
+      <div className="demoniaco-inventory-equipment-shell melodia-inventory-shell rounded border border-border bg-card p-4" data-melodia-surface="inventory-shell">
+        <div className="demoniaco-shell-ornaments melodia-shell-ornaments" data-melodia-surface="inventory-ornaments" aria-hidden="true" />
+        <div className="inventory-equipment-grid melodia-inventory-equipment-grid grid gap-3 xl:grid-cols-2" data-melodia-surface="inventory-equipment-grid">
+        <div className="demoniaco-inventory-panel melodia-inventory-panel rounded border-2 border-[#5b4631] bg-[#2b2119] p-3 shadow-[inset_0_0_0_2px_rgba(255,255,255,0.06)]" data-melodia-surface="inventory-panel">
           <div className="mb-3 flex items-center justify-between gap-2">
             <h3 className="font-pixel text-[10px] uppercase text-[#f7d28b] flex items-center gap-2">
               <InventoryIcon className="h-4 w-4" /> Inventario
@@ -1717,7 +1783,8 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
 
           <div
             ref={inventoryGridRef}
-            className="inventory-slot-grid grid gap-2 rounded border border-black/60 bg-[#1b140f] p-2"
+            className="inventory-slot-grid melodia-inventory-slot-grid grid gap-2 rounded border border-black/60 bg-[#1b140f] p-2"
+            data-melodia-surface="inventory-slot-grid"
             style={{
               gridTemplateColumns: `repeat(${inventoryColumns}, minmax(0, 1fr))`,
               width: "100%",
@@ -1741,8 +1808,24 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                     onContextMenu={(event) => {
                       handleSlotRightClick(index, event);
                     }}
+                    draggable={Boolean(item && canEquipStack(item))}
+                    onDragStart={(event) => {
+                      if (!item || !canEquipStack(item)) return;
+                      markStackSeen(item);
+                      setContextMenu(null);
+                      const draggedItem = cloneStack(item);
+                      commitCursorItem(draggedItem);
+                      cursorItemRef.current = draggedItem;
+                      event.dataTransfer.effectAllowed = "move";
+                      event.dataTransfer.setData("text/plain", item.item_slug || item.id || String(index));
+                    }}
+                    onDragEnd={() => {
+                      if (cursorItemRef.current?.id === item?.id) {
+                        commitCursorItem(null);
+                      }
+                    }}
                     className={cn(
-                      "demoniaco-item-frame relative aspect-square select-none rounded-sm border bg-[#3b2d21] shadow-[inset_2px_2px_0_rgba(255,255,255,0.12),inset_-2px_-2px_0_rgba(0,0,0,0.5)] transition-colors",
+                      "demoniaco-item-frame melodia-inventory-slot relative aspect-square select-none rounded-sm border bg-[#3b2d21] shadow-[inset_2px_2px_0_rgba(255,255,255,0.12),inset_-2px_-2px_0_rgba(0,0,0,0.5)] transition-colors",
                       item ? "cursor-pointer border-[#d6b16f] bg-[radial-gradient(circle_at_35%_25%,rgba(250,204,21,0.22),#3b2d21_55%)]" : "border-[#6b5236]",
                       item && isBoosterItem(item) && itemIsActive(item) && "border-neon-green/80 bg-[radial-gradient(circle_at_35%_25%,rgba(34,197,94,0.32),rgba(18,64,31,0.82)_58%,#0c160f_100%)] shadow-[inset_2px_2px_0_rgba(255,255,255,0.14),inset_-2px_-2px_0_rgba(0,0,0,0.55),0_0_14px_rgba(34,197,94,0.45)]",
                       dragTouched.includes(index ?? -1) && "ring-2 ring-neon-cyan",
@@ -1755,6 +1838,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                     {item && (() => {
                       const itemIsNew = isInventoryItemUnseen(userId, item);
                       const itemBoosterExpired = isBoosterItem(item) && boosterIsExpired(item);
+                      const statusBadge = getInventoryStatusBadge(item, itemIsNew);
                       void seenVersion;
                       return (
                       <div className="flex h-full w-full items-center justify-center">
@@ -1787,19 +1871,12 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                             )}
                           />
                         </div>
-                        {isBoosterItem(item) && itemIsActive(item) && <span className="absolute left-0.5 top-0.5 rounded bg-neon-green/90 px-1 font-pixel text-[5px] text-black">ACTIVO</span>}
-                        {isBoosterItem(item) && !itemIsActive(item) && boosterUsedByMe(item) && (
-                          <span className="absolute left-0.5 top-0.5 rounded bg-muted px-1 font-pixel text-[5px] text-foreground">
-                            {boosterIsExpired(item) ? "VENCIDO" : "USADO"}
+                        {statusBadge && (
+                          <span className={cn("inventory-status-badge", `inventory-status-badge--${statusBadge.tone}`)}>
+                            {statusBadge.label}
                           </span>
                         )}
                         {isMembershipItem(item) && <span className="absolute left-0.5 top-0.5 rounded bg-neon-magenta/90 px-1 font-pixel text-[6px] text-white">30D</span>}
-                        {isSkinItem(item) && activeSkins[(ALL_SKINS as any)[item.item_slug!]?.type || 'launcher'] === item.item_slug && <span className="absolute left-0.5 top-0.5 rounded bg-neon-green/90 px-1 font-pixel text-[6px] text-black">EQUIPADA</span>}
-                        {isAvatarFrameItem(item) && activeAvatarFrameSlug === item.item_slug && <span className="absolute left-0.5 top-0.5 rounded bg-neon-green/90 px-1 font-pixel text-[6px] text-black">EQUIPADO</span>}
-                        {isProfileTransitionItem(item) && activeProfileTransitionSlug === item.item_slug && <span className="absolute left-0.5 top-0.5 rounded bg-neon-green/90 px-1 font-pixel text-[6px] text-black">EQUIPADA</span>}
-                        {isEmulatorShellItem(item) && activeEmulatorShellSlug === item.item_slug && <span className="absolute left-0.5 top-0.5 rounded bg-neon-green/90 px-1 font-pixel text-[6px] text-black">EQUIPADA</span>}
-
-                        {itemIsNew && <span className="absolute right-0.5 top-0.5 h-2.5 w-2.5 rounded-full border border-black bg-destructive shadow-[0_0_8px_rgba(239,68,68,0.9)]" />}
                         <span className="absolute bottom-0.5 right-1 font-pixel text-[8px] text-white drop-shadow-[0_1px_0_#000]">x{item.quantity}</span>
                       </div>
                       );
@@ -1848,7 +1925,22 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
 
         </div>
 
-        <div className="equipment-panel rounded border border-border bg-card/80 p-3">
+        <div
+          className="equipment-panel melodia-equipment-panel rounded border border-border bg-card/80 p-3"
+          data-melodia-surface="equipment-panel"
+          onClickCapture={(event) => {
+            if (!cursorItemRef.current) return;
+            void handleEquipmentDrop(event);
+          }}
+          onDragOver={(event) => {
+            if (!cursorItemRef.current || !canEquipStack(cursorItemRef.current)) return;
+            event.preventDefault();
+            event.dataTransfer.dropEffect = "move";
+          }}
+          onDrop={(event) => {
+            void handleEquipmentDrop(event);
+          }}
+        >
           <div className="mb-3 flex items-center justify-between gap-2">
             <h3 className="equipment-title flex items-center gap-2 font-pixel text-[10px] uppercase text-[#f7d28b]">
               <Swords className="h-4 w-4" />
@@ -1856,7 +1948,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
             </h3>
             <span className="font-pixel text-[8px] text-muted-foreground">{activeEquipmentEntries.length}/5</span>
           </div>
-          <div className="equipment-star relative mx-auto aspect-square w-full max-w-[320px] xl:max-w-[min(38vw,360px)]">
+          <div className="equipment-star melodia-equipment-star relative mx-auto aspect-square w-full max-w-[320px] xl:max-w-[min(38vw,360px)]" data-melodia-surface="equipment-star">
             {Array.from({ length: 5 }).map((_, index) => {
               const entry = activeEquipmentEntries[index];
               return (
@@ -1864,7 +1956,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                   key={index}
                   type="button"
                   className={cn(
-                    "demoniaco-item-frame equipment-slot absolute grid aspect-square w-[31%] -translate-x-1/2 -translate-y-1/2 place-items-center rounded-sm border bg-[#1b140f] text-left transition-colors",
+                    "demoniaco-item-frame equipment-slot melodia-equipment-slot absolute grid aspect-square w-[31%] -translate-x-1/2 -translate-y-1/2 place-items-center rounded-sm border bg-[#1b140f] text-left transition-colors",
                     entry ? "border-neon-green/60 bg-neon-green/10" : "border-border/70 bg-black/35",
                   )}
                   style={{
@@ -1876,7 +1968,10 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                 >
                   {entry ? (
                     <>
-                      <span className="equipment-remove-marker absolute right-0.5 top-0.5 grid h-4 w-4 place-items-center rounded-sm border border-red-400/60 bg-black/75 text-red-200 shadow-[0_0_8px_rgba(239,68,68,0.45)]">
+                      <span className="equipment-equipped-badge absolute bottom-0.5 left-1/2 z-30 max-w-[92%] -translate-x-1/2 truncate rounded-sm border px-1.5 py-0.5 font-pixel text-[6px] uppercase leading-none">
+                        {getEquipmentBadgeText(entry)}
+                      </span>
+                      <span className="equipment-remove-marker absolute right-0.5 top-0.5 z-30 grid h-4 w-4 place-items-center rounded-sm border">
                         <XIcon className="h-2.5 w-2.5" />
                       </span>
                       {entry.kind === "avatar_frame" ? (
@@ -1898,7 +1993,6 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                       ) : (
                         <Palette className="h-4 w-4 text-neon-green drop-shadow-[0_0_8px_rgba(34,197,94,0.65)]" />
                       )}
-                      <span className="absolute bottom-0.5 left-1 right-1 truncate text-center font-pixel text-[5px] uppercase text-neon-green">{entry.skinType}</span>
                     </>
                   ) : (
                     <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
@@ -1911,7 +2005,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
         </div>
       </div>
 
-      <div className="demoniaco-inventory-conversion-panel demoniaco-inventory-meta grid gap-2 rounded border border-[#8b6d46]/60 bg-black/25 p-2 lg:grid-cols-2">
+      <div className="demoniaco-inventory-conversion-panel melodia-conversion-panel demoniaco-inventory-meta grid gap-2 rounded border border-[#8b6d46]/60 bg-black/25 p-2 lg:grid-cols-2" data-melodia-surface="conversion-panel">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <div className="min-w-0 flex-1">
             <p className="font-pixel text-[8px] uppercase text-[#f7d28b]">STAT a F-coin</p>
@@ -1939,7 +2033,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
       </div>
 
       <div className="inventory-trade-offers-grid grid gap-3 xl:grid-cols-[minmax(280px,380px)_minmax(0,1fr)]">
-        <div className="demoniaco-trade-panel rounded border border-neon-cyan/30 bg-card p-4">
+        <div className="demoniaco-trade-panel melodia-trade-panel rounded border border-neon-cyan/30 bg-card p-4" data-melodia-surface="trade-panel">
           <h3 className="font-pixel text-[10px] uppercase text-neon-cyan flex items-center gap-2">
             <ArrowLeftRight className="h-4 w-4" /> Trueque
           </h3>
@@ -1990,7 +2084,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                 <span>Tu lado</span>
                 <span className={cn("text-[8px]", localReady ? "text-neon-green" : "text-muted-foreground")}>{localReady ? "Listo" : "Editando"}</span>
               </div>
-              <div className="demoniaco-trade-slots grid w-full grid-cols-2 gap-1 rounded border border-neon-cyan/30 bg-black/50 p-1">
+              <div className="demoniaco-trade-slots melodia-trade-slots grid w-full grid-cols-2 gap-1 rounded border border-neon-cyan/30 bg-black/50 p-1" data-melodia-surface="trade-slots">
                 {tradeSlots.map((item, index) => (
                   <button
                     key={index}
@@ -2001,7 +2095,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                       handleTradeSlotClick(index, event);
                     }}
                     className={cn(
-                      "demoniaco-item-frame relative aspect-square rounded-sm border bg-[#1b140f] shadow-[inset_1px_1px_0_rgba(255,255,255,0.1),inset_-1px_-1px_0_rgba(0,0,0,0.5)]",
+                      "demoniaco-item-frame melodia-trade-slot relative aspect-square rounded-sm border bg-[#1b140f] shadow-[inset_1px_1px_0_rgba(255,255,255,0.1),inset_-1px_-1px_0_rgba(0,0,0,0.5)]",
                       item ? "border-[#d6b16f]" : "border-white/10",
                     )}
                     title="Barra de trueque"
@@ -2024,12 +2118,12 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                 <span>{selectedRecipient?.display_name ? "Su lado" : "Esperando"}</span>
                 <span className={cn("text-[8px]", remoteReady ? "text-neon-green" : "text-muted-foreground")}>{remoteReady ? "Listo" : "Editando"}</span>
               </div>
-              <div className="demoniaco-trade-slots grid w-full grid-cols-2 gap-1 rounded border border-neon-magenta/30 bg-black/50 p-1">
+              <div className="demoniaco-trade-slots melodia-trade-slots grid w-full grid-cols-2 gap-1 rounded border border-neon-magenta/30 bg-black/50 p-1" data-melodia-surface="trade-slots">
                 {remoteTradeSlots.map((item, index) => (
                   <div
                     key={index}
                     className={cn(
-                      "demoniaco-item-frame relative aspect-square rounded-sm border bg-[#1b140f] shadow-[inset_1px_1px_0_rgba(255,255,255,0.1),inset_-1px_-1px_0_rgba(0,0,0,0.5)]",
+                      "demoniaco-item-frame melodia-trade-slot relative aspect-square rounded-sm border bg-[#1b140f] shadow-[inset_1px_1px_0_rgba(255,255,255,0.1),inset_-1px_-1px_0_rgba(0,0,0,0.5)]",
                       item ? "border-[#d6b16f]" : "border-white/10",
                     )}
                     title={item ? itemLabel(item) : "Slot remoto"}
@@ -2073,7 +2167,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
           )}
         </div>
 
-        <div className="demoniaco-offers-panel rounded border border-border bg-card p-4">
+        <div className="demoniaco-offers-panel melodia-offers-panel rounded border border-border bg-card p-4" data-melodia-surface="offers-panel">
           <h3 className="font-pixel text-[10px] uppercase text-muted-foreground">Ofertas recientes</h3>
           {offers.length === 0 ? (
             <p className="mt-3 text-center text-xs text-muted-foreground">Sin trueques activos.</p>

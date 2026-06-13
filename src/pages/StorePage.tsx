@@ -529,7 +529,9 @@ export default function StorePage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
           <div className="bg-card border border-neon-green/50 rounded p-3">
             <p className="flex items-center gap-1 text-[10px] text-muted-foreground">
-              <Trophy className="h-3 w-3 text-emerald-400" />
+              <span className="shop-balance-icon shop-balance-icon-stats">
+                <Trophy className="h-3 w-3 text-emerald-400" />
+              </span>
               STATS
             </p>
             <p className="flex items-center gap-1 font-pixel text-neon-green text-sm">
@@ -539,7 +541,9 @@ export default function StorePage() {
           </div>
           <div className="bg-card border border-neon-cyan/50 rounded p-3">
             <p className="flex items-center gap-1 text-[10px] text-muted-foreground">
-              <Coins className="h-3 w-3 text-yellow-300" />
+              <span className="shop-balance-icon shop-balance-icon-fcoins">
+                <Coins className="h-3 w-3 text-yellow-300" />
+              </span>
               F-COINS
             </p>
             <p className="font-pixel text-neon-cyan text-sm">{userFCoins.toLocaleString()}</p>
@@ -555,13 +559,13 @@ export default function StorePage() {
         </div>
 
         {/* Categorías */}
-        <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
+        <div className="store-category-tabs flex flex-wrap gap-2 mb-8 overflow-visible pb-1">
           {categories.map(cat => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
               className={cn(
-                "store-category-tab px-3 py-1.5 rounded text-[10px] whitespace-nowrap transition-all font-pixel",
+                "store-category-tab min-w-0 px-3 py-1.5 rounded text-[clamp(9px,1.65vw,10px)] whitespace-normal text-center leading-tight transition-all font-body font-semibold",
                 selectedCategory === cat
                   ? "is-active bg-neon-cyan text-background"
                   : "bg-card border border-border hover:border-neon-cyan/50"
@@ -633,7 +637,7 @@ export default function StorePage() {
                           !hasArtworkThumbnail && item.slug?.startsWith("boomshacka") && "h-10 w-10 text-red-200 drop-shadow-[0_0_12px_rgba(248,113,113,0.72)]",
                         )}
                       />
-                      <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 rounded border border-black/50 bg-black/80 px-1.5 py-0.5 font-pixel text-[7px] uppercase text-white/85">
+                      <span className="absolute bottom-1 left-1/2 max-w-[88%] -translate-x-1/2 truncate rounded border border-black/45 bg-black/80 px-1.5 py-0.5 font-pixel text-[7px] uppercase leading-none text-white/90">
                         {visual.badge}
                       </span>
                     </div>
@@ -673,10 +677,12 @@ export default function StorePage() {
                   {/* Precio */}
                   <div className="flex items-center gap-2 pt-2 border-t border-border">
                     <div className={cn(
-                      "flex items-center gap-1",
+                      "shop-price-pill flex items-center gap-1",
                       item.price_type === 'stats' ? "text-emerald-400" : "text-yellow-300"
                     )}>
-                      {item.price_type === 'stats' ? <Trophy className="w-3 h-3" /> : <Coins className="w-3 h-3" />}
+                      <span className={cn("shop-price-icon", item.price_type === 'stats' ? "shop-price-icon-stats" : "shop-price-icon-fcoins")}>
+                        {item.price_type === 'stats' ? <Trophy className="w-3 h-3" /> : <Coins className="w-3 h-3" />}
+                      </span>
                       <span className="font-pixel text-[11px]">{item.price.toLocaleString()}</span>
                     </div>
 

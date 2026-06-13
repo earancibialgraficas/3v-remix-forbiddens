@@ -65,8 +65,15 @@ const applyThemeToRoot = (theme: SkinTheme | null) => {
   if (typeof document === 'undefined') return;
 
   const root = document.documentElement;
+  const body = document.body;
   const currentStyle = root.getAttribute('style') || '';
   const cleanedStyle = cleanSkinVariables(currentStyle);
+  root.classList.forEach((className) => {
+    if (className.startsWith('skin-theme-')) root.classList.remove(className);
+  });
+  body?.classList.forEach((className) => {
+    if (className.startsWith('skin-theme-')) body.classList.remove(className);
+  });
 
   if (!theme || theme.slug === 'default') {
     if (cleanedStyle) {
@@ -75,6 +82,7 @@ const applyThemeToRoot = (theme: SkinTheme | null) => {
       root.removeAttribute('style');
     }
     root.removeAttribute('data-skin-slug');
+    body?.removeAttribute('data-skin-slug');
     return;
   }
 
@@ -82,6 +90,9 @@ const applyThemeToRoot = (theme: SkinTheme | null) => {
   const cssVariables = generateThemeCSS(theme);
   root.setAttribute('style', `${cssVariables}${cleanedStyle ? ' ' + cleanedStyle : ''}`);
   root.setAttribute('data-skin-slug', theme.slug);
+  root.classList.add(`skin-theme-${theme.slug}`);
+  body?.setAttribute('data-skin-slug', theme.slug);
+  body?.classList.add(`skin-theme-${theme.slug}`);
 };
 
 const getWinningSource = () => {

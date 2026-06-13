@@ -210,7 +210,7 @@ export default function RightPanel() {
   const isHome = location.pathname === "/";
 
   return (
-    <div className="site-rightbar-panel w-full shrink-0 flex flex-col h-full md:h-full">
+    <div className="site-rightbar-panel melodia-rightbar w-full shrink-0 flex flex-col h-full md:h-full" data-melodia-surface="rightbar">
       
       {!isMobile && (
         <div className="flex items-center justify-end gap-1 bg-background z-40 py-1 mb-2 shrink-0">
@@ -237,7 +237,7 @@ export default function RightPanel() {
           onScroll={handleScroll}
           className="w-full h-full space-y-3 pb-6 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] relative z-10"
         >
-          <div className={cn("right-panel-card bg-card border border-border rounded p-3 shadow-md hover:border-primary/50 transition-colors", !isMobile && "mt-0")}>
+          <div data-melodia-surface="rightbar-card" className={cn("right-panel-card melodia-rightbar-card bg-card border border-border rounded p-3 shadow-md hover:border-primary/50 transition-colors", !isMobile && "mt-0")}>
             <h3 className={cn("font-pixel mb-1", sizes.title)} style={{ color: '#de1839', textShadow: '0 0 8px rgba(222, 24, 57, 0.6)' }}>FORBIDDENS</h3>
             <div className="grid grid-cols-3 gap-1 my-3">
               <div className="text-center"><p className={cn("font-bold text-foreground font-body", sizes.stat)}>{memberCount}</p><p className={cn("text-muted-foreground", sizes.title)}>Miembros</p></div>
@@ -254,7 +254,7 @@ export default function RightPanel() {
 
           <MiniCarousel />
 
-          <div className="right-panel-card bg-card border border-border rounded p-3 space-y-4 shadow-md">
+          <div data-melodia-surface="rightbar-card" className="right-panel-card melodia-rightbar-card bg-card border border-border rounded p-3 space-y-4 shadow-md">
             <div>
               <h3 className={cn("font-pixel text-neon-cyan mb-2", sizes.title)}>TOP USUARIOS</h3>
               <div className="space-y-1.5">
@@ -300,7 +300,7 @@ export default function RightPanel() {
             </div>
           </div>
 
-          <div className="right-panel-footer-section mt-6 pt-4 border-t border-border space-y-4">
+          <div className="right-panel-footer-section melodia-rightbar-footer mt-6 pt-4 border-t border-border space-y-4" data-melodia-surface="rightbar-footer">
             {!isMobile && <div id="music-slot-desktop" className="w-full" />}
             <Footer />
           </div>

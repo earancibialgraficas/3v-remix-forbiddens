@@ -32,7 +32,7 @@ export default function HeroSection() {
   }, []);
 
   return (
-    <section className="home-hero relative w-full h-[70vh] min-h-[400px] overflow-hidden rounded transition-all duration-300">
+    <section className="home-hero melodia-home-hero relative w-full h-[70vh] min-h-[400px] overflow-hidden rounded transition-all duration-300" data-melodia-surface="home-hero">
       <img
         src={heroBanner}
         alt="FORBIDDENS arcade"

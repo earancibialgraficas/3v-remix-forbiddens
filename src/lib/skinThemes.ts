@@ -101,6 +101,7 @@ export const MI_MELODIA_ROSA_SKIN: SkinTheme = {
   name: 'Mi Melodia Rosa',
   slug: 'mi_melodia_rosa',
   type: 'launcher',
+  family: 'demoniaco',
   description: 'Skin rosa con texturas, marcos ornamentales y acabado pastel para website y launcher.',
   colors: {
     primary: '#d94f86',

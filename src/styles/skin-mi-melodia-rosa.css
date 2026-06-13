@@ -1209,6 +1209,630 @@ html[style*="--skin-slug: mi_melodia_rosa"] .equipment-star::before {
   }
 }
 
+/* Mi Melodia Rosa final assert.
+   This block deliberately targets every root marker used by the theme loader,
+   because several pages receive the skin through class/data/style at different
+   moments during navigation. Keep this at the end of the file. */
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) {
+  --mmr-ink: #6d3f89;
+  --mmr-ink-strong: #56306f;
+  --mmr-pink: #f3a8cc;
+  --mmr-pink-deep: #d875ad;
+  --mmr-panel:
+    linear-gradient(135deg, rgba(255, 250, 253, 0.58), rgba(255, 226, 241, 0.76)),
+    var(--skin-pattern-panel, url("/skins/mi_melodia_rosa/backgrounds/solid/window-rock.png") center / cover),
+    linear-gradient(135deg, #fffafd, #ffe4f2);
+  --mmr-sidebar:
+    linear-gradient(180deg, rgba(255, 248, 252, 0.62), rgba(255, 225, 240, 0.78)),
+    var(--skin-pattern-sidebar, url("/skins/mi_melodia_rosa/backgrounds/solid/basalt-tall.png") center top / cover),
+    linear-gradient(180deg, #fffafd, #ffe0ef);
+  --mmr-slot:
+    linear-gradient(135deg, rgba(255, 248, 252, 0.22), rgba(255, 224, 240, 0.38)),
+    var(--melodia-slot-frame, url("/skins/mi_melodia_rosa/slots/slot-frame.png")) center / 100% 100% no-repeat,
+    var(--skin-pattern-slot, url("/skins/mi_melodia_rosa/backgrounds/solid/basalt-wide.png") center / cover);
+  --mmr-edge: clamp(22px, 2.05vw, 34px);
+  --mmr-corner: clamp(98px, 8.4vw, 148px);
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) aside.bg-card.border-r,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .lg\:hidden.fixed.bg-card {
+  background: var(--mmr-sidebar) !important;
+  border-color: rgba(109, 63, 137, 0.28) !important;
+  color: var(--mmr-ink) !important;
+  box-shadow: inset -1px 0 0 rgba(216, 117, 173, 0.2), 12px 0 34px rgba(109, 63, 137, 0.13) !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) aside.bg-card.border-r .p-2.border-b a:hover,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) aside.bg-card.border-r .p-2.border-b button:hover,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .lg\:hidden.fixed.bg-card .p-2.border-b a:hover,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .lg\:hidden.fixed.bg-card .p-2.border-b button:hover {
+  background: linear-gradient(135deg, #ffd5e8, var(--mmr-pink)) !important;
+  color: var(--mmr-ink-strong) !important;
+  border-color: rgba(109, 63, 137, 0.36) !important;
+  box-shadow: 0 0 14px rgba(216, 117, 173, 0.22) !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) aside.bg-card.border-r .p-2.border-b a:hover svg,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) aside.bg-card.border-r .p-2.border-b button:hover svg,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .lg\:hidden.fixed.bg-card .p-2.border-b a:hover svg,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .lg\:hidden.fixed.bg-card .p-2.border-b button:hover svg {
+  color: var(--mmr-ink-strong) !important;
+  stroke: currentColor !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) aside.bg-card.border-r nav a:hover,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) aside.bg-card.border-r nav button:hover,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .lg\:hidden.fixed.bg-card nav a:hover,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .lg\:hidden.fixed.bg-card nav button:hover {
+  background: linear-gradient(90deg, rgba(216, 117, 173, 0.68), rgba(217, 183, 230, 0.5), transparent) !important;
+  color: var(--mmr-ink-strong) !important;
+  text-shadow: none !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) aside.bg-card.border-r .forum-sidebar-nav-active,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) aside.bg-card.border-r .forum-sidebar-nav-active:hover,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .lg\:hidden.fixed.bg-card .forum-sidebar-nav-active,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .lg\:hidden.fixed.bg-card .forum-sidebar-nav-active:hover {
+  background: linear-gradient(135deg, var(--mmr-pink), #d9b7e6) !important;
+  color: var(--mmr-ink-strong) !important;
+  border-color: rgba(109, 63, 137, 0.38) !important;
+  text-shadow: none !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) aside.bg-card.border-r .forum-sidebar-nav-active *,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) aside.bg-card.border-r .forum-sidebar-nav-active:hover *,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .lg\:hidden.fixed.bg-card .forum-sidebar-nav-active *,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .lg\:hidden.fixed.bg-card .forum-sidebar-nav-active:hover * {
+  color: var(--mmr-ink-strong) !important;
+  stroke: currentColor !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .site-rightbar-panel,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .site-rightbar-panel .right-panel-card,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .site-rightbar-panel .bg-card,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .right-panel-footer-section,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .site-footer {
+  background: var(--mmr-panel) !important;
+  border-color: rgba(109, 63, 137, 0.32) !important;
+  color: var(--mmr-ink) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5), 0 14px 28px rgba(109, 63, 137, 0.12) !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .site-rightbar-panel h2,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .site-rightbar-panel h3,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .site-rightbar-panel .font-pixel,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .right-panel-footer-section *,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .site-footer * {
+  color: var(--mmr-ink) !important;
+  -webkit-text-fill-color: var(--mmr-ink) !important;
+  text-shadow: none !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .right-panel-discord-button {
+  background: linear-gradient(135deg, #b85a96, #8b5fb4) !important;
+  color: #fff !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+  text-shadow: none !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .demoniaco-inventory-equipment-shell {
+  --melodia-frame-corner-size: var(--mmr-corner);
+  --melodia-frame-edge-thickness: var(--mmr-edge);
+  position: relative !important;
+  overflow: visible !important;
+  isolation: isolate !important;
+  background:
+    linear-gradient(135deg, rgba(255, 250, 253, 0.2), rgba(255, 231, 243, 0.3)),
+    var(--skin-pattern-profile-surface, var(--mmr-panel)) !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .demoniaco-inventory-equipment-shell > * {
+  position: relative !important;
+  z-index: 11 !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .demoniaco-inventory-equipment-shell::before {
+  content: "" !important;
+  display: block !important;
+  position: absolute !important;
+  inset: calc(var(--mmr-edge) * -0.58) !important;
+  z-index: 8 !important;
+  pointer-events: none !important;
+  background-image:
+    var(--melodia-frame-edge-horizontal),
+    var(--melodia-frame-edge-vertical),
+    var(--melodia-frame-edge-horizontal),
+    var(--melodia-frame-edge-vertical) !important;
+  background-position: top center, right center, bottom center, left center !important;
+  background-repeat: no-repeat !important;
+  background-size:
+    calc(100% + 8px) var(--mmr-edge),
+    var(--mmr-edge) calc(100% + 8px),
+    calc(100% + 8px) var(--mmr-edge),
+    var(--mmr-edge) calc(100% + 8px) !important;
+  opacity: 1 !important;
+  filter: drop-shadow(0 0 8px rgba(216, 117, 173, 0.18)) !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .demoniaco-inventory-equipment-shell::after {
+  content: "" !important;
+  display: block !important;
+  position: absolute !important;
+  inset: calc(var(--mmr-corner) * -0.34) !important;
+  z-index: 9 !important;
+  pointer-events: none !important;
+  background-image:
+    var(--melodia-frame-corner-tl),
+    var(--melodia-frame-corner-tr),
+    var(--melodia-frame-corner-br),
+    var(--melodia-frame-corner-bl) !important;
+  background-position: top left, top right, bottom right, bottom left !important;
+  background-repeat: no-repeat !important;
+  background-size: var(--mmr-corner) var(--mmr-corner) !important;
+  opacity: 1 !important;
+  filter: drop-shadow(0 0 8px rgba(216, 117, 173, 0.18)) !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .inventory-equipment-grid {
+  position: relative !important;
+  background-image: var(--melodia-frame-edge-vertical) !important;
+  background-position: center center !important;
+  background-repeat: no-repeat !important;
+  background-size: var(--mmr-edge) calc(100% + 42px) !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .inventory-equipment-grid::before,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .inventory-equipment-grid::after {
+  content: "" !important;
+  display: block !important;
+  position: absolute !important;
+  left: 50% !important;
+  z-index: 10 !important;
+  pointer-events: none !important;
+  width: clamp(104px, 9.5vw, 152px) !important;
+  height: clamp(40px, 3.7vw, 62px) !important;
+  transform: translateX(-50%) !important;
+  opacity: 1 !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .inventory-equipment-grid::before {
+  top: calc(var(--mmr-edge) * -1.12) !important;
+  background: var(--melodia-separator-t) center / contain no-repeat !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .inventory-equipment-grid::after {
+  bottom: calc(var(--mmr-edge) * -1.12) !important;
+  background: var(--melodia-separator-t-inverted) center / contain no-repeat !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .demoniaco-inventory-panel,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .equipment-panel,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .demoniaco-trade-panel,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .demoniaco-offers-panel,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .demoniaco-inventory-conversion-panel,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .demoniaco-trade-box,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .demoniaco-trade-slots {
+  background: var(--mmr-panel) !important;
+  border-color: rgba(109, 63, 137, 0.32) !important;
+  color: var(--mmr-ink) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5), 0 12px 26px rgba(109, 63, 137, 0.1) !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .demoniaco-trade-panel::before,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .demoniaco-trade-panel::after {
+  content: none !important;
+  display: none !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .demoniaco-inventory-conversion-panel {
+  background:
+    linear-gradient(135deg, rgba(255, 250, 253, 0.28), rgba(255, 232, 244, 0.32)),
+    var(--skin-pattern-panel, url("/skins/mi_melodia_rosa/backgrounds/solid/basalt-wide.png") center / cover) !important;
+  box-shadow: none !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .equipment-panel,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .equipment-star {
+  overflow: visible !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .equipment-star {
+  background: transparent !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .equipment-star::before {
+  inset: -18% !important;
+  background: var(--melodia-equipment-star, url("/skins/mi_melodia_rosa/equipment/equipment-star.png")) center / contain no-repeat !important;
+  opacity: 1 !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .inventory-slot-grid,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .demoniaco-item-frame,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .equipment-slot,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) button[title="Barra de trueque"],
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) div[title="Slot remoto"] {
+  background: var(--mmr-slot) !important;
+  border-color: rgba(109, 63, 137, 0.34) !important;
+  color: var(--mmr-ink) !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .demoniaco-item-frame:hover,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .equipment-slot:hover,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) button[title="Barra de trueque"]:hover,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) div[title="Slot remoto"]:hover {
+  background:
+    var(--melodia-slot-hover, url("/skins/mi_melodia_rosa/slots/slot-hover.png")) center / 100% 100% no-repeat,
+    var(--mmr-slot) !important;
+  box-shadow: 0 0 16px rgba(216, 117, 173, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.58) !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .demoniaco-inventory-equipment-shell .text-white,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .demoniaco-inventory-equipment-shell [class*="text-white"],
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .demoniaco-trade-panel .text-white,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .demoniaco-trade-panel [class*="text-white"],
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .demoniaco-offers-panel .text-white,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .demoniaco-inventory-conversion-panel .text-white,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .demoniaco-inventory-conversion-panel [class*="text-white"] {
+  color: var(--mmr-ink) !important;
+  -webkit-text-fill-color: var(--mmr-ink) !important;
+  text-shadow: none !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .home-hero::before {
+  -webkit-mask-image:
+    linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.15) 1.4%, rgba(0, 0, 0, 0.88) 5%, #000 8.5%, #000 91.5%, rgba(0, 0, 0, 0.88) 95%, rgba(0, 0, 0, 0.15) 98.6%, transparent 100%),
+    linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.22) 1.8%, #000 6%, #000 94%, rgba(0, 0, 0, 0.22) 98.2%, transparent 100%) !important;
+  mask-image:
+    linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.15) 1.4%, rgba(0, 0, 0, 0.88) 5%, #000 8.5%, #000 91.5%, rgba(0, 0, 0, 0.88) 95%, rgba(0, 0, 0, 0.15) 98.6%, transparent 100%),
+    linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.22) 1.8%, #000 6%, #000 94%, rgba(0, 0, 0, 0.22) 98.2%, transparent 100%) !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .home-hero .launcher-download-button,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .home-hero .launcher-download-button:hover {
+  opacity: 1 !important;
+  visibility: visible !important;
+  background: linear-gradient(135deg, #9a6abc, #bf7cc8) !important;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+  text-shadow: none !important;
+  box-shadow: 0 0 16px rgba(154, 106, 188, 0.24) !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .home-hero .launcher-download-button:hover {
+  background: linear-gradient(135deg, var(--mmr-pink-deep), #9a6abc) !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .forum-page .forum-post-author-name,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .forum-page [data-user-popup-trigger] {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .forum-page .forum-post-author-name:hover,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .forum-page [data-user-popup-trigger]:hover {
+  background: transparent !important;
+  text-shadow:
+    0 0 9px rgba(181, 88, 150, 0.55),
+    0 0 18px rgba(244, 169, 207, 0.34) !important;
+  filter: drop-shadow(0 0 8px rgba(181, 88, 150, 0.28)) !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .public-profile-music-player > .public-profile-video-layer {
+  right: -8% !important;
+  width: min(74%, 860px) !important;
+  overflow: hidden !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .public-profile-music-player > .public-profile-video-layer iframe {
+  left: auto !important;
+  right: -8% !important;
+  transform: translateY(-50%) !important;
+}
+
+@media (max-width: 900px) {
+  :is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .inventory-equipment-grid {
+    background-image: none !important;
+  }
+
+  :is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .inventory-equipment-grid::before,
+  :is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .inventory-equipment-grid::after {
+    display: none !important;
+  }
+}
+
+/* Mi Melodia Rosa hard polish: visible textures, demoniaco-like inventory frame, pastel hovers. */
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) {
+  --melodia-ink-purple: #76459a;
+  --melodia-ink-purple-strong: #5e347f;
+  --melodia-pink-hover: #f4a9cf;
+  --melodia-pink-hover-soft: #ffd5e8;
+}
+
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) aside.bg-card.border-r,
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .lg\:hidden.fixed.bg-card {
+  background:
+    linear-gradient(180deg, rgba(255, 250, 253, 0.36), rgba(255, 228, 242, 0.48)),
+    var(--skin-pattern-sidebar),
+    linear-gradient(180deg, #fffafd, #ffe3f1) !important;
+  background-blend-mode: normal, normal, normal !important;
+}
+
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .site-rightbar-panel,
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .right-panel-card,
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .right-panel-footer-section,
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .right-panel-footer-section .site-footer {
+  background:
+    linear-gradient(135deg, rgba(255, 250, 253, 0.4), rgba(255, 232, 243, 0.52)),
+    var(--skin-pattern-panel),
+    linear-gradient(135deg, #fffafd, #ffe4f2) !important;
+  background-blend-mode: normal, normal, normal !important;
+}
+
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .right-panel-card h3,
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .right-panel-footer-section .font-pixel,
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .site-rightbar-panel .font-pixel {
+  color: var(--melodia-ink-purple) !important;
+  -webkit-text-fill-color: var(--melodia-ink-purple) !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) aside.bg-card.border-r .h-8.w-8:hover,
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .lg\:hidden.fixed.bg-card .h-8.w-8:hover {
+  background: linear-gradient(135deg, var(--melodia-pink-hover-soft), var(--melodia-pink-hover)) !important;
+  color: var(--melodia-ink-purple-strong) !important;
+  border-color: rgba(118, 69, 154, 0.36) !important;
+  box-shadow: 0 0 14px rgba(181, 88, 150, 0.22) !important;
+}
+
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) aside.bg-card.border-r .h-8.w-8:hover svg,
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .lg\:hidden.fixed.bg-card .h-8.w-8:hover svg {
+  color: var(--melodia-ink-purple-strong) !important;
+}
+
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) aside.bg-card.border-r .forum-sidebar-nav-active,
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) aside.bg-card.border-r .forum-sidebar-nav-active:hover,
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .lg\:hidden.fixed.bg-card .forum-sidebar-nav-active,
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .lg\:hidden.fixed.bg-card .forum-sidebar-nav-active:hover {
+  background: linear-gradient(135deg, #f4a9cf, #d9b7e6) !important;
+  color: var(--melodia-ink-purple-strong) !important;
+  border-color: rgba(118, 69, 154, 0.38) !important;
+  text-shadow: none !important;
+}
+
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) aside.bg-card.border-r .forum-sidebar-nav-active *,
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) aside.bg-card.border-r .forum-sidebar-nav-active:hover *,
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .lg\:hidden.fixed.bg-card .forum-sidebar-nav-active *,
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .lg\:hidden.fixed.bg-card .forum-sidebar-nav-active:hover * {
+  color: var(--melodia-ink-purple-strong) !important;
+}
+
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .home-hero::before {
+  -webkit-mask-image:
+    linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.12) 1.5%, rgba(0, 0, 0, 0.86) 5.5%, #000 10%, #000 90%, rgba(0, 0, 0, 0.86) 94.5%, rgba(0, 0, 0, 0.12) 98.5%, transparent 100%),
+    linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.18) 2%, #000 7%, #000 93%, rgba(0, 0, 0, 0.18) 98%, transparent 100%) !important;
+  mask-image:
+    linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.12) 1.5%, rgba(0, 0, 0, 0.86) 5.5%, #000 10%, #000 90%, rgba(0, 0, 0, 0.86) 94.5%, rgba(0, 0, 0, 0.12) 98.5%, transparent 100%),
+    linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.18) 2%, #000 7%, #000 93%, rgba(0, 0, 0, 0.18) 98%, transparent 100%) !important;
+}
+
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .home-hero .launcher-download-button,
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .home-hero .launcher-download-button:hover {
+  opacity: 1 !important;
+  visibility: visible !important;
+  background: linear-gradient(135deg, #9a6abc, #bf7cc8) !important;
+  color: #fff !important;
+  text-shadow: none !important;
+  box-shadow: 0 0 16px rgba(154, 106, 188, 0.24) !important;
+}
+
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .home-hero .launcher-download-button:hover {
+  background: linear-gradient(135deg, #f4a9cf, #9a6abc) !important;
+  color: #fff !important;
+}
+
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .emulator-page-screen {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255, 236, 246, 0.42), transparent 30%),
+    linear-gradient(135deg, rgba(246, 213, 233, 0.8), rgba(222, 192, 234, 0.8) 48%, rgba(248, 228, 239, 0.8)),
+    var(--skin-pattern-panel) !important;
+}
+
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .emulator-page-screen .absolute.top-0,
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .emulator-page-screen .absolute.top-0 * {
+  color: var(--melodia-ink-purple) !important;
+  -webkit-text-fill-color: var(--melodia-ink-purple) !important;
+  text-shadow: none !important;
+}
+
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .demoniaco-inventory-equipment-shell {
+  --melodia-frame-corner-size: clamp(98px, 8.4vw, 148px);
+  --melodia-frame-edge-thickness: clamp(22px, 2.05vw, 34px);
+  background:
+    linear-gradient(135deg, rgba(255, 250, 253, 0.3), rgba(255, 231, 243, 0.42)),
+    var(--skin-pattern-profile-surface),
+    linear-gradient(135deg, #fffafd, #ffe4f2) !important;
+  border-color: transparent !important;
+  overflow: visible !important;
+  isolation: isolate !important;
+}
+
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .demoniaco-inventory-equipment-shell > * {
+  position: relative !important;
+  z-index: 5 !important;
+}
+
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .demoniaco-inventory-equipment-shell::before {
+  content: "" !important;
+  display: block !important;
+  position: absolute !important;
+  inset: calc(var(--melodia-frame-edge-thickness) * -0.55) !important;
+  z-index: 7 !important;
+  pointer-events: none !important;
+  background-image:
+    var(--melodia-frame-edge-horizontal),
+    var(--melodia-frame-edge-vertical),
+    var(--melodia-frame-edge-horizontal),
+    var(--melodia-frame-edge-vertical) !important;
+  background-repeat: no-repeat !important;
+  background-position: top center, right center, bottom center, left center !important;
+  background-size:
+    100% var(--melodia-frame-edge-thickness),
+    var(--melodia-frame-edge-thickness) 100%,
+    100% var(--melodia-frame-edge-thickness),
+    var(--melodia-frame-edge-thickness) 100% !important;
+  opacity: 1 !important;
+}
+
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .demoniaco-inventory-equipment-shell::after {
+  content: "" !important;
+  display: block !important;
+  position: absolute !important;
+  inset: calc(var(--melodia-frame-corner-size) * -0.34) !important;
+  z-index: 8 !important;
+  pointer-events: none !important;
+  background-image:
+    var(--melodia-frame-corner-tl),
+    var(--melodia-frame-corner-tr),
+    var(--melodia-frame-corner-br),
+    var(--melodia-frame-corner-bl) !important;
+  background-repeat: no-repeat !important;
+  background-position: top left, top right, bottom right, bottom left !important;
+  background-size: var(--melodia-frame-corner-size) var(--melodia-frame-corner-size) !important;
+  opacity: 1 !important;
+}
+
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .inventory-equipment-grid {
+  background-image: var(--melodia-frame-edge-vertical) !important;
+  background-position: center center !important;
+  background-repeat: no-repeat !important;
+  background-size: var(--melodia-frame-edge-thickness) calc(100% + 42px) !important;
+}
+
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .inventory-equipment-grid::before,
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .inventory-equipment-grid::after {
+  display: block !important;
+  z-index: 9 !important;
+  width: clamp(104px, 9.5vw, 152px) !important;
+  height: clamp(40px, 3.7vw, 62px) !important;
+  opacity: 1 !important;
+}
+
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .inventory-equipment-grid::before {
+  top: calc(var(--melodia-frame-edge-thickness) * -1.12) !important;
+}
+
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .inventory-equipment-grid::after {
+  bottom: calc(var(--melodia-frame-edge-thickness) * -1.12) !important;
+}
+
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .demoniaco-trade-panel::before,
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .demoniaco-trade-panel::after {
+  content: none !important;
+  display: none !important;
+}
+
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .demoniaco-inventory-panel,
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .equipment-panel,
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .demoniaco-trade-panel,
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .demoniaco-offers-panel,
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .demoniaco-inventory-conversion-panel,
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .demoniaco-trade-box,
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .demoniaco-trade-slots {
+  background:
+    linear-gradient(135deg, rgba(255, 250, 253, 0.28), rgba(255, 232, 244, 0.36)),
+    var(--skin-pattern-panel),
+    linear-gradient(135deg, #fffafd, #ffe4f2) !important;
+  border-color: rgba(217, 79, 134, 0.28) !important;
+  color: var(--melodia-ink-purple) !important;
+}
+
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .demoniaco-inventory-conversion-panel {
+  background:
+    linear-gradient(135deg, rgba(255, 250, 253, 0.18), rgba(255, 232, 244, 0.22)),
+    var(--skin-pattern-panel) !important;
+  box-shadow: none !important;
+}
+
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .equipment-panel {
+  overflow: visible !important;
+}
+
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .equipment-star {
+  overflow: visible !important;
+  background: transparent !important;
+}
+
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .equipment-star::before {
+  inset: -18% !important;
+  background: var(--melodia-equipment-star) center / contain no-repeat !important;
+  opacity: 1 !important;
+}
+
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .inventory-slot-grid,
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .demoniaco-item-frame,
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .equipment-slot,
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) button[title="Barra de trueque"],
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) div[title="Slot remoto"] {
+  background:
+    linear-gradient(135deg, rgba(255, 250, 253, 0.18), rgba(255, 226, 240, 0.22)),
+    var(--melodia-slot-frame) center / 100% 100% no-repeat,
+    var(--skin-pattern-slot) !important;
+  color: var(--melodia-ink-purple) !important;
+}
+
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .demoniaco-inventory-equipment-shell .text-white,
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .demoniaco-trade-panel .text-white,
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .demoniaco-offers-panel .text-white,
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .demoniaco-inventory-conversion-panel .text-white,
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .demoniaco-inventory-equipment-shell [class*="text-white"],
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .demoniaco-trade-panel [class*="text-white"] {
+  color: var(--melodia-ink-purple) !important;
+  -webkit-text-fill-color: var(--melodia-ink-purple) !important;
+  text-shadow: none !important;
+}
+
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .forum-page .forum-post-author-name {
+  background: transparent !important;
+  box-shadow: none !important;
+  border-color: transparent !important;
+}
+
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .forum-page .forum-post-author-name:hover {
+  background: transparent !important;
+  text-shadow:
+    var(--forum-post-author-shadow, 0 1px 2px rgba(0, 0, 0, 0.5)),
+    0 0 10px rgba(181, 88, 150, 0.55),
+    0 0 18px rgba(244, 169, 207, 0.34) !important;
+  filter: drop-shadow(0 0 8px rgba(181, 88, 150, 0.28)) !important;
+}
+
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .public-profile-music-player > .public-profile-video-layer {
+  right: -8% !important;
+  width: min(74%, 860px) !important;
+  overflow: hidden !important;
+}
+
+:is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .public-profile-music-player > .public-profile-video-layer iframe {
+  left: auto !important;
+  right: -8% !important;
+  transform: translateY(-50%) !important;
+}
+
+@media (max-width: 900px) {
+  :is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .inventory-equipment-grid {
+    background-image: none !important;
+  }
+
+  :is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .inventory-equipment-grid::before,
+  :is(html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"]) .inventory-equipment-grid::after {
+    display: none !important;
+  }
+}
+
 /* Mi Melodia Rosa: emuladores exactamente con tratamiento Rosa Pastel. */
 html[style*="--skin-slug: mi_melodia_rosa"] .emulator-page-screen {
   background:
@@ -1316,4 +1940,197 @@ html[style*="--skin-slug: mi_melodia_rosa"] .right-panel-footer-section .site-fo
     linear-gradient(135deg, rgba(255, 255, 255, 0.22), transparent 52%) !important;
   opacity: 1 !important;
   mix-blend-mode: normal !important;
+}
+
+/* Mi Melodia Rosa: correcciones finales puntuales. */
+html[style*="--skin-slug: mi_melodia_rosa"] .home-hero {
+  background:
+    url('/skins/mi_melodia_rosa/backgrounds/solid/basalt-wide.png') center / cover,
+    linear-gradient(135deg, #fffafd, #ffe3f1) !important;
+}
+
+html[style*="--skin-slug: mi_melodia_rosa"] .home-hero::before {
+  opacity: 1 !important;
+  background: url('/skins/mi_melodia_rosa/home/banner-hero.png') center / cover no-repeat !important;
+  -webkit-mask-image:
+    linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.08) 3%, rgba(0, 0, 0, 0.58) 11%, #000 21%, #000 79%, rgba(0, 0, 0, 0.58) 89%, rgba(0, 0, 0, 0.08) 97%, transparent 100%),
+    linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.44) 7%, #000 16%, #000 84%, rgba(0, 0, 0, 0.44) 93%, transparent 100%) !important;
+  mask-image:
+    linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.08) 3%, rgba(0, 0, 0, 0.58) 11%, #000 21%, #000 79%, rgba(0, 0, 0, 0.58) 89%, rgba(0, 0, 0, 0.08) 97%, transparent 100%),
+    linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.44) 7%, #000 16%, #000 84%, rgba(0, 0, 0, 0.44) 93%, transparent 100%) !important;
+  -webkit-mask-composite: source-in !important;
+  mask-composite: intersect !important;
+}
+
+html[style*="--skin-slug: mi_melodia_rosa"] .home-hero::after,
+html[style*="--skin-slug: mi_melodia_rosa"] .home-hero-overlay,
+html[style*="--skin-slug: mi_melodia_rosa"] .home-hero-scanlines {
+  background: none !important;
+  opacity: 0 !important;
+}
+
+html[style*="--skin-slug: mi_melodia_rosa"] .home-page [aria-roledescription="carousel"] h1,
+html[style*="--skin-slug: mi_melodia_rosa"] .home-page [aria-roledescription="carousel"] h2,
+html[style*="--skin-slug: mi_melodia_rosa"] .home-page [aria-roledescription="carousel"] h3,
+html[style*="--skin-slug: mi_melodia_rosa"] .home-page .right-panel-card h3,
+html[style*="--skin-slug: mi_melodia_rosa"] .home-page .right-panel-card .font-pixel,
+html[style*="--skin-slug: mi_melodia_rosa"] .site-rightbar-panel [aria-roledescription="carousel"] h3,
+html[style*="--skin-slug: mi_melodia_rosa"] .site-rightbar-panel .right-panel-card h3 {
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+  -webkit-text-stroke: 0.45px rgba(143, 92, 173, 0.72) !important;
+  paint-order: stroke fill !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+html[style*="--skin-slug: mi_melodia_rosa"] aside.bg-card.border-r [class*="grid-cols-3"] button:hover,
+html[style*="--skin-slug: mi_melodia_rosa"] .lg\:hidden.fixed.bg-card [class*="grid-cols-3"] button:hover {
+  background: linear-gradient(135deg, rgba(255, 223, 238, 0.96), rgba(244, 190, 221, 0.92)) !important;
+  border-color: rgba(143, 92, 173, 0.34) !important;
+  color: #674080 !important;
+  box-shadow: 0 0 14px rgba(246, 168, 201, 0.28) !important;
+}
+
+html[style*="--skin-slug: mi_melodia_rosa"] aside.bg-card.border-r .forum-sidebar-nav-active:hover,
+html[style*="--skin-slug: mi_melodia_rosa"] aside.bg-card.border-r a[aria-current="page"]:hover,
+html[style*="--skin-slug: mi_melodia_rosa"] aside.bg-card.border-r button[aria-current="page"]:hover,
+html[style*="--skin-slug: mi_melodia_rosa"] .lg\:hidden.fixed.bg-card .forum-sidebar-nav-active:hover,
+html[style*="--skin-slug: mi_melodia_rosa"] .lg\:hidden.fixed.bg-card a[aria-current="page"]:hover,
+html[style*="--skin-slug: mi_melodia_rosa"] .lg\:hidden.fixed.bg-card button[aria-current="page"]:hover {
+  background: linear-gradient(135deg, rgba(255, 218, 236, 0.96), rgba(217, 183, 230, 0.9)) !important;
+  border-color: rgba(143, 92, 173, 0.4) !important;
+  color: #674080 !important;
+  text-shadow: none !important;
+}
+
+html[style*="--skin-slug: mi_melodia_rosa"] .emulator-page-screen {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255, 236, 246, 0.64), transparent 30%),
+    linear-gradient(135deg, rgba(246, 213, 233, 0.8), rgba(222, 192, 234, 0.8) 48%, rgba(248, 228, 239, 0.8)) !important;
+}
+
+html[style*="--skin-slug: mi_melodia_rosa"] .emulator-page-screen > div.absolute.inset-0.transition-opacity {
+  background: linear-gradient(135deg, rgba(255, 237, 247, 0.8), rgba(217, 183, 230, 0.8)) !important;
+}
+
+html[style*="--skin-slug: mi_melodia_rosa"] .emulator-page-screen .absolute.top-0,
+html[style*="--skin-slug: mi_melodia_rosa"] .emulator-page-screen .absolute.top-0 *,
+html[style*="--skin-slug: mi_melodia_rosa"] .emulator-page-screen .emulator-console-header,
+html[style*="--skin-slug: mi_melodia_rosa"] .emulator-page-screen .emulator-console-header * {
+  color: #8f5cad !important;
+  -webkit-text-fill-color: #8f5cad !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+html[style*="--skin-slug: mi_melodia_rosa"] .demoniaco-trade-panel::before,
+html[style*="--skin-slug: mi_melodia_rosa"] .demoniaco-trade-panel::after {
+  content: none !important;
+  display: none !important;
+  background: none !important;
+}
+
+html[style*="--skin-slug: mi_melodia_rosa"] .demoniaco-inventory-equipment-shell {
+  --melodia-frame-corner-size: clamp(84px, 7.7vw, 128px);
+  --melodia-frame-edge-thickness: clamp(18px, 1.9vw, 30px);
+  position: relative !important;
+  overflow: visible !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+html[style*="--skin-slug: mi_melodia_rosa"] .demoniaco-inventory-equipment-shell::before {
+  content: "" !important;
+  display: block !important;
+  position: absolute !important;
+  inset: calc(var(--melodia-frame-edge-thickness) * -0.7) !important;
+  z-index: 8 !important;
+  pointer-events: none !important;
+  background-image:
+    var(--melodia-frame-edge-horizontal),
+    var(--melodia-frame-edge-vertical),
+    var(--melodia-frame-edge-horizontal),
+    var(--melodia-frame-edge-vertical) !important;
+  background-repeat: no-repeat !important;
+  background-position: top center, right center, bottom center, left center !important;
+  background-size:
+    calc(100% + 8px) var(--melodia-frame-edge-thickness),
+    var(--melodia-frame-edge-thickness) calc(100% + 8px),
+    calc(100% + 8px) var(--melodia-frame-edge-thickness),
+    var(--melodia-frame-edge-thickness) calc(100% + 8px) !important;
+  opacity: 0.98 !important;
+  filter: drop-shadow(0 0 7px rgba(180, 71, 127, 0.2)) !important;
+}
+
+html[style*="--skin-slug: mi_melodia_rosa"] .demoniaco-inventory-equipment-shell::after {
+  content: "" !important;
+  display: block !important;
+  position: absolute !important;
+  inset: calc(var(--melodia-frame-corner-size) * -0.33) !important;
+  z-index: 9 !important;
+  pointer-events: none !important;
+  background-image:
+    var(--melodia-frame-corner-tl),
+    var(--melodia-frame-corner-tr),
+    var(--melodia-frame-corner-br),
+    var(--melodia-frame-corner-bl) !important;
+  background-repeat: no-repeat !important;
+  background-position: top left, top right, bottom right, bottom left !important;
+  background-size:
+    var(--melodia-frame-corner-size) var(--melodia-frame-corner-size),
+    var(--melodia-frame-corner-size) var(--melodia-frame-corner-size),
+    var(--melodia-frame-corner-size) var(--melodia-frame-corner-size),
+    var(--melodia-frame-corner-size) var(--melodia-frame-corner-size) !important;
+  opacity: 0.99 !important;
+  filter: drop-shadow(0 0 8px rgba(180, 71, 127, 0.18)) !important;
+}
+
+html[style*="--skin-slug: mi_melodia_rosa"] .inventory-equipment-grid {
+  background-image: var(--melodia-frame-edge-vertical) !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-size: var(--melodia-frame-edge-thickness) calc(100% + 36px) !important;
+}
+
+html[style*="--skin-slug: mi_melodia_rosa"] .inventory-equipment-grid::before,
+html[style*="--skin-slug: mi_melodia_rosa"] .inventory-equipment-grid::after {
+  content: "" !important;
+  display: block !important;
+  position: absolute !important;
+  left: 50% !important;
+  z-index: 10 !important;
+  pointer-events: none !important;
+  width: clamp(94px, 9vw, 136px) !important;
+  height: clamp(36px, 3.5vw, 56px) !important;
+  transform: translateX(-50%) !important;
+  opacity: 1 !important;
+}
+
+html[style*="--skin-slug: mi_melodia_rosa"] .inventory-equipment-grid::before {
+  top: calc(var(--melodia-frame-edge-thickness) * -1.08) !important;
+  background: var(--melodia-separator-t) center / contain no-repeat !important;
+}
+
+html[style*="--skin-slug: mi_melodia_rosa"] .inventory-equipment-grid::after {
+  bottom: calc(var(--melodia-frame-edge-thickness) * -1.08) !important;
+  background: var(--melodia-separator-t-inverted) center / contain no-repeat !important;
+}
+
+html[style*="--skin-slug: mi_melodia_rosa"] .equipment-panel {
+  background:
+    linear-gradient(135deg, rgba(255, 250, 253, 0.2), rgba(255, 228, 242, 0.16)),
+    var(--melodia-equipment-star) center / 100% 100% no-repeat,
+    var(--skin-pattern-panel) !important;
+}
+
+@media (max-width: 900px) {
+  html[style*="--skin-slug: mi_melodia_rosa"] .inventory-equipment-grid {
+    background-image: none !important;
+  }
+
+  html[style*="--skin-slug: mi_melodia_rosa"] .inventory-equipment-grid::before,
+  html[style*="--skin-slug: mi_melodia_rosa"] .inventory-equipment-grid::after {
+    display: none !important;
+  }
 }
