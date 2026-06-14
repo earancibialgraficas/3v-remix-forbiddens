@@ -626,7 +626,7 @@ export default function ProfilePage() {
             className={cn(
               "relative grow sm:flex-1 flex items-center justify-center gap-1.5 py-2 px-1 rounded text-[10px] sm:text-xs font-body transition-all min-w-[30%] sm:min-w-[80px]", 
               activeTab === tab.id ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground",
-              tab.id === "avisos" && unreadCount > 0 ? "text-destructive font-bold bg-destructive/10 border border-destructive/30" : ""
+              tab.id === "avisos" && unreadCount > 0 ? "melodia-alert-tab text-destructive font-bold bg-destructive/10 border border-destructive/30" : ""
             )}
           >
             <tab.icon className={cn("w-3.5 h-3.5", tab.id === "avisos" && unreadCount > 0 && "animate-pulse text-destructive")} /> 

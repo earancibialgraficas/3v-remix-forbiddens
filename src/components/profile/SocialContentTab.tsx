@@ -390,7 +390,7 @@ export default function SocialContentTab({ profile, user, onEditNetworks, limits
                 {f.icon}
                 {/* 🔥 EL BORDE CIRCULAR SEPARADO (Hijo absoluto) 🔥 */}
                 {activeFilter === f.id && (
-                  <div className="absolute -inset-[2.5px] rounded-full border-2 border-border pointer-events-none animate-fade-in" />
+                  <div className="social-content-filter-ring absolute -inset-[2.5px] rounded-full border-2 border-border pointer-events-none animate-fade-in" />
                 )}
               </button>
             ))}
