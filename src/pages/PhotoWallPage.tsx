@@ -295,7 +295,10 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
           </button>
 
           <div className="p-3 border-b border-border flex items-center gap-3 bg-muted/10 shrink-0 pr-10">
-            <Avatar className="w-10 h-10 border border-neon-orange/30">
+            <Avatar
+              className={cn("social-author-avatar-frame w-10 h-10 border border-neon-orange/30", photo.profiles?.launcher_frame_class, photo.profiles?.avatar_frame_slug && "avatar-frame-custom")}
+              style={getAvatarFrameStyle(photo.profiles?.avatar_frame_slug)}
+            >
               <AvatarImage src={photo.profiles?.avatar_url} />
               <AvatarFallback className="font-pixel text-[10px]">?</AvatarFallback>
             </Avatar>
@@ -524,8 +527,30 @@ export default function PhotoWallPage() {
       const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, color_name, color_avatar_border").in("user_id", userIds);
       const profileMap: Record<string, any> = {};
       profiles?.forEach((p: any) => { profileMap[p.user_id] = p; });
+      const { data: activeSkins } = await supabase
+        .from("user_active_skins" as any)
+        .select("user_id, skin_slug, skin_type")
+        .in("user_id", userIds)
+        .in("skin_type", ["launcher", "avatar_frame"]);
+      const launcherFrameMap: Record<string, string> = {};
+      const avatarFrameMap: Record<string, string> = {};
+      (activeSkins || []).forEach((skin: any) => {
+        if (skin.skin_type === "launcher") {
+          const frameClass = getLauncherSkinAvatarFrameClass(skin.skin_slug);
+          if (frameClass) launcherFrameMap[skin.user_id] = frameClass;
+        } else if (skin.skin_type === "avatar_frame" && isAvatarFrameSlug(skin.skin_slug)) {
+          avatarFrameMap[skin.user_id] = skin.skin_slug;
+        }
+      });
 
-      const processed = combined.map((p: any) => ({ ...p, profiles: profileMap[p.user_id] || { display_name: "Anónimo", avatar_url: null } }));
+      const processed = combined.map((p: any) => ({
+        ...p,
+        profiles: {
+          ...(profileMap[p.user_id] || { display_name: "Anónimo", avatar_url: null }),
+          launcher_frame_class: launcherFrameMap[p.user_id] || null,
+          avatar_frame_slug: avatarFrameMap[p.user_id] || null,
+        },
+      }));
 
       processed.sort((a, b) => {
         if (sortMode === "popular") {

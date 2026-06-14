@@ -238,7 +238,15 @@ export default function RightPanel() {
           className="w-full h-full space-y-3 pb-6 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] relative z-10"
         >
           <div data-melodia-surface="rightbar-card" className={cn("right-panel-card melodia-rightbar-card bg-card border border-border rounded p-3 shadow-md hover:border-primary/50 transition-colors", !isMobile && "mt-0")}>
-            <h3 className={cn("font-pixel mb-1", sizes.title)} style={{ color: '#de1839', textShadow: '0 0 8px rgba(222, 24, 57, 0.6)' }}>FORBIDDENS</h3>
+            <h3
+              className={cn("right-panel-title-forbiddens font-pixel mb-1", sizes.title)}
+              style={{
+                color: "var(--rightbar-title-color, #de1839)",
+                textShadow: "var(--rightbar-title-shadow, 0 0 8px rgba(222, 24, 57, 0.6))",
+              }}
+            >
+              FORBIDDENS
+            </h3>
             <div className="grid grid-cols-3 gap-1 my-3">
               <div className="text-center"><p className={cn("font-bold text-foreground font-body", sizes.stat)}>{memberCount}</p><p className={cn("text-muted-foreground", sizes.title)}>Miembros</p></div>
               <div className="text-center"><p className={cn("font-bold text-neon-green font-body", sizes.stat)}>{onlineCount}</p><p className={cn("text-muted-foreground", sizes.title)}>Online</p></div>
@@ -256,7 +264,7 @@ export default function RightPanel() {
 
           <div data-melodia-surface="rightbar-card" className="right-panel-card melodia-rightbar-card bg-card border border-border rounded p-3 space-y-4 shadow-md">
             <div>
-              <h3 className={cn("font-pixel text-neon-cyan mb-2", sizes.title)}>TOP USUARIOS</h3>
+              <h3 className={cn("right-panel-title-users font-pixel text-neon-cyan mb-2", sizes.title)}>TOP USUARIOS</h3>
               <div className="space-y-1.5">
                 {topUsers.map((u, i) => (
                   <div key={i} className={cn("flex items-center gap-2", sizes.body)}>
@@ -278,7 +286,7 @@ export default function RightPanel() {
             </div>
 
             <div className="right-panel-inner-divider pt-3 border-t border-border">
-              <h3 className={cn("font-pixel text-neon-yellow mb-2", sizes.title)}>TOP PREMIUM</h3>
+              <h3 className={cn("right-panel-title-premium font-pixel text-neon-yellow mb-2", sizes.title)}>TOP PREMIUM</h3>
               <div className="space-y-1.5">
                 {premiumUsers.map((pu, i) => (
                   <div key={i} className={cn("flex items-center gap-2", sizes.body)}>

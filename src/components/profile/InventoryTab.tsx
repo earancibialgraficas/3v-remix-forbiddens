@@ -1941,6 +1941,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
             void handleEquipmentDrop(event);
           }}
         >
+          <div className="melodia-equipment-bg" aria-hidden="true" />
           <div className="mb-3 flex items-center justify-between gap-2">
             <h3 className="equipment-title flex items-center gap-2 font-pixel text-[10px] uppercase text-[#f7d28b]">
               <Swords className="h-4 w-4" />

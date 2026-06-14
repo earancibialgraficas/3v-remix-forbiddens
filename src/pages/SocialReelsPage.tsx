@@ -10,6 +10,8 @@ import { useFriendIds } from "@/hooks/useFriendIds";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { getAvatarBorderStyle, getNameStyle } from "@/lib/profileAppearance";
+import { getAvatarFrameStyle, isAvatarFrameSlug } from "@/lib/avatarFrames";
+import { getLauncherSkinAvatarFrameClass } from "@/lib/skinThemes";
 import { useToast } from "@/hooks/use-toast";
 import ReportModal from "@/components/ReportModal";
 import CommentModMenu from "@/components/CommentModMenu";
@@ -49,6 +51,8 @@ interface SocialItem {
   avatar_url?: string | null;
   color_name?: string | null;
   color_avatar_border?: string | null;
+  launcher_frame_class?: string | null;
+  avatar_frame_slug?: string | null;
   target_type?: string; 
 }
 
@@ -545,7 +549,7 @@ function SnapCard({
                   onMouseLeave={() => setShowBubble(false)}>
                 
                 <div onClick={(e) => { e.stopPropagation(); setShowBubble(!showBubble); }} 
-                     className="w-10 h-10 lg:w-12 lg:h-12 rounded-full border-2 border-white/20 overflow-hidden shadow-[0_0_15px_rgba(0,0,0,0.5)] cursor-pointer bg-muted hover:scale-105 transition-transform" style={getAvatarBorderStyle(item.color_avatar_border)}>
+                     className={cn("social-author-avatar-frame w-10 h-10 lg:w-12 lg:h-12 rounded-full border-2 border-white/20 overflow-hidden shadow-[0_0_15px_rgba(0,0,0,0.5)] cursor-pointer bg-muted hover:scale-105 transition-transform", item.launcher_frame_class, item.avatar_frame_slug && "avatar-frame-custom")} style={{ ...getAvatarBorderStyle(item.color_avatar_border), ...getAvatarFrameStyle(item.avatar_frame_slug) }}>
                    {item.avatar_url ? <img src={item.avatar_url} className="w-full h-full object-cover" /> : <UserIcon className="w-full h-full p-2 text-white" />}
                 </div>
 
@@ -625,7 +629,7 @@ function SnapCard({
              onMouseLeave={() => setShowBubble(false)}>
            
            <div onClick={(e) => { e.stopPropagation(); setShowBubble(!showBubble); }} 
-                className="w-9 h-9 rounded-full border-2 border-white/20 overflow-hidden shadow-lg cursor-pointer bg-muted hover:scale-105 transition-transform" style={getAvatarBorderStyle(item.color_avatar_border)}>
+                className={cn("social-author-avatar-frame w-9 h-9 rounded-full border-2 border-white/20 overflow-hidden shadow-lg cursor-pointer bg-muted hover:scale-105 transition-transform", item.launcher_frame_class, item.avatar_frame_slug && "avatar-frame-custom")} style={{ ...getAvatarBorderStyle(item.color_avatar_border), ...getAvatarFrameStyle(item.avatar_frame_slug) }}>
               {item.avatar_url ? <img src={item.avatar_url} className="w-full h-full object-cover" /> : <UserIcon className="w-full h-full p-1.5 text-white" />}
            </div>
 
@@ -722,7 +726,7 @@ function SnapCard({
 
         <div className="shrink-0 lg:p-2.5 p-3 border border-border bg-card/90 lg:bg-card lg:rounded-xl rounded-lg shadow-sm flex flex-col z-10 w-full">
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-7 h-7 rounded-full bg-muted border border-border shrink-0 overflow-hidden" style={getAvatarBorderStyle(item.color_avatar_border)}>
+            <div className={cn("social-author-avatar-frame w-7 h-7 rounded-full bg-muted border border-border shrink-0 overflow-hidden", item.launcher_frame_class, item.avatar_frame_slug && "avatar-frame-custom")} style={{ ...getAvatarBorderStyle(item.color_avatar_border), ...getAvatarFrameStyle(item.avatar_frame_slug) }}>
               {item.avatar_url ? <img src={item.avatar_url} alt="" className="w-full h-full object-cover" /> : <span className="text-[10px] flex items-center justify-center h-full">👤</span>}
             </div>
             <div className="flex flex-col min-w-0 flex-1">
@@ -1010,10 +1014,25 @@ export default function SocialReelsPage() {
       const userIds = [...new Set(combined.map(c => c.user_id))];
       const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, color_name, color_avatar_border").in("user_id", userIds);
       const profileMap = new Map<string, any>(profiles?.map(p => [p.user_id, p]) || []);
+      const { data: activeSkins } = await supabase
+        .from("user_active_skins" as any)
+        .select("user_id, skin_slug, skin_type")
+        .in("user_id", userIds)
+        .in("skin_type", ["launcher", "avatar_frame"]);
+      const launcherFrameMap = new Map<string, string>();
+      const avatarFrameMap = new Map<string, string>();
+      (activeSkins || []).forEach((skin: any) => {
+        if (skin.skin_type === "launcher") {
+          const frameClass = getLauncherSkinAvatarFrameClass(skin.skin_slug);
+          if (frameClass) launcherFrameMap.set(skin.user_id, frameClass);
+        } else if (skin.skin_type === "avatar_frame" && isAvatarFrameSlug(skin.skin_slug)) {
+          avatarFrameMap.set(skin.user_id, skin.skin_slug);
+        }
+      });
       
       let processed = combined.map(c => {
         const p = profileMap.get(c.user_id);
-        return { ...c, display_name: p?.display_name || "Anónimo", avatar_url: p?.avatar_url, color_name: p?.color_name || null, color_avatar_border: p?.color_avatar_border || null };
+        return { ...c, display_name: p?.display_name || "Anónimo", avatar_url: p?.avatar_url, color_name: p?.color_name || null, color_avatar_border: p?.color_avatar_border || null, launcher_frame_class: launcherFrameMap.get(c.user_id) || null, avatar_frame_slug: avatarFrameMap.get(c.user_id) || null };
       });
 
       processed.sort((a, b) => {

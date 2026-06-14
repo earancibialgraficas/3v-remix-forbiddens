@@ -318,7 +318,7 @@ export default function SocialContentTab({ profile, user, onEditNetworks, limits
   });
 
   return (
-    <div className="space-y-4 animate-in fade-in relative">
+    <div className="profile-social-content-tab space-y-4 animate-in fade-in relative">
       
       <div className="bg-card border rounded p-4 text-center">
         <h3 className="font-pixel text-[10px] opacity-60 mb-3 uppercase font-pixel tracking-tighter">
