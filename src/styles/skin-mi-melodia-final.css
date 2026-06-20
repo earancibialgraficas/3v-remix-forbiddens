@@ -332,6 +332,102 @@
   background-image: none !important;
 }
 
+/* Mi Melodia Rosa polish: isolated fixes for frame, launcher, player and Social Hub. */
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) [data-melodia-surface="inventory-shell"] {
+  overflow: visible !important;
+  clip-path: none !important;
+  contain: none !important;
+}
+
+/* Expand only the ornament canvas. The visible corner anchors stay in place. */
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) [data-melodia-surface="inventory-shell"]::after {
+  inset: -50px !important;
+  background-position: left top, right top, right 30px bottom 30px, left 32px bottom 32px !important;
+  clip-path: none !important;
+  overflow: visible !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) .demoniaco-profile-hero button.group > .absolute.inset-0 {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border-radius: 9999px !important;
+  box-shadow: none !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) .forum-sidebar-collapsed-brand {
+  background: rgba(248, 194, 222, 0.94) !important;
+  background-image: none !important;
+  border-color: rgba(125, 77, 157, 0.48) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.58), 0 0 10px rgba(198, 90, 149, 0.2) !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) .forum-sidebar-collapsed-brand span {
+  color: #6f428c !important;
+  -webkit-text-fill-color: #6f428c !important;
+  text-shadow: none !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) .desktop-launcher-titlebar {
+  background: #f7d5e7 !important;
+  background-color: #f7d5e7 !important;
+  background-image: none !important;
+  border-color: rgba(125, 77, 157, 0.34) !important;
+  color: #6f428c !important;
+  box-shadow: 0 6px 18px rgba(125, 77, 157, 0.14) !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) :is(.chill-flame-wave, .chill-flame-wave-mini) {
+  background: rgba(247, 213, 231, 0.72) !important;
+  border-color: rgba(125, 77, 157, 0.28) !important;
+}
+
+/* Keep the Social Hub architecture intact: repaint only the requested surfaces. */
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) .social-hub-page > div:first-child > div,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) .social-hub-page .social-cinema-toggle,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) .social-hub-page .group\/bubble div[class*="w-56"],
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) .social-hub-page .group\/bubble div[class*="w-64"] {
+  background: rgba(248, 218, 234, 0.96) !important;
+  background-color: rgba(248, 218, 234, 0.96) !important;
+  background-image: none !important;
+  border-color: rgba(125, 77, 157, 0.42) !important;
+  color: #6f428c !important;
+  box-shadow: 0 10px 28px rgba(125, 77, 157, 0.16) !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) .social-hub-page .social-cinema-toggle {
+  border-radius: 8px !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) .social-hub-page .social-cinema-bottom-bar button {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-radius: 9999px !important;
+  box-shadow: none !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) .social-hub-page .social-cinema-bottom-bar button > div.rounded-full {
+  background: rgba(248, 218, 234, 0.94) !important;
+  background-color: rgba(248, 218, 234, 0.94) !important;
+  background-image: none !important;
+  border-color: rgba(125, 77, 157, 0.46) !important;
+  border-radius: 9999px !important;
+  box-shadow: 0 6px 16px rgba(125, 77, 157, 0.14) !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) .social-hub-page .social-cinema-bottom-bar button:hover > div.rounded-full {
+  background: rgba(236, 174, 209, 0.98) !important;
+  color: #57306f !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) .social-hub-page .social-cinema-bottom-bar :is(svg, span) {
+  color: #6f428c !important;
+  stroke: currentColor !important;
+  text-shadow: none !important;
+}
+
 /* Mi Melodia Rosa absolute finishing layer: profile aviso circle + Social Hub palette. */
 :is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) [data-melodia-surface="profile-tabs"] > .melodia-alert-tab,
 :is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) [data-melodia-surface="profile-tabs"] > button[class*="text-destructive"] {

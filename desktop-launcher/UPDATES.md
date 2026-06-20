@@ -27,7 +27,7 @@ npm.cmd run desktop:updater:keygen
 npm.cmd run desktop:build:installer
 ```
 
-3. Firma el instalador generado con la clave privada del updater.
+3. Firma el instalador generado con la clave privada del updater. Para la clave actual sin contrasena, pasa `--password=` explicitamente al comando `tauri signer sign`; una variable de entorno vacia puede hacer que el CLI espere entrada interactiva.
 4. Sube el instalador como asset del release de GitHub.
 5. Publica `desktop-launcher/latest.json` en:
 

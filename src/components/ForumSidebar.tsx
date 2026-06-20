@@ -231,7 +231,7 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
           <Link to="/" className="flex flex-col items-center w-full">
              {collapsed ? (
                <div
-                 className="relative w-full overflow-hidden rounded-sm border border-[#de1839]/40 bg-background/40 py-1"
+                 className="forum-sidebar-collapsed-brand relative w-full overflow-hidden rounded-sm border border-[#de1839]/40 bg-background/40 py-1"
                  aria-label="FORBIDDENS"
                  style={{
                    boxShadow: '0 0 6px rgba(222, 24, 57, 0.35), inset 0 0 4px rgba(222, 24, 57, 0.25)',

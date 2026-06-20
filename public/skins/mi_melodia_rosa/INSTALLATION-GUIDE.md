@@ -43,6 +43,15 @@ Los PNG tienen margen transparente, por lo que el CSS usa un `background-size` m
 
 La paleta completa editable esta en `COLORS.txt`. Los tokens base viven en `src/lib/skinThemes.ts` y las excepciones finales en `src/styles/skin-mi-melodia-final.css`.
 
+## Pulido de componentes especiales
+
+- El lienzo de los ornamentos de inventario debe extenderse fuera del panel con `overflow: visible`; amplia el pseudo-elemento sin desplazar sus anclas para evitar recortes.
+- El hover del avatar de perfil no debe introducir overlays grises ni rectangulares sobre marcos circulares.
+- La marca de la sidebar colapsada usa una clase propia (`forum-sidebar-collapsed-brand`) para permitir fondo rosa y texto morado sin afectar la navegación.
+- La barra nativa del launcher debe usar un fondo sólido de la paleta cuando la textura superior no tenga forma de barra.
+- El visualizador canvas de ChillMusicPlayer requiere recolor en React; CSS solo puede recolorear su contenedor.
+- En Social Hub conserva posiciones y arquitectura. Neutraliza texturas únicamente en cabecera, burbuja de autor, botón de cine y controles de la barra de cine; los botones exteriores deben permanecer transparentes y la superficie circular vive en su hijo `rounded-full`.
+
 - Titulos importantes: morado/rosa oscuro, sin sombra blanca.
 - Texto principal: morado oscuro legible.
 - Metadata: rosa desaturado oscuro.

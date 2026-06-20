@@ -637,8 +637,10 @@ export default function ChillMusicPlayer() {
           } else { hArray[i] *= 0.92; }
           const h = Math.max(2, hArray[i]);
           const gradient = ctx.createLinearGradient(0, canvas.height - h, 0, canvas.height);
-          gradient.addColorStop(0, "rgba(34, 211, 238, 0.9)");
-          gradient.addColorStop(1, "rgba(34, 211, 238, 0.2)");
+          const isMiMelodia = document.documentElement.matches('.skin-theme-mi_melodia_rosa, [data-skin-slug="mi_melodia_rosa"], [style*="--skin-slug: mi_melodia_rosa"]')
+            || document.body.matches('.skin-theme-mi_melodia_rosa, [data-skin-slug="mi_melodia_rosa"]');
+          gradient.addColorStop(0, isMiMelodia ? "rgba(216, 130, 183, 0.95)" : "rgba(34, 211, 238, 0.9)");
+          gradient.addColorStop(1, isMiMelodia ? "rgba(125, 77, 157, 0.38)" : "rgba(34, 211, 238, 0.2)");
           ctx.fillStyle = gradient;
           ctx.fillRect(i * barWidth + 1, canvas.height - h, barWidth - 2, h);
         }

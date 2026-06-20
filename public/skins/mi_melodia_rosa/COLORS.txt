@@ -1,4 +1,14 @@
 SKIN MI MELODIA ROSA - MAPA DE COLORES
+
+PULIDO DE COMPONENTES
+Barra launcher rosa palido: #F7D5E7
+Marca sidebar colapsada: rgba(248, 194, 222, 0.94)
+Superficie Social Hub: rgba(248, 218, 234, 0.96)
+Hover Social Hub: rgba(236, 174, 209, 0.98)
+Texto y controles morado pastel: #6F428C
+Texto morado oscuro de hover: #57306F
+Visualizador de audio rosa: rgba(216, 130, 183, 0.95)
+Visualizador de audio morado: rgba(125, 77, 157, 0.38)
 ======================================
 
 Edita primero estos tokens en src/lib/skinThemes.ts.

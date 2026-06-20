@@ -1,7 +1,7 @@
 {
   "bundle": {
     "active": true,
-    "createUpdaterArtifacts": true,
+    "createUpdaterArtifacts": false,
     "targets": ["nsis"],
     "icon": [
       "../icons/icon.ico",
@@ -10,7 +10,13 @@
     "windows": {
       "nsis": {
         "displayLanguageSelector": true,
-        "installerIcon": "../icons/icon.ico"
+        "installerIcon": "../icons/icon.ico",
+        "uninstallerIcon": "../icons/icon.ico",
+        "headerImage": "../installer-assets/installer-header.bmp",
+        "sidebarImage": "../installer-assets/installer-sidebar.bmp",
+        "uninstallerHeaderImage": "../installer-assets/installer-header.bmp",
+        "languages": ["Spanish", "English"],
+        "startMenuFolder": "FORBIDDENS"
       }
     }
   }
