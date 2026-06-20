@@ -106,8 +106,17 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
   const activeAvatarFrame = getAvatarFrame(activeAvatarFrameSlug);
   const activeProfileTransitionSlug = activeSkins.profile_transition;
   const activeProfileTransition = getProfileTransition(activeProfileTransitionSlug);
-  const activeEmulatorShellSlug = activeSkins.emulator_shell;
-  const activeEmulatorShell = getEmulatorShell(activeEmulatorShellSlug);
+  const activeEmulatorShellEntries = useMemo(
+    () => Object.entries(activeSkins)
+      .filter(([skinType]) => skinType === 'emulator_shell' || skinType.startsWith('emulator_shell:'))
+      .map(([skinType, slug]) => ({ skinType, shell: getEmulatorShell(slug) }))
+      .filter((entry): entry is { skinType: string; shell: NonNullable<ReturnType<typeof getEmulatorShell>> } => Boolean(entry.shell)),
+    [activeSkins],
+  );
+  const activeEmulatorShellSlugs = useMemo(
+    () => new Set(activeEmulatorShellEntries.map((entry) => entry.shell.slug)),
+    [activeEmulatorShellEntries],
+  );
 
   useEffect(() => {
     if (inventoryPage >= inventoryPageCount) setInventoryPage(Math.max(0, inventoryPageCount - 1));
@@ -217,15 +226,18 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
   }, [fetchShopPrices]);
 
   const fetchActiveSkins = useCallback(async () => {
-    const { data } = await (supabase
-      .from('user_active_skins' as any)
-      .select('skin_type, skin_slug') as any)
-      .eq('user_id' as any, userId);
+    const [{ data }, { data: emulatorShellRows }] = await Promise.all([
+      (supabase.from('user_active_skins' as any).select('skin_type, skin_slug') as any).eq('user_id' as any, userId),
+      (supabase.from('user_active_emulator_shells' as any).select('console_id, shell_slug') as any).eq('user_id' as any, userId),
+    ]);
 
-    if (data) {
+    if (data || emulatorShellRows) {
       const activeMap: Record<string, string> = {};
-      data.forEach((s: any) => {
+      (data || []).forEach((s: any) => {
         activeMap[s.skin_type] = s.skin_slug;
+      });
+      (emulatorShellRows || []).forEach((row: any) => {
+        if (row.console_id && row.shell_slug) activeMap[`emulator_shell:${row.console_id}`] = row.shell_slug;
       });
       setActiveSkins(activeMap);
     }
@@ -385,7 +397,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
       if (isSkinItem(item) && activeSkinSlugs.has(item.item_slug)) return false;
       if (isAvatarFrameSlug(item.item_slug) && activeAvatarFrameSlug === item.item_slug) return false;
       if (isProfileTransitionSlug(item.item_slug) && activeProfileTransitionSlug === item.item_slug) return false;
-      if (isEmulatorShellSlug(item.item_slug) && activeEmulatorShellSlug === item.item_slug) return false;
+      if (isEmulatorShellSlug(item.item_slug) && activeEmulatorShellSlugs.has(item.item_slug)) return false;
       return true;
     });
     const slotCount = Math.max(
@@ -442,7 +454,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
     tradeSlotsRef.current = Array(4).fill(null);
     setCursorItem(null);
     cursorItemRef.current = null;
-  }, [activeAvatarFrameSlug, activeEmulatorShellSlug, activeProfileTransitionSlug, activeSkinSlugs, boosters, inventorySlotsPerPage, userId]);
+  }, [activeAvatarFrameSlug, activeEmulatorShellSlugs, activeProfileTransitionSlug, activeSkinSlugs, boosters, inventorySlotsPerPage, userId]);
 
   const searchUsers = async () => {
     if (!recipientSearch.trim()) return;
@@ -698,9 +710,10 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
   };
 
   const commitSlotItems = (next: any[], persist = true) => {
-    slotItemsRef.current = next;
-    setSlotItems(next);
-    if (persist) schedulePersistSlotOrder(next);
+    const normalized = normalizeSlotSnapshot(next);
+    slotItemsRef.current = normalized;
+    setSlotItems(normalized);
+    if (persist) schedulePersistSlotOrder(normalized);
   };
 
   const commitTradeSlots = (next: any[], changed = true) => {
@@ -723,6 +736,35 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
     return Array.from(totals.entries())
       .map(([id, quantity]) => ({ id, quantity }))
       .filter((source) => source.quantity > 0);
+  };
+
+  // Slot movement is client-side, but every rendered unit must still belong to a
+  // real inventory row. Clamping source ownership here prevents fast clicks or
+  // overlapping drag events from painting the same database item twice.
+  const normalizeSlotSnapshot = (slots: any[]) => {
+    const remainingBySource = new Map<string, number>();
+    boosters.forEach((inventoryItem) => {
+      stackSources(inventoryItem).forEach((source: any) => {
+        const id = String(source.id || "");
+        if (!id) return;
+        remainingBySource.set(id, (remainingBySource.get(id) || 0) + Math.max(0, Math.floor(Number(source.quantity || 0))));
+      });
+    });
+
+    return slots.map((slot) => {
+      if (!slot) return null;
+      const ownedSources = stackSources(slot).flatMap((source: any) => {
+        const id = String(source.id || "");
+        const remaining = remainingBySource.get(id) || 0;
+        const requested = Math.max(0, Math.floor(Number(source.quantity || 0)));
+        const accepted = Math.min(remaining, requested);
+        if (!id || accepted <= 0) return [];
+        remainingBySource.set(id, remaining - accepted);
+        return [{ id, quantity: accepted }];
+      });
+      const quantity = ownedSources.reduce((sum: number, source: any) => sum + source.quantity, 0);
+      return quantity > 0 ? { ...slot, quantity, sources: ownedSources } : null;
+    });
   };
 
   const takeSources = (item: any, quantity: number) => {
@@ -1240,16 +1282,16 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
         name: activeProfileTransition.name,
       });
     }
-    if (activeEmulatorShell) {
+    activeEmulatorShellEntries.forEach(({ skinType, shell }) => {
       skinEntries.push({
         kind: 'emulator_shell',
-        skinType: 'emulator_shell',
-        slug: activeEmulatorShell.slug,
-        name: activeEmulatorShell.name,
+        skinType,
+        slug: shell.slug,
+        name: shell.name,
       });
-    }
+    });
     return skinEntries.slice(0, 5);
-  }, [activeAvatarFrame, activeEmulatorShell, activeProfileTransition, activeSkins]);
+  }, [activeAvatarFrame, activeEmulatorShellEntries, activeProfileTransition, activeSkins]);
   const getEquipmentBadgeText = (entry: (typeof activeEquipmentEntries)[number]) => {
     if (entry.kind === 'avatar_frame') return 'Marco';
     if (entry.kind === 'profile_transition') return 'Transicion';
@@ -1312,11 +1354,11 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
     setContextMenu(null);
     setBusy(true);
     try {
-      const { error: deleteError } = await (supabase as any)
-        .from('user_active_skins')
-        .delete()
-        .eq('user_id', userId)
-        .eq('skin_type', skinType);
+      const emulatorConsoleId = skinType.startsWith('emulator_shell:') ? skinType.split(':')[1] : null;
+      const deleteQuery = emulatorConsoleId
+        ? (supabase as any).from('user_active_emulator_shells').delete().eq('user_id', userId).eq('console_id', emulatorConsoleId)
+        : (supabase as any).from('user_active_skins').delete().eq('user_id', userId).eq('skin_type', skinType);
+      const { error: deleteError } = await deleteQuery;
       if (deleteError) throw deleteError;
 
       setActiveSkins(prev => {
@@ -1331,8 +1373,8 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
       } else if (skinType === 'profile_transition') {
         window.dispatchEvent(new CustomEvent('forbiddens:active-profile-transition-updated', { detail: { userId, transitionSlug: null } }));
         toast({ title: "Transicion desequipada", description: "Tu perfil ya no mostrara esta intro." });
-      } else if (skinType === 'emulator_shell') {
-        window.dispatchEvent(new CustomEvent('forbiddens:active-emulator-shell-updated', { detail: { userId, shellSlug: null } }));
+      } else if (skinType === 'emulator_shell' || emulatorConsoleId) {
+        window.dispatchEvent(new CustomEvent('forbiddens:active-emulator-shell-updated', { detail: { userId, consoleId: emulatorConsoleId || undefined, shellSlug: null } }));
         toast({ title: "Consola desequipada", description: "Los emuladores web volveran al marco original." });
       } else {
         toast({ title: "âœ… Skin Desequipada", description: "Has vuelto al diseÃ±o original" });
@@ -1428,30 +1470,35 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
     setContextMenu(null);
     setBusy(true);
     try {
-      const { data: existing } = await (supabase as any)
+      const rows = shell.compatibleConsoles.map((consoleId) => ({
+        user_id: userId,
+        console_id: consoleId,
+        shell_slug: shellSlug,
+        updated_at: new Date().toISOString(),
+      }));
+      const { error } = await (supabase as any)
+        .from('user_active_emulator_shells')
+        .upsert(rows, { onConflict: 'user_id,console_id' });
+      if (error) throw error;
+
+      await (supabase as any)
         .from('user_active_skins')
-        .select('id')
+        .delete()
         .eq('user_id', userId)
-        .eq('skin_type', 'emulator_shell')
-        .maybeSingle();
+        .eq('skin_type', 'emulator_shell');
 
-      if (existing) {
-        const { error } = await (supabase as any)
-          .from('user_active_skins')
-          .update({ skin_slug: shellSlug })
-          .eq('id', existing.id);
-        if (error) throw error;
-      } else {
-        const { error } = await (supabase as any)
-          .from('user_active_skins')
-          .insert({ user_id: userId, skin_type: 'emulator_shell', skin_slug: shellSlug });
-        if (error) throw error;
-      }
-
-      setActiveSkins((prev) => ({ ...prev, emulator_shell: shellSlug }));
-      window.dispatchEvent(new CustomEvent('forbiddens:active-emulator-shell-updated', { detail: { userId, shellSlug } }));
-      window.dispatchEvent(new CustomEvent('forbiddens:active-skin-updated', { detail: { userId, skinType: 'emulator_shell', skinSlug: shellSlug } }));
-      toast({ title: "Consola equipada", description: `${shell.name} se aplicara a juegos NES web.` });
+      setActiveSkins((prev) => {
+        const next = { ...prev };
+        delete next.emulator_shell;
+        shell.compatibleConsoles.forEach((consoleId) => {
+          next[`emulator_shell:${consoleId}`] = shellSlug;
+        });
+        return next;
+      });
+      shell.compatibleConsoles.forEach((consoleId) => {
+        window.dispatchEvent(new CustomEvent('forbiddens:active-emulator-shell-updated', { detail: { userId, consoleId, shellSlug } }));
+      });
+      toast({ title: "Consola equipada", description: `${shell.name} se aplicara a ${shell.compatibleConsoles.map((id) => id.toUpperCase()).join(', ')}.` });
       return true;
     } catch (err: any) {
       toast({ title: "Error", description: err?.message || "No se pudo equipar la consola", variant: "destructive" });
@@ -1494,7 +1541,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
     }
     if (isAvatarFrameItem(item)) return activeAvatarFrameSlug === item.item_slug;
     if (isProfileTransitionItem(item)) return activeProfileTransitionSlug === item.item_slug;
-    if (isEmulatorShellItem(item)) return activeEmulatorShellSlug === item.item_slug;
+    if (isEmulatorShellItem(item)) return activeEmulatorShellSlugs.has(item.item_slug);
     if (isBoosterItem(item)) return itemIsActive(item);
     return false;
   };
@@ -1830,7 +1877,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                       item && isBoosterItem(item) && itemIsActive(item) && "border-neon-green/80 bg-[radial-gradient(circle_at_35%_25%,rgba(34,197,94,0.32),rgba(18,64,31,0.82)_58%,#0c160f_100%)] shadow-[inset_2px_2px_0_rgba(255,255,255,0.14),inset_-2px_-2px_0_rgba(0,0,0,0.55),0_0_14px_rgba(34,197,94,0.45)]",
                       dragTouched.includes(index ?? -1) && "ring-2 ring-neon-cyan",
                       item && isSkinItem(item) && activeSkins[(ALL_SKINS as any)[item.item_slug!]?.type || 'launcher'] === item.item_slug && "ring-2 ring-neon-green shadow-[0_0_12px_rgba(34,197,94,0.7)]",
-                      item && isEmulatorShellItem(item) && activeEmulatorShellSlug === item.item_slug && "ring-2 ring-neon-green shadow-[0_0_12px_rgba(34,197,94,0.7)]",
+                      item && isEmulatorShellItem(item) && activeEmulatorShellSlugs.has(item.item_slug) && "ring-2 ring-neon-green shadow-[0_0_12px_rgba(34,197,94,0.7)]",
                     )}
                     title={item ? `${itemLabel(item)} - click izquierdo recoge. Click derecho divide. Shift+click envia a trueque.` : "Slot vacio"}
                   >
@@ -2360,11 +2407,14 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
           )}
           {isEmulatorShellItem(contextMenu.item) && (
             <>
-              {activeEmulatorShellSlug === contextMenu.item.item_slug ? (
+              {activeEmulatorShellSlugs.has(contextMenu.item.item_slug) ? (
                 <button
                   className="block w-full rounded px-2 py-1.5 text-left hover:bg-[#d6b16f]/15 disabled:opacity-45"
                   disabled={busy}
-                  onClick={() => handleDeactivateSkin('emulator_shell')}
+                  onClick={() => {
+                    const consoleId = getEmulatorShell(contextMenu.item.item_slug)?.compatibleConsoles[0];
+                    void handleDeactivateSkin(consoleId ? `emulator_shell:${consoleId}` : 'emulator_shell');
+                  }}
                 >
                   Desequipar consola
                 </button>

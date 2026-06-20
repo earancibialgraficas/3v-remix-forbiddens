@@ -3144,10 +3144,10 @@ aside,
 
 .equipment-remove-marker {
   z-index: 60 !important;
-  background: linear-gradient(135deg, #6f428c, #a977c4) !important;
+  background: linear-gradient(135deg, var(--skin-primary, #6f428c), var(--skin-accent, #a977c4)) !important;
   border-color: rgba(255, 255, 255, 0.72) !important;
   color: #fff !important;
-  box-shadow: 0 0 0 1px rgba(111, 66, 140, 0.24), 0 6px 12px rgba(34, 12, 46, 0.22) !important;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--skin-primary, #6f428c) 38%, transparent), 0 6px 12px rgba(18, 12, 24, 0.24) !important;
 }
 
 .equipment-remove-marker svg {
@@ -6531,4 +6531,61 @@ body.rosita-mobile-overlay-active *::-webkit-scrollbar {
   :is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) [data-melodia-surface="inventory-equipment-grid"]::after {
     display: none !important;
   }
+}
+/* Public profile player controls must stay above themed video/content layers. */
+:is(
+  html.skin-theme-demoniaco,
+  html[data-skin-slug="demoniaco"],
+  html[style*="--skin-slug: demoniaco"],
+  html.skin-theme-mercenario_bocasas,
+  html[data-skin-slug="mercenario_bocasas"],
+  html[style*="--skin-slug: mercenario_bocasas"]
+) .public-profile-music-player > .public-profile-playlist-toggle {
+  z-index: 240 !important;
+  pointer-events: auto !important;
+  isolation: isolate !important;
+}
+
+/* Mi Melodia Rosa: dedicated ForumSidebar toggle states. */
+:is(
+  html.skin-theme-mi_melodia_rosa,
+  html[data-skin-slug="mi_melodia_rosa"],
+  html[style*="--skin-slug: mi_melodia_rosa"]
+) .forum-sidebar-toggle {
+  width: 48px !important;
+  height: 48px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+  color: transparent !important;
+  background: url('/skins/mi_melodia_rosa/forum-sidebar/toggle-normal.png') center / 185% 185% no-repeat !important;
+  box-shadow: none !important;
+  transition: transform 160ms ease, filter 160ms ease !important;
+}
+
+:is(
+  html.skin-theme-mi_melodia_rosa,
+  html[data-skin-slug="mi_melodia_rosa"],
+  html[style*="--skin-slug: mi_melodia_rosa"]
+) .forum-sidebar-toggle > svg {
+  opacity: 0 !important;
+}
+
+:is(
+  html.skin-theme-mi_melodia_rosa,
+  html[data-skin-slug="mi_melodia_rosa"],
+  html[style*="--skin-slug: mi_melodia_rosa"]
+) .forum-sidebar-toggle:hover {
+  background-image: url('/skins/mi_melodia_rosa/forum-sidebar/toggle-hover.png') !important;
+  transform: translateY(-1px) scale(1.04);
+  filter: drop-shadow(0 5px 8px rgba(169, 59, 111, 0.22));
+}
+
+:is(
+  html.skin-theme-mi_melodia_rosa,
+  html[data-skin-slug="mi_melodia_rosa"],
+  html[style*="--skin-slug: mi_melodia_rosa"]
+) .forum-sidebar-toggle:is(:active, .is-collapsed) {
+  background-image: url('/skins/mi_melodia_rosa/forum-sidebar/toggle-selected.png') !important;
+  transform: scale(0.98);
 }

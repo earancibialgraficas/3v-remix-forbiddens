@@ -2,6 +2,8 @@
 
 Esta carpeta es el paquete visual de la skin `mi_melodia_rosa`.
 
+La guia canonica esta en `INSTALLATION-GUIDE.md` y la paleta editable completa en `COLORS.txt`. Para nuevas skins usa tambien `isolated-skin-template.css` como base aislada; no copies reglas historicas de otras skins.
+
 Ruta:
 
 ```txt

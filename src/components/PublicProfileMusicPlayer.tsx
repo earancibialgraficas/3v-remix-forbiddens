@@ -52,6 +52,8 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const playlistButtonRef = useRef<HTMLButtonElement>(null);
   const compactPlaylistRef = useRef<HTMLDivElement>(null);
+  const compactPlaylistPortalRef = useRef<HTMLDivElement>(null);
+  const addBubbleRef = useRef<HTMLDivElement>(null);
   const volumeButtonRef = useRef<HTMLDivElement>(null);
   const volumeHideTimerRef = useRef<number | null>(null);
   const [playlist, setPlaylist] = useState<SavedPlaylist | null>(null);
@@ -299,6 +301,34 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
     };
   }, [songToAdd]);
 
+  useEffect(() => {
+    if (!compactPlaylistOpen && !songToAdd) return;
+
+    const closeOnOutsideInteraction = (event: PointerEvent) => {
+      const target = event.target as Node | null;
+      if (!target) return;
+      if (playlistButtonRef.current?.contains(target)) return;
+      if (compactPlaylistPortalRef.current?.contains(target)) return;
+      if (addBubbleRef.current?.contains(target)) return;
+      setCompactPlaylistOpen(false);
+      setSongToAdd(null);
+      setAddBubblePosition(null);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setCompactPlaylistOpen(false);
+      setSongToAdd(null);
+      setAddBubblePosition(null);
+    };
+
+    document.addEventListener("pointerdown", closeOnOutsideInteraction, true);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsideInteraction, true);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [compactPlaylistOpen, songToAdd]);
+
   const openAddBubble = (song: Song, event: MouseEvent<HTMLButtonElement>) => {
     if (!user) {
       toast({ title: "Inicia sesion", description: "Necesitas una cuenta para guardar canciones.", variant: "destructive" });
@@ -416,9 +446,10 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
   const addBubble = songToAdd && addBubblePosition && typeof document !== "undefined"
     ? createPortal(
       <div
+        ref={addBubbleRef}
         className="fixed z-[10000] w-[min(280px,calc(100vw-24px))] rounded border border-neon-green/40 bg-[#030704]/95 p-3 text-foreground shadow-[0_0_36px_rgba(57,255,20,0.22)] backdrop-blur-xl"
         style={{ top: addBubblePosition.top, left: addBubblePosition.left }}
-        onClick={(event) => event.stopPropagation()}
+        onPointerDown={(event) => event.stopPropagation()}
       >
         <p className="mb-2 line-clamp-2 text-[11px] font-semibold">{songToAdd.title || "Cancion de YouTube"}</p>
         {myPlaylists.length > 0 && (
@@ -483,9 +514,10 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
   const compactPlaylistPopover = compactPlaylistOpen && compactPlaylistPosition && typeof document !== "undefined"
     ? createPortal(
       <div
+        ref={compactPlaylistPortalRef}
         className="public-profile-playlist-popover fixed z-[10000] w-[min(310px,calc(100vw-24px))] rounded border border-neon-cyan/30 bg-black/80 p-2 shadow-[0_18px_42px_rgba(0,0,0,0.55),0_0_24px_rgba(34,211,238,0.16)] backdrop-blur-xl"
-        style={{ top: compactPlaylistPosition.top, left: compactPlaylistPosition.left }}
-        onClick={(event) => event.stopPropagation()}
+        style={{ top: compactPlaylistPosition.top, left: compactPlaylistPosition.left, pointerEvents: "auto" }}
+        onPointerDown={(event) => event.stopPropagation()}
       >
         <div className="mb-1.5 flex items-center justify-between gap-3 border-b border-white/10 pb-1.5">
           <div className="min-w-0">

@@ -357,7 +357,8 @@ export default function GameBubble() {
   const { user, profile } = useAuth();
   const { toast } = useToast();
   const isMobile = useIsMobile();
-  const { emulatorShell } = useUserActiveEmulatorShell(user?.id);
+  const activeGame = activeGames[currentGameIndex] || null;
+  const { emulatorShell } = useUserActiveEmulatorShell(user?.id, activeGame?.consoleName);
 
   const [nostalgistInstance, setNostalgistInstance] = useState<any>(null);
   const [romLoaded, setRomLoaded] = useState(false);
@@ -405,7 +406,6 @@ export default function GameBubble() {
   const snesToolsPausedGameRef = useRef(false);
   const [slotName, setSlotName] = useState("");
 
-  const activeGame = activeGames[currentGameIndex] || null;
   const isPs2 = !!activeGame && activeGame.consoleName === "ps2";
   const usesEmulatorJs = !!activeGame && emulatorJsConsoles.has(activeGame.consoleName);
   const usesRealCloudSaves = !!activeGame && usesEmulatorJs && realCloudSaveConsoles.has(activeGame.consoleName);

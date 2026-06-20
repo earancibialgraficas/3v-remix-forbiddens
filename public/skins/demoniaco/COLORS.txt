@@ -1,0 +1,43 @@
+SKIN DEMONIACO - MAPA DE COLORES
+================================
+
+Edita primero estos tokens en src/lib/skinThemes.ts.
+
+IDENTIDAD
+primary       = #d94a38   titulos, iconos activos, seleccion
+secondary     = #b65a4b   subtitulos y detalles secundarios
+accent        = #e09a75   contraste claro, badges y metadata destacada
+background    = #0a0a0a   fondo general
+card          = #1a1a1a   paneles y cards
+text          = #f0c1aa   texto principal
+textMuted     = #b98778   texto secundario y metadata
+border        = #6b3333   borde de respaldo cuando no hay textura
+
+ESTADOS
+buttonTop     = #9b241b
+buttonMiddle  = #c33b2c
+buttonBottom  = #e06a4f
+hoverStart    = #b83227
+hoverMiddle   = #d95743
+hoverEnd      = #e89b78
+danger        = #b92a1f
+dangerDark    = #5f0d09
+textOnButton  = #fff1e8
+textBright    = #ffd0bf
+
+EFECTOS
+glowStrong    = rgba(185, 44, 34, 0.55)
+glowNormal    = rgba(185, 44, 34, 0.48)
+glowSoft      = rgba(219, 88, 66, 0.26)
+panelOverlay  = rgba(8, 4, 4, 0.78)
+panelDark     = rgba(4, 3, 3, 0.92)
+blackShadow   = rgba(0, 0, 0, 0.72)
+
+USO RECOMENDADO
+Titulos/iconos activos: primary
+Texto normal: text
+Metadata: textMuted
+Boton seleccionado: buttonTop -> dangerDark, texto textOnButton
+Hover: hoverStart -> hoverEnd
+Glow: primary convertido a rgba con alpha entre 0.20 y 0.55
+No usar blanco puro ni naranja chillante.

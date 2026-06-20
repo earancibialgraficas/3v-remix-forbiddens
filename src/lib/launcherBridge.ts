@@ -17,6 +17,13 @@ export interface NativeEmulatorLaunchResult {
   process_id: number;
 }
 
+export interface NativeBiosStatus {
+  console_id: string;
+  required: boolean;
+  configured: boolean;
+  bios_dir: string;
+}
+
 type LauncherBridge = {
   launcherInfo?: () => Promise<{ version: string; website_url: string }>;
   openExternal?: (url: string) => Promise<boolean>;
@@ -26,6 +33,8 @@ type LauncherBridge = {
   launcherWindowAction?: (action: "minimize" | "toggle_maximize" | "maximize" | "close") => Promise<void>;
   nativeEngineStatus?: (consoleId: string) => Promise<NativeEngineStatus>;
   installNativeEngine?: (consoleId: string) => Promise<NativeEngineStatus>;
+  nativeBiosStatus?: (consoleId: string) => Promise<NativeBiosStatus>;
+  importNativeBios?: (consoleId: string) => Promise<NativeBiosStatus | null>;
   pickNativeRom?: (consoleId: string) => Promise<string | null>;
   openNativeEmulator?: (consoleId: string, romPath?: string | null) => Promise<NativeEmulatorLaunchResult | string>;
   closeNativeEmulator?: (processId: number) => Promise<void>;
@@ -55,6 +64,8 @@ const buildBridgeFromTauri = (): LauncherBridge | null => {
     launcherWindowAction: (action: "minimize" | "toggle_maximize" | "maximize" | "close") => invoke("launcher_window_action", { action }),
     nativeEngineStatus: (consoleId: string) => invoke("native_engine_status", { consoleId }),
     installNativeEngine: (consoleId: string) => invoke("install_native_engine", { consoleId }),
+    nativeBiosStatus: (consoleId: string) => invoke("native_bios_status", { consoleId }),
+    importNativeBios: (consoleId: string) => invoke("import_native_bios", { consoleId }),
     pickNativeRom: (consoleId: string) => invoke("pick_native_rom", { consoleId }),
     openNativeEmulator: (consoleId: string, romPath?: string | null) => invoke("open_native_emulator", { consoleId, romPath: romPath || null }),
     closeNativeEmulator: (processId: number) => invoke("close_native_emulator", { processId }),

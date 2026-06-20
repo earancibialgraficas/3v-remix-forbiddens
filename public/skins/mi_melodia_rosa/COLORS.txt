@@ -1,0 +1,47 @@
+SKIN MI MELODIA ROSA - MAPA DE COLORES
+======================================
+
+Edita primero estos tokens en src/lib/skinThemes.ts.
+
+IDENTIDAD
+primary       = #d94f86   titulos, iconos activos y seleccion
+secondary     = #a93b6f   texto destacado oscuro
+accent        = #f6a8c9   detalles pastel claros
+background    = #fff4f8   fondo general
+card          = #fff9fc   paneles y cards
+text          = #452437   texto principal
+textMuted     = #86596e   metadata
+border        = #e9a5c4   bordes de respaldo
+
+SUPERFICIES
+surfaceWhite  = #fffafd
+surfacePink   = #ffeaf3
+surfaceDeep   = #ffd1e7
+panelPink     = #ffe4f2
+topbarCenter  = #ffd9eb
+
+ESTADOS
+buttonStart   = #d94f86
+buttonEnd     = #f08ab4
+hoverStart    = #c74278
+hoverEnd      = #ef7ead
+textOnButton  = #ffffff
+activePurple  = #7d4a93
+activeDark    = #633675
+danger        = #b94172
+
+EFECTOS
+glowNormal    = rgba(217, 79, 134, 0.34)
+glowSoft      = rgba(217, 79, 134, 0.18)
+shadowPurple  = rgba(169, 59, 111, 0.14)
+whiteOverlay  = rgba(255, 250, 253, 0.72)
+pinkOverlay   = rgba(255, 235, 246, 0.84)
+
+USO RECOMENDADO
+Titulos: primary o activePurple
+Texto normal: text
+Metadata: textMuted
+Seleccionado: activePurple, texto blanco
+Hover: hoverStart -> hoverEnd
+Panel claro: card/surfaceWhite
+No usar negro puro, rojo demonio, sombras blancas ni glow neon.

@@ -56,3 +56,17 @@ Las ROMs de Drive se cachean en:
 5. El launcher valida el SHA256 y descomprime el ZIP.
 6. Si el juego viene de Drive, primero se descarga a cache local.
 7. El launcher abre el emulador nativo con la ruta local.
+
+## BIOS de PlayStation 2
+
+PCSX2 necesita una BIOS extraida legalmente de una consola del propio usuario. FORBIDDENS no la descarga ni la distribuye desde un CDN.
+
+Cuando PCSX2 ya esta instalado, la pagina de emuladores muestra `Importar BIOS`. El launcher:
+
+1. Permite elegir un archivo `.bin` o `.rom` local.
+2. Comprueba que su tamano sea razonable antes de copiarlo.
+3. Lo guarda en la carpeta `bios` de la instalacion portable de PCSX2.
+4. Crea el marcador `portable.ini` para mantener configuracion y BIOS dentro del motor instalado.
+5. Impide abrir un juego de PS2 y muestra una explicacion si todavia no hay una BIOS importada.
+
+No se debe incluir una BIOS en GitHub Releases, R2, el instalador ni el repositorio.

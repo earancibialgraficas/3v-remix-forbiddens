@@ -1,0 +1,25 @@
+/* Plantilla de referencia. Este archivo no se carga en produccion. */
+html[data-skin-slug="{slug}"] {
+  --skin-primary: #d94f86;
+  --skin-secondary: #a93b6f;
+  --skin-accent: #f6a8c9;
+  --skin-background: #fff4f8;
+  --skin-card: #fff9fc;
+  --skin-text: #452437;
+  --skin-text-muted: #86596e;
+  --skin-border: #e9a5c4;
+  --skin-active: #7d4a93;
+  --skin-on-active: #ffffff;
+  --skin-glow: rgba(217, 79, 134, 0.34);
+}
+
+html[data-skin-slug="{slug}"] .surface-example {
+  color: var(--skin-text);
+  border-color: var(--skin-border);
+  background: var(--skin-card);
+}
+
+html[data-skin-slug="{slug}"] .surface-example::before,
+html[data-skin-slug="{slug}"] .surface-example::after {
+  pointer-events: none;
+}

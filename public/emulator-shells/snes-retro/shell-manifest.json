@@ -1,0 +1,19 @@
+{
+  "slug": "snes_retro",
+  "name": "Consola Retro SNES",
+  "compatibleConsoles": ["snes"],
+  "orientation": "portrait",
+  "viewport": "0 0 914.88 2033.999918",
+  "assets": {
+    "normal": "vertical-celular.svg",
+    "expanded": "vertical-celular-expanded.svg"
+  },
+  "screen": {
+    "leftPercent": 12.7,
+    "topPercent": 9.55,
+    "widthPercent": 74.6,
+    "heightPercent": 34.55,
+    "fit": "contain"
+  },
+  "controls": ["up", "down", "left", "right", "l", "r", "y", "x", "b", "a", "select", "start", "config", "tools", "minimize", "maximize", "restore", "close"]
+}

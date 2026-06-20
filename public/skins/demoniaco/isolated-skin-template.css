@@ -1,0 +1,23 @@
+/* Copiar a src/styles/skins/{slug}.css y sustituir {slug}. */
+html[data-skin-slug="{slug}"] {
+  --skin-primary: #d94a38;
+  --skin-secondary: #b65a4b;
+  --skin-accent: #e09a75;
+  --skin-background: #0a0a0a;
+  --skin-card: #1a1a1a;
+  --skin-text: #f0c1aa;
+  --skin-text-muted: #b98778;
+  --skin-border: #6b3333;
+}
+
+html[data-skin-slug="{slug}"] body {
+  color: var(--skin-text);
+  background: var(--skin-background) url('/skins/{slug}/backgrounds/solid/hellscape-castle.png') center top / cover fixed;
+}
+
+html[data-skin-slug="{slug}"] .equipment-remove-marker {
+  color: #fff;
+  background: linear-gradient(135deg, var(--skin-primary), var(--skin-accent));
+}
+
+/* Todo selector adicional de la skin debe conservar este mismo prefijo. */

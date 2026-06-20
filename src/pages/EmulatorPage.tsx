@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
-import { ChevronLeft, ChevronRight, Upload, Settings, Battery, Clock, Monitor, Check, ListChecks, Cpu, Download, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Upload, Settings, Battery, Clock, Monitor, Check, ListChecks, Cpu, Download, Loader2, KeyRound } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useGameBubble } from "@/contexts/GameBubbleContext";
 import { allGames } from "@/lib/gameLibrary";
 import { canPlayExtraConsole, EXTRA_CONSOLES } from "@/lib/membershipLimits";
 import { cn } from "@/lib/utils";
-import { formatLauncherBridgeError, getLauncherBridge, launcherSupportsNative, type NativeEngineStatus } from "@/lib/launcherBridge";
+import { formatLauncherBridgeError, getLauncherBridge, launcherSupportsNative, type NativeBiosStatus, type NativeEngineStatus } from "@/lib/launcherBridge";
 import { useNativeSession } from "@/contexts/NativeSessionContext";
 import {
   DropdownMenu,
@@ -308,8 +308,11 @@ export default function EmulatorPage() {
   const [ps2DialogOpen, setPs2DialogOpen] = useState(false);
   const [ps2Copied, setPs2Copied] = useState(false);
   const [nativeStatus, setNativeStatus] = useState<NativeEngineStatus | null>(null);
+  const [nativeBiosStatus, setNativeBiosStatus] = useState<NativeBiosStatus | null>(null);
   const [nativeBusy, setNativeBusy] = useState(false);
   const [launcherDetected, setLauncherDetected] = useState(() => Boolean(getLauncherBridge()));
+  const [nativeStatusScanComplete, setNativeStatusScanComplete] = useState(false);
+  const [nativeStatusScanProgress, setNativeStatusScanProgress] = useState({ done: 0, total: 0 });
 
   // Lógica de carga automática si vienes desde la página de Biblioteca
   useEffect(() => {
@@ -388,28 +391,78 @@ export default function EmulatorPage() {
   };
 
   useEffect(() => {
+    if (!launcherDetected) return;
+    const bridge = getLauncherBridge();
+    if (!bridge?.nativeEngineStatus) {
+      setNativeStatusScanComplete(true);
+      return;
+    }
+
+    let cancelled = false;
+    const nativeSystems = systems.filter((system) => launcherSupportsNative(system.id));
+    setNativeStatusScanComplete(false);
+    setNativeStatusScanProgress({ done: 0, total: nativeSystems.length });
+
+    const scanInstalledEngines = async () => {
+      const results = await Promise.all(nativeSystems.map(async (system) => {
+        try {
+          const status = await bridge.nativeEngineStatus!(system.id);
+          writeCachedNativeStatus(system.id, status);
+          return [system.id, status] as const;
+        } catch {
+          return [system.id, null] as const;
+        } finally {
+          if (!cancelled) {
+            setNativeStatusScanProgress((current) => ({ ...current, done: current.done + 1 }));
+          }
+        }
+      }));
+
+      if (cancelled) return;
+      const currentResult = results.find(([consoleId]) => consoleId === currentSystem.id)?.[1] || null;
+      setNativeStatus(currentResult);
+      setNativeStatusScanComplete(true);
+    };
+
+    void scanInstalledEngines();
+    return () => {
+      cancelled = true;
+    };
+  }, [launcherDetected]);
+
+  useEffect(() => {
     if (!canUseNativeCurrent) {
       setNativeStatus(null);
       return;
     }
+    if (!nativeStatusScanComplete) return;
     const cached = readCachedNativeStatus(currentSystem.id);
     setNativeStatus(cached);
     if (!cached) {
       void refreshNativeStatus().catch(() => setNativeStatus(null));
     }
-  }, [currentSystem.id, launcherDetected]);
+  }, [currentSystem.id, launcherDetected, nativeStatusScanComplete]);
+
+  useEffect(() => {
+    const bridge = getLauncherBridge();
+    if (currentSystem.id !== "ps2" || !nativeStatus?.installed || !bridge?.nativeBiosStatus) {
+      setNativeBiosStatus(null);
+      return;
+    }
+    void bridge.nativeBiosStatus("ps2").then(setNativeBiosStatus).catch(() => setNativeBiosStatus(null));
+  }, [currentSystem.id, nativeStatus?.installed]);
 
   // Bloquear navegación del teclado (Enter/Flechas) si hay un juego activo
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (hasActiveGame) return;
+      if (hasActiveGame || (launcherDetected && !nativeStatusScanComplete)) return;
       if (e.key === "ArrowRight") setCurrentIndex((prev) => (prev + 1) % systems.length);
       else if (e.key === "ArrowLeft") setCurrentIndex((prev) => (prev - 1 + systems.length) % systems.length);
       else if (e.key === "Enter") openRomPicker();
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [hasActiveGame, currentSystem.id, user, profile?.membership_tier, isStaff]);
+  }, [hasActiveGame, currentSystem.id, user, profile?.membership_tier, isStaff, launcherDetected, nativeStatusScanComplete]);
 
   useEffect(() => {
     const el = carouselRef.current;
@@ -467,6 +520,22 @@ export default function EmulatorPage() {
     }
   };
 
+  const importCurrentNativeBios = async () => {
+    const bridge = getLauncherBridge();
+    if (!bridge?.importNativeBios) return;
+    setNativeBusy(true);
+    try {
+      const status = await bridge.importNativeBios(currentSystem.id);
+      if (!status) return;
+      setNativeBiosStatus(status);
+      toast({ title: "BIOS importada", description: "PCSX2 ya puede reutilizarla desde su instalacion portable." });
+    } catch (error: any) {
+      toast({ title: "No se pudo importar la BIOS", description: formatLauncherBridgeError(error, "Selecciona una BIOS extraida de tu propia consola."), variant: "destructive" });
+    } finally {
+      setNativeBusy(false);
+    }
+  };
+
   const openNativeRomPicker = async () => {
     const bridge = getLauncherBridge();
     if (!bridge?.pickNativeRom || !bridge?.openNativeEmulator) return;
@@ -486,6 +555,15 @@ export default function EmulatorPage() {
         status = await bridge.installNativeEngine(currentSystem.id);
         setNativeStatus(status);
         writeCachedNativeStatus(currentSystem.id, status);
+      }
+
+      if (currentSystem.id === "ps2" && bridge.nativeBiosStatus) {
+        const bios = await bridge.nativeBiosStatus("ps2");
+        setNativeBiosStatus(bios);
+        if (!bios.configured) {
+          toast({ title: "Falta la BIOS de PS2", description: "Usa Importar BIOS y selecciona una copia obtenida de tu propia consola.", variant: "destructive" });
+          return;
+        }
       }
 
       const romPath = await bridge.pickNativeRom(currentSystem.id);
@@ -687,6 +765,33 @@ export default function EmulatorPage() {
     <div id="batocera-screen" className="emulator-page-screen relative w-full h-[calc(100vh-5.5rem)] min-h-[600px] flex-1 bg-black rounded-xl overflow-hidden border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.8)] animate-fade-in group selection:bg-transparent">
 
       <div id="batocera-target" className={cn("absolute inset-0 z-50 pointer-events-auto", hasActiveGame ? "block" : "hidden")}></div>
+
+      {launcherDetected && !nativeStatusScanComplete && !hasActiveGame && (
+        <div className="emulator-native-scan absolute inset-0 z-[80] grid place-items-center bg-black/90 px-6 backdrop-blur-md">
+          <div className="w-full max-w-sm text-center">
+            <Loader2 className="mx-auto h-9 w-9 animate-spin text-neon-cyan" />
+            <h2 className="mt-5 font-pixel text-[11px] uppercase tracking-widest text-white">
+              Verificando emuladores
+            </h2>
+            <p className="mt-2 text-xs text-white/55">
+              Comprobando las instalaciones nativas del launcher...
+            </p>
+            <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-white/10">
+              <div
+                className="h-full rounded-full bg-neon-cyan transition-[width] duration-200"
+                style={{
+                  width: `${nativeStatusScanProgress.total > 0
+                    ? Math.round((nativeStatusScanProgress.done / nativeStatusScanProgress.total) * 100)
+                    : 0}%`,
+                }}
+              />
+            </div>
+            <p className="mt-2 font-pixel text-[8px] text-neon-cyan/80">
+              {nativeStatusScanProgress.done} / {nativeStatusScanProgress.total}
+            </p>
+          </div>
+        </div>
+      )}
 
       {!hasActiveGame && (
         <>
@@ -947,9 +1052,25 @@ export default function EmulatorPage() {
                  </button>
                )}
                {canUseNativeCurrent && nativeStatus?.installed && (
-                 <p className="mb-2 text-center font-pixel text-[8px] uppercase tracking-widest text-neon-green">
-                   {nativeStatus.engine_name} instalado
-                 </p>
+                 <div className="mb-2 flex flex-col items-center gap-2">
+                   <p className="text-center font-pixel text-[8px] uppercase tracking-widest text-neon-green">{nativeStatus.engine_name} instalado</p>
+                   {currentSystem.id === "ps2" && (
+                     <button
+                       type="button"
+                       onClick={importCurrentNativeBios}
+                       disabled={nativeBusy}
+                       className={cn(
+                         "inline-flex h-8 items-center gap-2 rounded border px-3 font-pixel text-[8px] uppercase tracking-wider transition-colors",
+                         nativeBiosStatus?.configured
+                           ? "border-neon-green/45 bg-neon-green/10 text-neon-green hover:bg-neon-green/20"
+                           : "border-neon-yellow/50 bg-neon-yellow/10 text-neon-yellow hover:bg-neon-yellow/20",
+                       )}
+                     >
+                       <KeyRound className="h-3.5 w-3.5" />
+                       {nativeBiosStatus?.configured ? "Cambiar BIOS" : "Importar BIOS"}
+                     </button>
+                   )}
+                 </div>
                )}
                {(!canUseNativeCurrent || nativeStatus?.installed) && (
                  <button

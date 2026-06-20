@@ -37,6 +37,7 @@ import StorePage from "./pages/StorePage";
 import { Navigate } from "react-router-dom";
 import { UpgradeProvider } from "@/components/UpgradeModal";
 import GlobalProfileTransitionPlayer from "@/components/GlobalProfileTransitionPlayer";
+import LauncherDriveSyncPage from "@/pages/LauncherDriveSyncPage";
 import GlobalAds from "@/components/GlobalAds"; // 🔥 IMPORTAMOS EL COMPONENTE DE ANUNCIOS
 
 // Creamos la instancia fuera del componente para evitar errores de renderizado
@@ -68,6 +69,7 @@ function DriveOAuthRedirect() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (location.pathname === "/launcher/drive-sync") return;
     const hash = location.hash?.startsWith("#") ? location.hash.slice(1) : "";
     if (!hash) return;
 
@@ -104,38 +106,6 @@ function DriveOAuthRedirect() {
   }, [location.hash, navigate]);
 
   return null;
-}
-
-function LauncherDriveSyncPage() {
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      if (!window.location.hash) {
-        navigate("/perfil?tab=storage", { replace: true });
-      }
-    }, 2500);
-
-    return () => window.clearTimeout(timer);
-  }, [navigate]);
-
-  return (
-    <div className="min-h-screen bg-background text-foreground grid place-items-center p-6">
-      <div className="w-full max-w-md rounded-lg border border-border bg-card p-6 text-center shadow-xl">
-        <h1 className="font-pixel text-[12px] uppercase text-neon-cyan">Sincronizando Google Drive</h1>
-        <p className="mt-3 text-sm text-muted-foreground">
-          Estamos conectando tu cuenta con FORBIDDENS. Si esta ventana no cambia sola, vuelve al almacenamiento.
-        </p>
-        <button
-          type="button"
-          onClick={() => navigate("/perfil?tab=storage", { replace: true })}
-          className="mt-5 rounded border border-border bg-background px-4 py-2 text-xs font-semibold text-foreground transition-colors hover:border-primary hover:text-primary"
-        >
-          Volver a almacenamiento
-        </button>
-      </div>
-    </div>
-  );
 }
 
 /**

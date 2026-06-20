@@ -10,6 +10,8 @@ commands.allow = [
   "launcher_window_action",
   "native_engine_status",
   "install_native_engine",
+  "native_bios_status",
+  "import_native_bios",
   "pick_native_rom",
   "open_native_emulator",
   "close_native_emulator",

@@ -1,0 +1,20 @@
+SHELL CONSOLA RETRO SNES - MAPA DE COLORES
+==========================================
+
+Esta shell obtiene la mayor parte de su apariencia desde los SVG. Usa estos
+codigos para controles HTML, bubble, hitboxes activas y estados.
+
+primary        = #d66b92   botones e iconos principales
+primaryDark    = #8f365d   texto y contorno oscuro
+secondary      = #ef9fba   detalles rosados
+accentGold     = #d8a44a   nombre del juego
+surface        = #fff2f5   bubble y paneles
+surfaceSoft    = #ffe1ea   hover suave
+text           = #63334b   texto principal
+textMuted      = #9b637d   metadata
+border         = #e49ab3   contornos
+pressed        = #c6537d   boton presionado
+pressedShadow  = rgba(143, 54, 93, 0.34)
+
+Las hitboxes transparentes no deben tener color en reposo. Al presionar,
+mostrar solamente una sombra/filtro usando pressed y pressedShadow.

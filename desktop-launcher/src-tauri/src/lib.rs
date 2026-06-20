@@ -41,6 +41,14 @@ struct NativeEngineStatus {
     download_page: String,
 }
 
+#[derive(Serialize)]
+struct NativeBiosStatus {
+    console_id: String,
+    required: bool,
+    configured: bool,
+    bios_dir: String,
+}
+
 #[derive(Serialize, Clone)]
 struct NativeEmulatorExitEvent {
     console_id: String,
@@ -134,6 +142,8 @@ const LAUNCHER_BRIDGE_SCRIPT: &str = r#"
     launcherWindowAction: function (action) { return invoke("launcher_window_action", { action: action }); },
     nativeEngineStatus: function (consoleId) { return invoke("native_engine_status", { consoleId: consoleId }); },
     installNativeEngine: function (consoleId) { return invoke("install_native_engine", { consoleId: consoleId }); },
+    nativeBiosStatus: function (consoleId) { return invoke("native_bios_status", { consoleId: consoleId }); },
+    importNativeBios: function (consoleId) { return invoke("import_native_bios", { consoleId: consoleId }); },
     pickNativeRom: function (consoleId) { return invoke("pick_native_rom", { consoleId: consoleId }); },
     openNativeEmulator: function (consoleId, romPath) { return invoke("open_native_emulator", { consoleId: consoleId, romPath: romPath || null }); },
     closeNativeEmulator: function (processId) { return invoke("close_native_emulator", { processId: processId }); },
@@ -472,6 +482,82 @@ fn engine_install_dir(config: &NativeEngineConfig) -> PathBuf {
         .join("engines")
         .join(config.console_id)
         .join(config.engine_name.to_lowercase())
+}
+
+fn native_bios_dir(console_id: &str) -> PathBuf {
+    get_engine_config(console_id)
+        .and_then(|config| find_native_engine(&config))
+        .and_then(|path| path.parent().map(|parent| parent.join("bios")))
+        .unwrap_or_else(|| local_app_data_dir().join("bios").join(console_id))
+}
+
+fn has_bios_file(path: &Path) -> bool {
+    fs::read_dir(path)
+        .ok()
+        .into_iter()
+        .flat_map(|entries| entries.flatten())
+        .any(|entry| {
+            let path = entry.path();
+            path.is_file()
+                && path
+                    .extension()
+                    .map(|ext| matches!(ext.to_string_lossy().to_lowercase().as_str(), "bin" | "rom"))
+                    .unwrap_or(false)
+        })
+}
+
+#[tauri::command]
+fn native_bios_status(console_id: String) -> NativeBiosStatus {
+    let normalized = console_id.trim().to_lowercase();
+    let bios_dir = native_bios_dir(&normalized);
+    NativeBiosStatus {
+        console_id: normalized.clone(),
+        required: normalized == "ps2",
+        configured: has_bios_file(&bios_dir),
+        bios_dir: bios_dir.to_string_lossy().to_string(),
+    }
+}
+
+#[tauri::command]
+fn import_native_bios(app: AppHandle, console_id: String) -> Result<Option<NativeBiosStatus>, String> {
+    let normalized = console_id.trim().to_lowercase();
+    if normalized != "ps2" {
+        return Err("La importacion guiada de BIOS solo esta habilitada para PS2.".to_string());
+    }
+    let Some(engine_config) = get_engine_config(&normalized) else {
+        return Err("No se encontro la configuracion del emulador.".to_string());
+    };
+    let Some(engine_path) = find_native_engine(&engine_config) else {
+        return Err("Instala PCSX2 antes de importar la BIOS.".to_string());
+    };
+
+    let picked = app
+        .dialog()
+        .file()
+        .add_filter("BIOS de PlayStation 2", &["bin", "rom"])
+        .blocking_pick_file();
+    let Some(source) = picked.and_then(|file| file.into_path().ok()) else {
+        return Ok(None);
+    };
+    let metadata = fs::metadata(&source).map_err(|error| error.to_string())?;
+    if metadata.len() < 512 * 1024 || metadata.len() > 16 * 1024 * 1024 {
+        return Err("El archivo seleccionado no tiene un tamano valido para una BIOS de PS2.".to_string());
+    }
+
+    let engine_root = engine_path.parent().ok_or_else(|| "No se encontro la carpeta de PCSX2.".to_string())?;
+    let bios_dir = engine_root.join("bios");
+    fs::create_dir_all(&bios_dir).map_err(|error| error.to_string())?;
+    let file_name = source.file_name().ok_or_else(|| "La BIOS no tiene un nombre valido.".to_string())?;
+    fs::copy(&source, bios_dir.join(file_name)).map_err(|error| error.to_string())?;
+
+    // PCSX2 keeps configuration beside the executable when this marker exists.
+    // That makes the imported BIOS portable with the engine installed by FORBIDDENS.
+    let portable_marker = engine_root.join("portable.ini");
+    if !portable_marker.exists() {
+        fs::write(&portable_marker, b"").map_err(|error| error.to_string())?;
+    }
+
+    Ok(Some(native_bios_status(normalized)))
 }
 
 fn sanitize_file_name(file_name: &str) -> String {
@@ -1028,6 +1114,10 @@ fn open_native_emulator(
         return Err(format!("{} no esta instalado.", config.engine_name));
     };
 
+    if normalized == "ps2" && !native_bios_status(normalized.clone()).configured {
+        return Err("PCSX2 necesita una BIOS. Importala desde la pagina de Emuladores antes de cargar la ROM.".to_string());
+    }
+
     let mut command = Command::new(&engine_path);
     if let Some(path) = rom_path
         .as_deref()
@@ -1236,6 +1326,8 @@ pub fn run() {
             launcher_window_action,
             native_engine_status,
             install_native_engine,
+            native_bios_status,
+            import_native_bios,
             pick_native_rom,
             open_native_emulator,
             close_native_emulator,
