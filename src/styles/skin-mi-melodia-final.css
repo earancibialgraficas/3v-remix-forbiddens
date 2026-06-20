@@ -1065,6 +1065,40 @@ body[data-skin-slug="mi_melodia_rosa"] .profile-social-content-tab .grid > .grou
 
 :is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) .social-hub-page .social-snap-card:not(.social-cinema-active) > .social-video-stage {
   background:
-    linear-gradient(rgba(255, 250, 253, 0.74), rgba(255, 235, 246, 0.82)),
+    linear-gradient(rgba(72, 37, 67, 0.16), rgba(67, 30, 61, 0.24)),
     url('/skins/mi_melodia_rosa/backgrounds/solid/window-rock.png') center / cover no-repeat !important;
+}
+
+/* Opaque pastel backing prevents the parent texture from bleeding through. */
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) .social-hub-page .social-snap-card > .social-detail-panel {
+  background: rgba(255, 239, 248, 0.98) !important;
+  background-color: rgba(255, 239, 248, 0.98) !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) .social-hub-page .social-snap-card > .social-detail-panel > .social-detail-author-card,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) .social-hub-page .social-snap-card > .social-detail-panel .social-detail-comments-card,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) .social-hub-page .social-snap-card > .social-detail-panel .social-detail-comments-card > div {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* These surfaces have no Tailwind bg-card class, so theme textures cannot leak back in. */
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) .social-hub-page .social-detail-author-card,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) .social-hub-page .social-detail-reactions,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) .social-hub-page .social-detail-comments-card,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) .social-hub-page .social-detail-comments-card > div {
+  background: #ffeff8 !important;
+  background-color: #ffeff8 !important;
+  background-image: none !important;
+  filter: none !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) .social-hub-page :is(.social-detail-author-card, .social-detail-reactions, .social-detail-comments-card, .social-detail-comments-card > div)::before,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) .social-hub-page :is(.social-detail-author-card, .social-detail-reactions, .social-detail-comments-card, .social-detail-comments-card > div)::after {
+  content: none !important;
+  display: none !important;
+  background: none !important;
 }

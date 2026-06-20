@@ -636,7 +636,7 @@ function SnapCard({
           </div>
         )}
 
-        <div className="social-detail-author-card shrink-0 lg:p-2.5 p-3 border border-border bg-card/90 lg:bg-card lg:rounded-xl rounded-lg shadow-sm flex flex-col z-10 w-full">
+        <div className="social-detail-author-card shrink-0 lg:p-2.5 p-3 border border-border lg:rounded-xl rounded-lg shadow-sm flex flex-col z-10 w-full">
           <div className="flex items-center gap-2 mb-2">
             <div className={cn("social-author-avatar-frame w-7 h-7 rounded-full bg-muted border border-border shrink-0 overflow-hidden", item.launcher_frame_class, item.avatar_frame_slug && "avatar-frame-custom")} style={{ ...getAvatarBorderStyle(item.color_avatar_border), ...getAvatarFrameStyle(item.avatar_frame_slug) }}>
               {item.avatar_url ? <img src={item.avatar_url} alt="" className="w-full h-full object-cover" /> : <span className="text-[10px] flex items-center justify-center h-full">👤</span>}
@@ -711,7 +711,7 @@ function SnapCard({
             <p className="text-[10px] font-body text-foreground line-clamp-3 leading-snug mb-2">{item.title || item.caption || "Contenido de la comunidad"}</p>
           )}
           
-          <div className="hidden lg:flex items-center gap-3">
+          <div className="social-detail-reactions hidden lg:flex items-center gap-3">
             <button onClick={() => handleReaction("like")} className={cn("flex items-center gap-1 text-[11px] font-body font-medium transition-all hover:scale-105", userReaction === "like" ? "text-neon-green" : "text-muted-foreground hover:text-neon-green")}>
               <ThumbsUp className="w-3.5 h-3.5" /> {likes}
             </button>
@@ -722,12 +722,12 @@ function SnapCard({
         </div>
 
         <div className="flex-1 flex flex-row gap-2 min-h-0 w-full">
-          <div className="social-detail-comments-card flex-1 flex flex-col bg-card/90 lg:bg-card border border-border lg:rounded-xl rounded-lg shadow-sm overflow-hidden min-w-0">
-            <div className="social-detail-comments-header shrink-0 px-2.5 py-2 border-b border-border text-[9px] font-pixel text-neon-cyan flex items-center gap-1 bg-muted/20">
+          <div className="social-detail-comments-card flex-1 flex flex-col border border-border lg:rounded-xl rounded-lg shadow-sm overflow-hidden min-w-0">
+            <div className="social-detail-comments-header shrink-0 px-2.5 py-2 border-b border-border text-[9px] font-pixel text-neon-cyan flex items-center gap-1">
               <MessageSquare className="w-2.5 h-2.5" /> COMENTARIOS ({comments.length})
             </div>
             {/* 🔥 overscroll-contain corrige bug del scroll de celular 🔥 */}
-            <div className="social-detail-comments-list flex-1 overflow-y-auto p-2.5 space-y-3 min-h-0 bg-background/50 overscroll-contain touch-pan-y" style={{ scrollbarWidth: 'none' }}>
+            <div className="social-detail-comments-list flex-1 overflow-y-auto p-2.5 space-y-3 min-h-0 overscroll-contain touch-pan-y" style={{ scrollbarWidth: 'none' }}>
               {comments.map(c => (
                 <div key={c.id} id={`comment-${c.id}`} className={cn("group text-[10px] font-body flex items-start justify-between gap-2", c.parent_id && "ml-4 border-l border-border pl-2")}>
                   <div className="flex-1">
@@ -764,7 +764,7 @@ function SnapCard({
               {comments.length === 0 && <p className="text-[10px] text-muted-foreground font-body text-center py-4 opacity-70">Aún no hay comentarios.</p>}
             </div>
             {user && (
-              <div className="social-detail-comment-composer shrink-0 flex flex-col border-t border-border bg-card/90 md:bg-card p-1.5 gap-1.5">
+              <div className="social-detail-comment-composer shrink-0 flex flex-col border-t border-border p-1.5 gap-1.5">
                 {replyTo && (
                    <div className="flex items-center gap-1 text-[9px] text-neon-cyan font-body px-1">
                      <Reply className="w-3 h-3" /> Respondiendo a {replyTo.name}
