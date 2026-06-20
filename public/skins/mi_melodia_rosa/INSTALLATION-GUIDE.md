@@ -73,4 +73,9 @@ La paleta completa editable esta en `COLORS.txt`. Los tokens base viven en `src/
 
 ## Checklist
 
+### Capas finales
+
+- En Feed y Reels, conserva la textura del escenario multimedia, pero deja transparentes el panel del autor, comentarios y compositor mediante clases semanticas; no cambies su layout.
+- La barra de tabs del perfil debe quedar por encima del marco ornamental de inventario mediante `z-index`, sin desplazar ninguno de los dos elementos.
+
 Revisar home, perfil, perfil publico, inventario, equipamiento, trueque, tienda, forum sidebar, rightbar, eventos, Social Hub, launcher, popups y movil. Finalmente ejecutar `npm.cmd run build`.

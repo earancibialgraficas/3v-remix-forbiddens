@@ -636,7 +636,7 @@ function SnapCard({
           </div>
         )}
 
-        <div className="shrink-0 lg:p-2.5 p-3 border border-border bg-card/90 lg:bg-card lg:rounded-xl rounded-lg shadow-sm flex flex-col z-10 w-full">
+        <div className="social-detail-author-card shrink-0 lg:p-2.5 p-3 border border-border bg-card/90 lg:bg-card lg:rounded-xl rounded-lg shadow-sm flex flex-col z-10 w-full">
           <div className="flex items-center gap-2 mb-2">
             <div className={cn("social-author-avatar-frame w-7 h-7 rounded-full bg-muted border border-border shrink-0 overflow-hidden", item.launcher_frame_class, item.avatar_frame_slug && "avatar-frame-custom")} style={{ ...getAvatarBorderStyle(item.color_avatar_border), ...getAvatarFrameStyle(item.avatar_frame_slug) }}>
               {item.avatar_url ? <img src={item.avatar_url} alt="" className="w-full h-full object-cover" /> : <span className="text-[10px] flex items-center justify-center h-full">👤</span>}
@@ -722,12 +722,12 @@ function SnapCard({
         </div>
 
         <div className="flex-1 flex flex-row gap-2 min-h-0 w-full">
-          <div className="flex-1 flex flex-col bg-card/90 lg:bg-card border border-border lg:rounded-xl rounded-lg shadow-sm overflow-hidden min-w-0">
-            <div className="shrink-0 px-2.5 py-2 border-b border-border text-[9px] font-pixel text-neon-cyan flex items-center gap-1 bg-muted/20">
+          <div className="social-detail-comments-card flex-1 flex flex-col bg-card/90 lg:bg-card border border-border lg:rounded-xl rounded-lg shadow-sm overflow-hidden min-w-0">
+            <div className="social-detail-comments-header shrink-0 px-2.5 py-2 border-b border-border text-[9px] font-pixel text-neon-cyan flex items-center gap-1 bg-muted/20">
               <MessageSquare className="w-2.5 h-2.5" /> COMENTARIOS ({comments.length})
             </div>
             {/* 🔥 overscroll-contain corrige bug del scroll de celular 🔥 */}
-            <div className="flex-1 overflow-y-auto p-2.5 space-y-3 min-h-0 bg-background/50 overscroll-contain touch-pan-y" style={{ scrollbarWidth: 'none' }}>
+            <div className="social-detail-comments-list flex-1 overflow-y-auto p-2.5 space-y-3 min-h-0 bg-background/50 overscroll-contain touch-pan-y" style={{ scrollbarWidth: 'none' }}>
               {comments.map(c => (
                 <div key={c.id} id={`comment-${c.id}`} className={cn("group text-[10px] font-body flex items-start justify-between gap-2", c.parent_id && "ml-4 border-l border-border pl-2")}>
                   <div className="flex-1">
@@ -764,7 +764,7 @@ function SnapCard({
               {comments.length === 0 && <p className="text-[10px] text-muted-foreground font-body text-center py-4 opacity-70">Aún no hay comentarios.</p>}
             </div>
             {user && (
-              <div className="shrink-0 flex flex-col border-t border-border bg-card/90 md:bg-card p-1.5 gap-1.5">
+              <div className="social-detail-comment-composer shrink-0 flex flex-col border-t border-border bg-card/90 md:bg-card p-1.5 gap-1.5">
                 {replyTo && (
                    <div className="flex items-center gap-1 text-[9px] text-neon-cyan font-body px-1">
                      <Reply className="w-3 h-3" /> Respondiendo a {replyTo.name}
@@ -1201,7 +1201,7 @@ export default function FeedPage() {
       
       {/* 🔥 BANNER AUTO-OCULTABLE A LOS 2 SEG 🔥 */}
       <div className={cn("transition-all duration-700 overflow-hidden shrink-0 z-[150]", showHeader ? "max-h-[100px] opacity-100 pt-1 lg:pt-2 px-1 lg:px-2" : "max-h-0 opacity-0 pt-0 border-none")}>
-        <div className="bg-card border border-neon-cyan/30 rounded-xl p-2.5 lg:p-3 shadow-sm relative">
+        <div className="social-hub-auto-header bg-card border border-neon-cyan/30 rounded-xl p-2.5 lg:p-3 shadow-sm relative">
           {isFetching && items.length === 0 && <div className="absolute top-0 left-0 w-full h-1 bg-neon-cyan animate-pulse z-50" />}
           <h1 className="font-pixel text-sm text-neon-cyan mb-1 flex items-center gap-2"><Globe className="w-4 h-4" /> FEED GLOBAL</h1>
           <p className="text-[10px] text-muted-foreground font-body">Todo el contenido social de la comunidad en un solo lugar</p>

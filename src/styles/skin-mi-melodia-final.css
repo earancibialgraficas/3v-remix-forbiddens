@@ -332,6 +332,120 @@
   background-image: none !important;
 }
 
+/* Final cascade lock: detail UI floats over the textured media stage. */
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) .social-hub-page :is(
+  .social-detail-panel,
+  .social-detail-panel-open,
+  .social-detail-panel-closed,
+  .social-detail-author-card,
+  .social-detail-comments-card,
+  .social-detail-comments-header,
+  .social-detail-comments-list,
+  .social-detail-comment-composer
+) {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) .social-hub-page :is(
+  .social-detail-panel,
+  .social-detail-author-card,
+  .social-detail-comments-card,
+  .social-detail-comments-header,
+  .social-detail-comments-list,
+  .social-detail-comment-composer
+)::before,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) .social-hub-page :is(
+  .social-detail-panel,
+  .social-detail-author-card,
+  .social-detail-comments-card,
+  .social-detail-comments-header,
+  .social-detail-comments-list,
+  .social-detail-comment-composer
+)::after {
+  content: none !important;
+  display: none !important;
+  background: none !important;
+}
+
+/* Normal and hover states must both be pastel; Tailwind's gray utility cannot win. */
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) .social-hub-page button.social-cinema-toggle,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) .social-hub-page button.social-cinema-toggle:not(:hover) {
+  background: #f6bcde !important;
+  background-color: #f6bcde !important;
+  background-image: none !important;
+  border-color: rgba(107, 63, 134, 0.58) !important;
+  color: #6b3f86 !important;
+  opacity: 1 !important;
+  filter: none !important;
+  box-shadow: 0 5px 14px rgba(107, 63, 134, 0.16) !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) .social-hub-page button.social-cinema-toggle:hover {
+  background: #e597c7 !important;
+  background-color: #e597c7 !important;
+  color: #fff !important;
+}
+
+/* Feed/Reels: keep texture only on the media stage, never behind detail cards. */
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) .social-hub-page :is(
+  .social-detail-panel,
+  .social-detail-panel-open,
+  .social-detail-panel-closed,
+  .social-detail-author-card,
+  .social-detail-comments-card,
+  .social-detail-comments-header,
+  .social-detail-comments-list,
+  .social-detail-comment-composer
+) {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) .social-hub-page :is(
+  .social-detail-author-card,
+  .social-detail-comments-card,
+  .social-detail-comments-header,
+  .social-detail-comment-composer
+) {
+  border-color: rgba(154, 106, 188, 0.34) !important;
+  backdrop-filter: none !important;
+}
+
+/* The disappearing page title and cinema toggle use the pastel UI, not gray. */
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) .social-hub-page .social-hub-auto-header {
+  background: rgba(255, 226, 242, 0.94) !important;
+  background-image: none !important;
+  border-color: rgba(154, 106, 188, 0.48) !important;
+  color: #6b3f86 !important;
+  box-shadow: 0 8px 20px rgba(154, 106, 188, 0.12) !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) .social-hub-page button.social-cinema-toggle {
+  background: rgba(246, 188, 222, 0.96) !important;
+  background-image: none !important;
+  border-color: rgba(139, 95, 179, 0.58) !important;
+  color: #6b3f86 !important;
+  box-shadow: 0 6px 16px rgba(139, 95, 179, 0.16) !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) .social-hub-page button.social-cinema-toggle:hover {
+  background: rgba(229, 151, 199, 0.98) !important;
+  color: #fff !important;
+}
+
+/* Keep profile tabs above the ornamental inventory frame without moving either. */
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) [data-melodia-surface="profile-tabs"] {
+  position: relative !important;
+  z-index: 160 !important;
+  isolation: isolate;
+}
+
 /* Mi Melodia Rosa polish: isolated fixes for frame, launcher, player and Social Hub. */
 :is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) [data-melodia-surface="inventory-shell"] {
   overflow: visible !important;
@@ -908,4 +1022,49 @@ body[data-skin-slug="mi_melodia_rosa"] .profile-social-content-tab .grid > .grou
 
 :is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) .social-hub-page :is(.social-desktop-filter, .social-detail-panel, .social-detail-panel-open, .social-detail-panel-closed) :is([class*="bg-card"], [class*="bg-muted"], [class*="bg-white/"], [class*="bg-black/"]) {
   background-image: none !important;
+}
+
+/* Must remain last: transparent detail cards over the Social Hub media texture. */
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) .social-hub-page :is(.social-detail-panel, .social-detail-panel-open, .social-detail-panel-closed, .social-detail-author-card, .social-detail-comments-card, .social-detail-comments-header, .social-detail-comments-list, .social-detail-comment-composer) {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) .social-hub-page :is(.social-detail-panel, .social-detail-author-card, .social-detail-comments-card, .social-detail-comments-header, .social-detail-comments-list, .social-detail-comment-composer)::before,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) .social-hub-page :is(.social-detail-panel, .social-detail-author-card, .social-detail-comments-card, .social-detail-comments-header, .social-detail-comments-list, .social-detail-comment-composer)::after {
+  content: none !important;
+  display: none !important;
+  background: none !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) .social-hub-page button.social-cinema-toggle,
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) .social-hub-page button.social-cinema-toggle:not(:hover) {
+  background: #f6bcde !important;
+  background-color: #f6bcde !important;
+  background-image: none !important;
+  border-color: rgba(107, 63, 134, 0.58) !important;
+  color: #6b3f86 !important;
+  opacity: 1 !important;
+  filter: none !important;
+  box-shadow: 0 5px 14px rgba(107, 63, 134, 0.16) !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) .social-hub-page button.social-cinema-toggle:hover {
+  background: #e597c7 !important;
+  color: #fff !important;
+}
+
+/* The texture belongs to the video stage, not to the complete snap card. */
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) .social-hub-page .social-snap-card:not(.social-cinema-active) {
+  background: rgba(255, 239, 248, 0.9) !important;
+  background-image: none !important;
+}
+
+:is(html.skin-theme-mi_melodia_rosa, html[data-skin-slug="mi_melodia_rosa"], html[style*="--skin-slug: mi_melodia_rosa"], body.skin-theme-mi_melodia_rosa, body[data-skin-slug="mi_melodia_rosa"]) .social-hub-page .social-snap-card:not(.social-cinema-active) > .social-video-stage {
+  background:
+    linear-gradient(rgba(255, 250, 253, 0.74), rgba(255, 235, 246, 0.82)),
+    url('/skins/mi_melodia_rosa/backgrounds/solid/window-rock.png') center / cover no-repeat !important;
 }
