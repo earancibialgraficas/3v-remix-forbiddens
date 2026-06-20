@@ -66,3 +66,10 @@ Revisar home, perfil, perfil publico, inventario, equipamiento, trueque, forum s
 - Las capas decorativas, mascaras y pseudo-elementos siempre usan `pointer-events: none`.
 
 Los codigos editables de la paleta estan en `COLORS.txt`.
+
+## Pagina de emuladores
+
+- El glow de `.emulator-console-carousel-item` debe usar `primary` con alpha aproximado de `0.60`; nunca blanco.
+- El titulo `.emulator-console-title` usa `text` y un glow basado en `primary`/`glowNormal`.
+- Mantener `overflow: visible` en los elementos del carrusel para que el glow no quede recortado en un cuadrado.
+- La comprobacion de motores nativos se almacena en caché y no debe repetirse al volver a la pagina mientras siga vigente.

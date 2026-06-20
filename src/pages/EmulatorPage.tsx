@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
-import { ChevronLeft, ChevronRight, Upload, Settings, Battery, Clock, Monitor, Check, ListChecks, Cpu, Download, Loader2, KeyRound } from "lucide-react";
+import { ChevronLeft, ChevronRight, Upload, Settings, Battery, Clock, Monitor, Check, ListChecks, Cpu, Download, Loader2, KeyRound, FolderSearch } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useGameBubble } from "@/contexts/GameBubbleContext";
@@ -311,7 +311,11 @@ export default function EmulatorPage() {
   const [nativeBiosStatus, setNativeBiosStatus] = useState<NativeBiosStatus | null>(null);
   const [nativeBusy, setNativeBusy] = useState(false);
   const [launcherDetected, setLauncherDetected] = useState(() => Boolean(getLauncherBridge()));
-  const [nativeStatusScanComplete, setNativeStatusScanComplete] = useState(false);
+  const [nativeStatusScanComplete, setNativeStatusScanComplete] = useState(() => {
+    if (!getLauncherBridge()) return false;
+    const nativeSystems = systems.filter((system) => launcherSupportsNative(system.id));
+    return nativeSystems.length > 0 && nativeSystems.every((system) => Boolean(readCachedNativeStatus(system.id)));
+  });
   const [nativeStatusScanProgress, setNativeStatusScanProgress] = useState({ done: 0, total: 0 });
 
   // Lógica de carga automática si vienes desde la página de Biblioteca
@@ -400,25 +404,44 @@ export default function EmulatorPage() {
 
     let cancelled = false;
     const nativeSystems = systems.filter((system) => launcherSupportsNative(system.id));
+    const cachedResults = nativeSystems
+      .map((system) => [system.id, readCachedNativeStatus(system.id)] as const)
+      .filter((entry): entry is readonly [string, NativeEngineStatus] => Boolean(entry[1]));
+    const missingSystems = nativeSystems.filter(
+      (system) => !cachedResults.some(([consoleId]) => consoleId === system.id),
+    );
+
+    setNativeStatusScanProgress({ done: cachedResults.length, total: nativeSystems.length });
+
+    if (missingSystems.length === 0) {
+      const currentCached = cachedResults.find(([consoleId]) => consoleId === currentSystem.id)?.[1] || null;
+      setNativeStatus(currentCached);
+      setNativeStatusScanComplete(true);
+      return;
+    }
+
     setNativeStatusScanComplete(false);
-    setNativeStatusScanProgress({ done: 0, total: nativeSystems.length });
 
     const scanInstalledEngines = async () => {
-      const results = await Promise.all(nativeSystems.map(async (system) => {
+      const scannedResults: Array<readonly [string, NativeEngineStatus | null]> = [];
+      for (const system of missingSystems) {
+        if (cancelled) return;
         try {
           const status = await bridge.nativeEngineStatus!(system.id);
           writeCachedNativeStatus(system.id, status);
-          return [system.id, status] as const;
+          scannedResults.push([system.id, status] as const);
         } catch {
-          return [system.id, null] as const;
+          scannedResults.push([system.id, null] as const);
         } finally {
           if (!cancelled) {
             setNativeStatusScanProgress((current) => ({ ...current, done: current.done + 1 }));
+            await new Promise((resolve) => window.setTimeout(resolve, 120));
           }
         }
-      }));
+      }
 
       if (cancelled) return;
+      const results = [...cachedResults, ...scannedResults];
       const currentResult = results.find(([consoleId]) => consoleId === currentSystem.id)?.[1] || null;
       setNativeStatus(currentResult);
       setNativeStatusScanComplete(true);
@@ -531,6 +554,41 @@ export default function EmulatorPage() {
       toast({ title: "BIOS importada", description: "PCSX2 ya puede reutilizarla desde su instalacion portable." });
     } catch (error: any) {
       toast({ title: "No se pudo importar la BIOS", description: formatLauncherBridgeError(error, "Selecciona una BIOS extraida de tu propia consola."), variant: "destructive" });
+    } finally {
+      setNativeBusy(false);
+    }
+  };
+
+  const importCurrentNativeBiosFolder = async () => {
+    const bridge = getLauncherBridge();
+    if (!bridge?.importNativeBiosFolder) return;
+    setNativeBusy(true);
+    try {
+      const status = await bridge.importNativeBiosFolder(currentSystem.id);
+      if (!status) return;
+      setNativeBiosStatus(status);
+      toast({
+        title: "Carpeta de PCSX2 importada",
+        description: `${status.bioses?.length || 0} BIOS disponible${status.bioses?.length === 1 ? "" : "s"}.`,
+      });
+    } catch (error: any) {
+      toast({ title: "No se encontraron BIOS", description: formatLauncherBridgeError(error, "Selecciona la carpeta de PCSX2 o su carpeta bios."), variant: "destructive" });
+    } finally {
+      setNativeBusy(false);
+    }
+  };
+
+  const selectCurrentNativeBios = async (fileName: string) => {
+    const bridge = getLauncherBridge();
+    if (!bridge?.selectNativeBios || !fileName) return;
+    setNativeBusy(true);
+    try {
+      const status = await bridge.selectNativeBios(currentSystem.id, fileName);
+      setNativeBiosStatus(status);
+      const selected = status.bioses?.find((bios) => bios.selected);
+      toast({ title: "BIOS activa", description: selected ? `${selected.region} - ${selected.file_name}` : fileName });
+    } catch (error: any) {
+      toast({ title: "No se pudo seleccionar", description: formatLauncherBridgeError(error, "La BIOS ya no esta disponible."), variant: "destructive" });
     } finally {
       setNativeBusy(false);
     }
@@ -1055,20 +1113,55 @@ export default function EmulatorPage() {
                  <div className="mb-2 flex flex-col items-center gap-2">
                    <p className="text-center font-pixel text-[8px] uppercase tracking-widest text-neon-green">{nativeStatus.engine_name} instalado</p>
                    {currentSystem.id === "ps2" && (
-                     <button
-                       type="button"
-                       onClick={importCurrentNativeBios}
-                       disabled={nativeBusy}
-                       className={cn(
-                         "inline-flex h-8 items-center gap-2 rounded border px-3 font-pixel text-[8px] uppercase tracking-wider transition-colors",
-                         nativeBiosStatus?.configured
-                           ? "border-neon-green/45 bg-neon-green/10 text-neon-green hover:bg-neon-green/20"
-                           : "border-neon-yellow/50 bg-neon-yellow/10 text-neon-yellow hover:bg-neon-yellow/20",
+                     <div className="w-full max-w-md rounded border border-white/15 bg-black/35 p-2.5 backdrop-blur-md">
+                       <div className="mb-2 flex items-center justify-between gap-3">
+                         <div className="min-w-0">
+                           <p className="font-pixel text-[8px] uppercase tracking-wider text-white">Gestor local de BIOS</p>
+                           <p className={cn("mt-1 truncate text-[10px]", nativeBiosStatus?.configured ? "text-neon-green" : "text-neon-yellow") }>
+                             {nativeBiosStatus?.bioses?.find((bios) => bios.selected)?.region || "Ninguna seleccionada"}
+                           </p>
+                         </div>
+                         <KeyRound className={cn("h-4 w-4 shrink-0", nativeBiosStatus?.configured ? "text-neon-green" : "text-neon-yellow")} />
+                       </div>
+
+                       {Boolean(nativeBiosStatus?.bioses?.length) && (
+                         <select
+                           value={nativeBiosStatus?.selected_bios || ""}
+                           onChange={(event) => void selectCurrentNativeBios(event.target.value)}
+                           disabled={nativeBusy}
+                           className="mb-2 h-9 w-full rounded border border-white/20 bg-black/70 px-2 text-[11px] text-white outline-none focus:border-neon-cyan"
+                           aria-label="BIOS activa de PlayStation 2"
+                         >
+                           {nativeBiosStatus?.bioses?.map((bios) => (
+                             <option key={bios.file_name} value={bios.file_name}>
+                               {bios.region} ({bios.description}) - {bios.file_name}
+                             </option>
+                           ))}
+                         </select>
                        )}
-                     >
-                       <KeyRound className="h-3.5 w-3.5" />
-                       {nativeBiosStatus?.configured ? "Cambiar BIOS" : "Importar BIOS"}
-                     </button>
+
+                       <div className="grid grid-cols-2 gap-2">
+                         <button
+                           type="button"
+                           onClick={importCurrentNativeBios}
+                           disabled={nativeBusy}
+                           className="inline-flex min-h-8 items-center justify-center gap-1.5 rounded border border-neon-cyan/35 bg-neon-cyan/10 px-2 font-pixel text-[7px] uppercase leading-tight text-neon-cyan transition-colors hover:bg-neon-cyan/20"
+                         >
+                           <KeyRound className="h-3.5 w-3.5 shrink-0" />
+                           Importar archivo
+                         </button>
+                         <button
+                           type="button"
+                           onClick={importCurrentNativeBiosFolder}
+                           disabled={nativeBusy || !getLauncherBridge()?.importNativeBiosFolder}
+                           className="inline-flex min-h-8 items-center justify-center gap-1.5 rounded border border-neon-purple/35 bg-neon-purple/10 px-2 font-pixel text-[7px] uppercase leading-tight text-neon-purple transition-colors hover:bg-neon-purple/20 disabled:opacity-45"
+                           title={!getLauncherBridge()?.importNativeBiosFolder ? "Actualiza el launcher para usar carpetas de PCSX2" : undefined}
+                         >
+                           <FolderSearch className="h-3.5 w-3.5 shrink-0" />
+                           Usar carpeta PCSX2
+                         </button>
+                       </div>
+                     </div>
                    )}
                  </div>
                )}

@@ -61,11 +61,15 @@ Las ROMs de Drive se cachean en:
 
 PCSX2 necesita una BIOS extraida legalmente de una consola del propio usuario. FORBIDDENS no la descarga ni la distribuye desde un CDN.
 
-Cuando PCSX2 ya esta instalado, la pagina de emuladores muestra `Importar BIOS`. El launcher:
+Cuando PCSX2 ya esta instalado, la pagina de emuladores muestra un gestor local. El launcher:
 
 1. Permite elegir un archivo `.bin` o `.rom` local.
 2. Comprueba que su tamano sea razonable antes de copiarlo.
 3. Lo guarda en la carpeta `bios` de la instalacion portable de PCSX2.
+4. Detecta una region estimada por el nombre del archivo y permite elegir la BIOS activa.
+5. Escribe la seleccion en `[Filenames] BIOS` dentro del `PCSX2.ini` portable.
+
+Tambien se puede elegir una carpeta existente de PCSX2. El launcher busca archivos validos dentro de esa carpeta y sus subcarpetas, los copia a la biblioteca portable de FORBIDDENS y conserva los originales intactos. Si la instalacion administrada por FORBIDDENS ya contiene BIOS, se detectan automaticamente y la primera se activa cuando todavia no existe una seleccion.
 4. Crea el marcador `portable.ini` para mantener configuracion y BIOS dentro del motor instalado.
 5. Impide abrir un juego de PS2 y muestra una explicacion si todavia no hay una BIOS importada.
 

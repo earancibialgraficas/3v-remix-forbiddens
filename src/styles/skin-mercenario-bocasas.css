@@ -3030,6 +3030,16 @@ html[style*="--skin-slug: mercenario_bocasas"] #batocera-screen.emulator-page-sc
   box-shadow: none !important;
 }
 
+html[style*="--skin-slug: mercenario_bocasas"] #batocera-screen.emulator-page-screen .emulator-console-carousel-item {
+  filter: drop-shadow(0 0 24px rgba(224, 71, 63, 0.6)) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] #batocera-screen.emulator-page-screen .emulator-console-title {
+  color: #f2c8bd !important;
+  filter: drop-shadow(0 0 10px rgba(224, 71, 63, 0.68)) !important;
+  text-shadow: 0 0 18px rgba(207, 50, 42, 0.46) !important;
+}
+
 /* Social Hub must keep the base Feed/Reels/PhotoWall layout with this skin too. */
 html[style*="--skin-slug: mercenario_bocasas"] .social-hub-page {
   --social-skin-accent: #e2503d;

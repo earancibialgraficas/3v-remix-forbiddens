@@ -22,6 +22,14 @@ export interface NativeBiosStatus {
   required: boolean;
   configured: boolean;
   bios_dir: string;
+  selected_bios?: string | null;
+  bioses?: Array<{
+    file_name: string;
+    region: string;
+    description: string;
+    size: number;
+    selected: boolean;
+  }>;
 }
 
 type LauncherBridge = {
@@ -35,6 +43,8 @@ type LauncherBridge = {
   installNativeEngine?: (consoleId: string) => Promise<NativeEngineStatus>;
   nativeBiosStatus?: (consoleId: string) => Promise<NativeBiosStatus>;
   importNativeBios?: (consoleId: string) => Promise<NativeBiosStatus | null>;
+  importNativeBiosFolder?: (consoleId: string) => Promise<NativeBiosStatus | null>;
+  selectNativeBios?: (consoleId: string, fileName: string) => Promise<NativeBiosStatus>;
   pickNativeRom?: (consoleId: string) => Promise<string | null>;
   openNativeEmulator?: (consoleId: string, romPath?: string | null) => Promise<NativeEmulatorLaunchResult | string>;
   closeNativeEmulator?: (processId: number) => Promise<void>;
@@ -66,6 +76,8 @@ const buildBridgeFromTauri = (): LauncherBridge | null => {
     installNativeEngine: (consoleId: string) => invoke("install_native_engine", { consoleId }),
     nativeBiosStatus: (consoleId: string) => invoke("native_bios_status", { consoleId }),
     importNativeBios: (consoleId: string) => invoke("import_native_bios", { consoleId }),
+    importNativeBiosFolder: (consoleId: string) => invoke("import_native_bios_folder", { consoleId }),
+    selectNativeBios: (consoleId: string, fileName: string) => invoke("select_native_bios", { consoleId, fileName }),
     pickNativeRom: (consoleId: string) => invoke("pick_native_rom", { consoleId }),
     openNativeEmulator: (consoleId: string, romPath?: string | null) => invoke("open_native_emulator", { consoleId, romPath: romPath || null }),
     closeNativeEmulator: (processId: number) => invoke("close_native_emulator", { processId }),

@@ -12,6 +12,8 @@ commands.allow = [
   "install_native_engine",
   "native_bios_status",
   "import_native_bios",
+  "import_native_bios_folder",
+  "select_native_bios",
   "pick_native_rom",
   "open_native_emulator",
   "close_native_emulator",

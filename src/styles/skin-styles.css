@@ -3512,6 +3512,16 @@ html[style*="--skin-slug: demoniaco"] #batocera-screen.emulator-page-screen .emu
   box-shadow: none !important;
 }
 
+html[style*="--skin-slug: demoniaco"] #batocera-screen.emulator-page-screen .emulator-console-carousel-item {
+  filter: drop-shadow(0 0 24px rgba(217, 74, 56, 0.62)) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] #batocera-screen.emulator-page-screen .emulator-console-title {
+  color: #f0c1aa !important;
+  filter: drop-shadow(0 0 10px rgba(217, 74, 56, 0.7)) !important;
+  text-shadow: 0 0 18px rgba(185, 44, 34, 0.48) !important;
+}
+
 html[style*="--skin-slug: demoniaco"] .score-search-bubble {
   border-color: rgba(226, 80, 61, 0.48) !important;
   background:

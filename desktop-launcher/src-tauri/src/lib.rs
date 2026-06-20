@@ -41,12 +41,23 @@ struct NativeEngineStatus {
     download_page: String,
 }
 
+#[derive(Serialize, Clone)]
+struct NativeBiosEntry {
+    file_name: String,
+    region: String,
+    description: String,
+    size: u64,
+    selected: bool,
+}
+
 #[derive(Serialize)]
 struct NativeBiosStatus {
     console_id: String,
     required: bool,
     configured: bool,
     bios_dir: String,
+    selected_bios: Option<String>,
+    bioses: Vec<NativeBiosEntry>,
 }
 
 #[derive(Serialize, Clone)]
@@ -75,7 +86,7 @@ struct NativeEmulatorWindowStateEvent {
 }
 
 const WEBSITE_URL: &str = "https://forbiddens.net/";
-const LAUNCHER_DOWNLOAD_URL: &str = "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.10_x64-setup.exe";
+const LAUNCHER_DOWNLOAD_URL: &str = "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.13_x64-setup.exe";
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 const LAUNCHER_BRIDGE_SCRIPT: &str = r#"
 (function () {
@@ -144,6 +155,8 @@ const LAUNCHER_BRIDGE_SCRIPT: &str = r#"
     installNativeEngine: function (consoleId) { return invoke("install_native_engine", { consoleId: consoleId }); },
     nativeBiosStatus: function (consoleId) { return invoke("native_bios_status", { consoleId: consoleId }); },
     importNativeBios: function (consoleId) { return invoke("import_native_bios", { consoleId: consoleId }); },
+    importNativeBiosFolder: function (consoleId) { return invoke("import_native_bios_folder", { consoleId: consoleId }); },
+    selectNativeBios: function (consoleId, fileName) { return invoke("select_native_bios", { consoleId: consoleId, fileName: fileName }); },
     pickNativeRom: function (consoleId) { return invoke("pick_native_rom", { consoleId: consoleId }); },
     openNativeEmulator: function (consoleId, romPath) { return invoke("open_native_emulator", { consoleId: consoleId, romPath: romPath || null }); },
     closeNativeEmulator: function (processId) { return invoke("close_native_emulator", { processId: processId }); },
@@ -491,30 +504,201 @@ fn native_bios_dir(console_id: &str) -> PathBuf {
         .unwrap_or_else(|| local_app_data_dir().join("bios").join(console_id))
 }
 
-fn has_bios_file(path: &Path) -> bool {
-    fs::read_dir(path)
-        .ok()
-        .into_iter()
-        .flat_map(|entries| entries.flatten())
-        .any(|entry| {
-            let path = entry.path();
-            path.is_file()
-                && path
-                    .extension()
-                    .map(|ext| matches!(ext.to_string_lossy().to_lowercase().as_str(), "bin" | "rom"))
-                    .unwrap_or(false)
-        })
+fn is_valid_ps2_bios(path: &Path) -> bool {
+    let valid_extension = path
+        .extension()
+        .map(|ext| matches!(ext.to_string_lossy().to_lowercase().as_str(), "bin" | "rom"))
+        .unwrap_or(false);
+    let valid_size = fs::metadata(path)
+        .map(|metadata| (512 * 1024..=16 * 1024 * 1024).contains(&metadata.len()))
+        .unwrap_or(false);
+    path.is_file() && valid_extension && valid_size
+}
+
+fn detect_bios_region(file_name: &str) -> (String, String) {
+    let name = file_name.to_lowercase().replace(['-', '.', '_'], " ");
+    let compact = name.replace(' ', "");
+    let detected = if name.contains("europe") || name.contains("eur") || name.contains(" pal") || compact.contains("scph39004") {
+        ("Europa", "PAL")
+    } else if name.contains("japan") || name.contains("jap") || name.contains("ntsc j") || compact.contains("scph39000") {
+        ("Japon", "NTSC-J")
+    } else if name.contains("china") || name.contains(" chn") || compact.contains("scph39009") {
+        ("China", "NTSC-C")
+    } else if name.contains("usa") || name.contains("america") || name.contains("ntsc u") || compact.contains("scph39001") {
+        ("USA", "NTSC-U")
+    } else {
+        ("Desconocida", "Region sin identificar")
+    };
+    (detected.0.to_string(), detected.1.to_string())
+}
+
+fn pcsx2_root() -> Option<PathBuf> {
+    get_engine_config("ps2")
+        .and_then(|config| find_native_engine(&config))
+        .and_then(|path| path.parent().map(Path::to_path_buf))
+}
+
+fn pcsx2_ini_path() -> Option<PathBuf> {
+    pcsx2_root().map(|root| root.join("inis").join("PCSX2.ini"))
+}
+
+fn read_ini_value(path: &Path, section: &str, key: &str) -> Option<String> {
+    let content = fs::read_to_string(path).ok()?;
+    let mut in_section = false;
+    for line in content.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with('[') && trimmed.ends_with(']') {
+            in_section = &trimmed[1..trimmed.len() - 1] == section;
+        } else if in_section {
+            if let Some((candidate, value)) = trimmed.split_once('=') {
+                if candidate.trim().eq_ignore_ascii_case(key) {
+                    let value = value.trim();
+                    return (!value.is_empty()).then(|| value.to_string());
+                }
+            }
+        }
+    }
+    None
+}
+
+fn write_ini_value(path: &Path, section: &str, key: &str, value: &str) -> Result<(), String> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+    }
+    let original = fs::read_to_string(path).unwrap_or_default();
+    let mut output = Vec::new();
+    let mut in_section = false;
+    let mut section_found = false;
+    let mut key_written = false;
+
+    for line in original.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with('[') && trimmed.ends_with(']') {
+            if in_section && !key_written {
+                output.push(format!("{key} = {value}"));
+                key_written = true;
+            }
+            in_section = &trimmed[1..trimmed.len() - 1] == section;
+            section_found |= in_section;
+        }
+        if in_section && trimmed.split_once('=').map(|(candidate, _)| candidate.trim().eq_ignore_ascii_case(key)).unwrap_or(false) {
+            output.push(format!("{key} = {value}"));
+            key_written = true;
+        } else {
+            output.push(line.to_string());
+        }
+    }
+    if in_section && !key_written {
+        output.push(format!("{key} = {value}"));
+    }
+    if !section_found {
+        if !output.is_empty() {
+            output.push(String::new());
+        }
+        output.push(format!("[{section}]"));
+        output.push(format!("{key} = {value}"));
+    }
+    fs::write(path, format!("{}\n", output.join("\n"))).map_err(|error| error.to_string())
+}
+
+fn ensure_pcsx2_portable_config() -> Result<PathBuf, String> {
+    let root = pcsx2_root().ok_or_else(|| "Instala PCSX2 antes de configurar una BIOS.".to_string())?;
+    let marker = root.join("portable.ini");
+    if !marker.exists() {
+        fs::write(&marker, b"").map_err(|error| error.to_string())?;
+    }
+    let ini = root.join("inis").join("PCSX2.ini");
+    if !ini.exists() {
+        let documents_ini = env::var("USERPROFILE")
+            .map(PathBuf::from)
+            .unwrap_or_default()
+            .join("Documents")
+            .join("PCSX2")
+            .join("inis")
+            .join("PCSX2.ini");
+        if documents_ini.exists() {
+            if let Some(parent) = ini.parent() {
+                fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+            }
+            fs::copy(documents_ini, &ini).map_err(|error| error.to_string())?;
+        }
+    }
+    write_ini_value(&ini, "Folders", "Bios", "bios")?;
+    write_ini_value(&ini, "UI", "SetupWizardIncomplete", "false")?;
+    Ok(ini)
+}
+
+fn copy_bios_file(source: &Path, destination_dir: &Path) -> Result<String, String> {
+    if !is_valid_ps2_bios(source) {
+        return Err("El archivo no tiene un formato o tamano valido para una BIOS de PS2.".to_string());
+    }
+    fs::create_dir_all(destination_dir).map_err(|error| error.to_string())?;
+    let file_name = source.file_name().and_then(|name| name.to_str()).ok_or_else(|| "La BIOS no tiene un nombre valido.".to_string())?;
+    let destination = destination_dir.join(file_name);
+    if source.canonicalize().ok() != destination.canonicalize().ok() {
+        fs::copy(source, &destination).map_err(|error| error.to_string())?;
+    }
+    Ok(file_name.to_string())
+}
+
+fn collect_bios_files(root: &Path, depth: usize, output: &mut Vec<PathBuf>) {
+    if depth == 0 || !root.is_dir() {
+        return;
+    }
+    let Ok(entries) = fs::read_dir(root) else { return; };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            collect_bios_files(&path, depth - 1, output);
+        } else if is_valid_ps2_bios(&path) {
+            output.push(path);
+        }
+    }
 }
 
 #[tauri::command]
 fn native_bios_status(console_id: String) -> NativeBiosStatus {
     let normalized = console_id.trim().to_lowercase();
     let bios_dir = native_bios_dir(&normalized);
+    let selected_bios = pcsx2_ini_path().and_then(|path| read_ini_value(&path, "Filenames", "BIOS"));
+    let mut bioses: Vec<NativeBiosEntry> = fs::read_dir(&bios_dir)
+        .ok()
+        .into_iter()
+        .flat_map(|entries| entries.flatten())
+        .filter_map(|entry| {
+            let path = entry.path();
+            if !is_valid_ps2_bios(&path) { return None; }
+            let file_name = path.file_name()?.to_string_lossy().to_string();
+            let (region, description) = detect_bios_region(&file_name);
+            Some(NativeBiosEntry {
+                selected: selected_bios.as_deref().map(|selected| selected.eq_ignore_ascii_case(&file_name)).unwrap_or(false),
+                size: fs::metadata(&path).map(|metadata| metadata.len()).unwrap_or(0),
+                file_name,
+                region,
+                description,
+            })
+        })
+        .collect();
+    bioses.sort_by(|left, right| left.region.cmp(&right.region).then(left.file_name.cmp(&right.file_name)));
+    let mut effective_selection = selected_bios.filter(|selected| bioses.iter().any(|bios| bios.file_name.eq_ignore_ascii_case(selected)));
+    if normalized == "ps2" && effective_selection.is_none() && !bioses.is_empty() {
+        if let Ok(ini) = ensure_pcsx2_portable_config() {
+            let automatic = bioses[0].file_name.clone();
+            if write_ini_value(&ini, "Filenames", "BIOS", &automatic).is_ok() {
+                effective_selection = Some(automatic.clone());
+                for bios in &mut bioses {
+                    bios.selected = bios.file_name.eq_ignore_ascii_case(&automatic);
+                }
+            }
+        }
+    }
     NativeBiosStatus {
         console_id: normalized.clone(),
         required: normalized == "ps2",
-        configured: has_bios_file(&bios_dir),
+        configured: effective_selection.is_some(),
         bios_dir: bios_dir.to_string_lossy().to_string(),
+        selected_bios: effective_selection,
+        bioses,
     }
 }
 
@@ -539,25 +723,61 @@ fn import_native_bios(app: AppHandle, console_id: String) -> Result<Option<Nativ
     let Some(source) = picked.and_then(|file| file.into_path().ok()) else {
         return Ok(None);
     };
-    let metadata = fs::metadata(&source).map_err(|error| error.to_string())?;
-    if metadata.len() < 512 * 1024 || metadata.len() > 16 * 1024 * 1024 {
-        return Err("El archivo seleccionado no tiene un tamano valido para una BIOS de PS2.".to_string());
-    }
-
     let engine_root = engine_path.parent().ok_or_else(|| "No se encontro la carpeta de PCSX2.".to_string())?;
     let bios_dir = engine_root.join("bios");
-    fs::create_dir_all(&bios_dir).map_err(|error| error.to_string())?;
-    let file_name = source.file_name().ok_or_else(|| "La BIOS no tiene un nombre valido.".to_string())?;
-    fs::copy(&source, bios_dir.join(file_name)).map_err(|error| error.to_string())?;
-
-    // PCSX2 keeps configuration beside the executable when this marker exists.
-    // That makes the imported BIOS portable with the engine installed by FORBIDDENS.
-    let portable_marker = engine_root.join("portable.ini");
-    if !portable_marker.exists() {
-        fs::write(&portable_marker, b"").map_err(|error| error.to_string())?;
-    }
-
+    let file_name = copy_bios_file(&source, &bios_dir)?;
+    let ini = ensure_pcsx2_portable_config()?;
+    write_ini_value(&ini, "Filenames", "BIOS", &file_name)?;
     Ok(Some(native_bios_status(normalized)))
+}
+
+#[tauri::command]
+fn import_native_bios_folder(app: AppHandle, console_id: String) -> Result<Option<NativeBiosStatus>, String> {
+    let normalized = console_id.trim().to_lowercase();
+    if normalized != "ps2" {
+        return Err("La importacion desde carpeta solo esta habilitada para PS2.".to_string());
+    }
+    let folder = app.dialog().file().blocking_pick_folder();
+    let Some(folder) = folder.and_then(|value| value.into_path().ok()) else { return Ok(None); };
+    let bios_dir = native_bios_dir("ps2");
+    let mut candidates = Vec::new();
+    collect_bios_files(&folder, 6, &mut candidates);
+    if candidates.is_empty() {
+        return Err("No se encontraron BIOS validas dentro de la carpeta seleccionada.".to_string());
+    }
+    let mut imported = Vec::new();
+    for candidate in candidates {
+        if let Ok(file_name) = copy_bios_file(&candidate, &bios_dir) {
+            if !imported.contains(&file_name) { imported.push(file_name); }
+        }
+    }
+    if imported.is_empty() {
+        return Err("No se pudo importar ninguna BIOS desde esa instalacion de PCSX2.".to_string());
+    }
+    let ini = ensure_pcsx2_portable_config()?;
+    let current = read_ini_value(&ini, "Filenames", "BIOS");
+    if current.as_ref().map(|name| bios_dir.join(name).exists()).unwrap_or(false) == false {
+        write_ini_value(&ini, "Filenames", "BIOS", &imported[0])?;
+    }
+    Ok(Some(native_bios_status(normalized)))
+}
+
+#[tauri::command]
+fn select_native_bios(console_id: String, file_name: String) -> Result<NativeBiosStatus, String> {
+    let normalized = console_id.trim().to_lowercase();
+    if normalized != "ps2" {
+        return Err("La seleccion de BIOS solo esta habilitada para PS2.".to_string());
+    }
+    if Path::new(&file_name).file_name().and_then(|name| name.to_str()) != Some(file_name.as_str()) {
+        return Err("El nombre de la BIOS no es valido.".to_string());
+    }
+    let bios_path = native_bios_dir("ps2").join(&file_name);
+    if !is_valid_ps2_bios(&bios_path) {
+        return Err("La BIOS seleccionada ya no esta disponible.".to_string());
+    }
+    let ini = ensure_pcsx2_portable_config()?;
+    write_ini_value(&ini, "Filenames", "BIOS", &file_name)?;
+    Ok(native_bios_status(normalized))
 }
 
 fn sanitize_file_name(file_name: &str) -> String {
@@ -1119,6 +1339,9 @@ fn open_native_emulator(
     }
 
     let mut command = Command::new(&engine_path);
+    if normalized == "ps2" {
+        command.arg("-portable");
+    }
     if let Some(path) = rom_path
         .as_deref()
         .map(str::trim)
@@ -1328,6 +1551,8 @@ pub fn run() {
             install_native_engine,
             native_bios_status,
             import_native_bios,
+            import_native_bios_folder,
+            select_native_bios,
             pick_native_rom,
             open_native_emulator,
             close_native_emulator,
