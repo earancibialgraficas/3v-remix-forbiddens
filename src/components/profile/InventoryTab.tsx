@@ -29,6 +29,7 @@ const INVENTORY_MIN_PAGES = 6;
 export default function InventoryTab({ userId, profile, onWalletChange, onStatChange }: InventoryTabProps) {
   const { toast } = useToast();
   const tradeChannelRef = useRef<any>(null);
+  const tradeSyncQueueRef = useRef<Promise<any>>(Promise.resolve(null));
   const slotItemsRef = useRef<any[]>(Array(INVENTORY_DEFAULT_PAGE_SIZE).fill(null));
   const tradeSlotsRef = useRef<any[]>(Array(4).fill(null));
   const sellSlotsRef = useRef<any[]>(Array(4).fill(null));
@@ -394,6 +395,10 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
       }
     })();
     const visibleBoosters = boosters.filter((item) => {
+      // The consumed x3 unit lives in its own row so its expiry can be tracked,
+      // but while active it is represented by the global x3 indicator instead
+      // of looking like a duplicated inventory item.
+      if (item.item_slug === STAT_BOOST_SLUG && isStatBoostActive(item)) return false;
       if (isSkinItem(item) && activeSkinSlugs.has(item.item_slug)) return false;
       if (isAvatarFrameSlug(item.item_slug) && activeAvatarFrameSlug === item.item_slug) return false;
       if (isProfileTransitionSlug(item.item_slug) && activeProfileTransitionSlug === item.item_slug) return false;
@@ -496,29 +501,37 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
     if (!selectedRecipient?.user_id || !schemaReady) return null;
     const points = Math.max(0, Math.floor(Number(pointsValue) || 0));
     const items = serializeTradeItems(slots);
-    const { data, error } = await (supabase as any).rpc("upsert_live_inventory_trade", {
-      p_other_user_id: selectedRecipient.user_id,
-      p_points: points,
-      p_items: items,
-      p_ready: ready,
-    });
-    if (error) {
-      if (error.message && !error.message.toLowerCase().includes("function")) {
-        toast({ title: "No se pudo sincronizar el trueque", description: error.message, variant: "destructive" });
+    const recipientId = selectedRecipient.user_id;
+    const executeSync = async () => {
+      const { data, error } = await (supabase as any).rpc("upsert_live_inventory_trade", {
+        p_other_user_id: recipientId,
+        p_points: points,
+        p_items: items,
+        p_ready: ready,
+      });
+      if (error) {
+        if (error.message && !error.message.toLowerCase().includes("function")) {
+          toast({ title: "No se pudo sincronizar el trueque", description: error.message, variant: "destructive" });
+        }
+        return null;
       }
-      return null;
-    }
-    const result = data as any;
-    if (result?.trade_id) setTradeId(String(result.trade_id));
-    if (result?.user_a && result?.user_b) {
-      setRemoteReady(userId === result.user_a ? Boolean(result.user_b_ready) : Boolean(result.user_a_ready));
-    }
-    void tradeChannelRef.current?.send({
-      type: "broadcast",
-      event: "trade_state",
-      payload: { from: userId, tradeId: result?.trade_id || tradeId, points, items, ready },
-    });
-    return result;
+      const result = data as any;
+      if (result?.trade_id) setTradeId(String(result.trade_id));
+      if (result?.user_a && result?.user_b) {
+        setRemoteReady(userId === result.user_a ? Boolean(result.user_b_ready) : Boolean(result.user_a_ready));
+      }
+      void tradeChannelRef.current?.send({
+        type: "broadcast",
+        event: "trade_state",
+        payload: { from: userId, tradeId: result?.trade_id || tradeId, points, items, ready },
+      });
+      return result;
+    };
+
+    // Supabase calls used to race when an item was moved and Ready was clicked
+    // immediately afterwards. Serializing them keeps the newest table state last.
+    tradeSyncQueueRef.current = tradeSyncQueueRef.current.catch(() => null).then(executeSync);
+    return tradeSyncQueueRef.current;
   };
 
   useEffect(() => {
@@ -633,7 +646,8 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
       return;
     }
 
-    const synced = tradeId ? null : await syncLiveTrade(true);
+    // Always flush the exact visible offer before completing the transaction.
+    const synced = await syncLiveTrade(true, tradeSlotsRef.current, pointsToSend);
     const activeTradeId = tradeId || synced?.trade_id;
     if (!activeTradeId) {
       toast({ title: "Trueque no sincronizado", description: "Espera a que la mesa de trueque este lista.", variant: "destructive" });
@@ -1649,7 +1663,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
     }
     const expiresAt = result?.active_until ? new Date(result.active_until).toLocaleString("es-CL") : null;
     toast({ title: "Potenciador activado", description: expiresAt ? `x3 puntos activo hasta ${expiresAt}.` : "x3 puntos por 7 dias." });
-    void loadInventory();
+    await loadInventory();
     window.dispatchEvent(new Event(STAT_BOOST_REFRESH_EVENT));
   };
 
@@ -2156,7 +2170,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                   >
                     {item && (
                       <>
-                        <ItemIcon item={item} className={cn("absolute left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2", isMembershipItem(item) ? "text-neon-magenta" : isEventTicketItem(item) ? "text-neon-cyan" : "text-neon-yellow")} />
+                        <ItemIcon item={item} className={cn("absolute inset-[4%] !h-[92%] !w-[92%] object-contain", isMembershipItem(item) ? "text-neon-magenta" : isEventTicketItem(item) ? "text-neon-cyan" : "text-neon-yellow")} />
                         <span className="absolute bottom-0 right-0.5 font-pixel text-[7px] text-white">x{item.quantity}</span>
                       </>
                     )}
@@ -2184,7 +2198,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                   >
                     {item && (
                       <>
-                        <ItemIcon item={item} className={cn("absolute left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2", isMembershipItem(item) ? "text-neon-magenta" : isEventTicketItem(item) ? "text-neon-cyan" : "text-neon-yellow")} />
+                        <ItemIcon item={item} className={cn("absolute inset-[4%] !h-[92%] !w-[92%] object-contain", isMembershipItem(item) ? "text-neon-magenta" : isEventTicketItem(item) ? "text-neon-cyan" : "text-neon-yellow")} />
                         <span className="absolute bottom-0 right-0.5 font-pixel text-[7px] text-white">x{item.quantity}</span>
                       </>
                     )}
@@ -2500,7 +2514,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
       )}
 
       {incomingTradeRequest && (
-        <div className="fixed bottom-4 right-4 z-[650] w-[min(92vw,340px)] rounded border border-neon-cyan/50 bg-[#0a1018] p-3 shadow-2xl shadow-neon-cyan/20">
+        <div className="fixed left-1/2 top-1/2 z-[650] w-[min(92vw,340px)] -translate-x-1/2 -translate-y-1/2 rounded border border-neon-cyan/50 bg-[#0a1018] p-3 shadow-2xl shadow-neon-cyan/20">
           <p className="font-pixel text-[9px] uppercase text-neon-cyan">Solicitud de trueque</p>
           <p className="mt-1 text-xs text-muted-foreground">
             {incomingTradeRequest.fromName || "Un usuario"} quiere iniciar un trueque contigo.

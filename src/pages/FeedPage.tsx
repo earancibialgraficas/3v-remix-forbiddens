@@ -17,6 +17,7 @@ import { EditableCommentContent } from "@/components/EditableCommentContent";
 import { formatRelativeDate } from "@/lib/relativeDate";
 import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { getSocialEmbedUrl, isDirectVideoUrl } from "@/lib/socialMedia";
 
 const getSafeUrl = (url: string) => {
   if (!url) return '';
@@ -65,34 +66,7 @@ interface SocialComment {
 }
 
 const getAdvancedEmbedUrl = (url: string, platform: string) => {
-  if (!url) return null;
-  const lowerUrl = url.toLowerCase();
-  let baseEmbed = url;
-
-  if (lowerUrl.includes("youtube.com") || lowerUrl.includes("youtu.be")) {
-    let videoId = "";
-    if (url.includes("youtu.be/")) videoId = url.split("youtu.be/")[1]?.split("?")[0];
-    else if (url.includes("youtube.com/shorts/")) videoId = url.split("youtube.com/shorts/")[1]?.split("?")[0];
-    else if (url.includes("v=")) videoId = url.split("v=")[1]?.split("&")[0];
-    if (videoId) baseEmbed = `https://www.youtube.com/embed/${videoId}`;
-  } else if (lowerUrl.includes("tiktok.com")) {
-    const match = url.match(/video\/(\d+)/);
-    if (match && match[1]) baseEmbed = `https://www.tiktok.com/embed/v2/${match[1]}`;
-  } else if (lowerUrl.includes("instagram.com")) {
-    const match = url.match(/(?:p|reel)\/([^/?#&]+)/);
-    if (match && match[1]) baseEmbed = `https://www.instagram.com/p/${match[1]}/embed/?hidecaption=true`;
-  } else if (lowerUrl.includes("facebook.com") || lowerUrl.includes("fb.watch")) {
-    const encodedUrl = encodeURIComponent(url);
-    baseEmbed = `https://www.facebook.com/plugins/video.php?href=${encodedUrl}&show_text=0&width=560`;
-  }
-
-  const connector = baseEmbed.includes('?') ? '&' : '?';
-  if (baseEmbed !== url && platform === 'youtube') {
-    return `${baseEmbed}${connector}autoplay=1&enablejsapi=1`;
-  } else if (baseEmbed !== url) {
-    return `${baseEmbed}${connector}autoplay=1`;
-  }
-  return baseEmbed;
+  return getSocialEmbedUrl(url, platform);
 };
 
 const isVideoItem = (item: FeedItem | any) => {
@@ -147,7 +121,7 @@ function SnapCard({
   const isOwner = user?.id === item.user_id;
 
   const isVideo = isVideoItem(item);
-  const isDirectMp4 = !!item.content_url?.toLowerCase().match(/\.(mp4|webm|ogg)$/);
+  const isDirectMp4 = isDirectVideoUrl(item.content_url);
   
   const isInstagram = item.platform === 'instagram';
   const isInstagramReel = isInstagram && item.content_type === 'reel';
@@ -347,13 +321,14 @@ function SnapCard({
   let finalEmbedUrl = "";
   if (isVisible && embedUrl) {
     const connector = embedUrl.includes('?') ? '&' : '?';
-    if (item.platform === 'youtube') {
+    const normalizedPlatform = (item.platform || '').toLowerCase();
+    if (normalizedPlatform === 'youtube') {
       finalEmbedUrl = `${embedUrl}${connector}autoplay=1&enablejsapi=1`; 
-    } else if (item.platform === 'facebook') {
+    } else if (normalizedPlatform === 'facebook') {
       finalEmbedUrl = `${embedUrl}${connector}autoplay=1`;
-    } else if (item.platform === 'tiktok') {
+    } else if (normalizedPlatform === 'tiktok') {
       finalEmbedUrl = `${embedUrl}${connector}autoplay=1`; 
-    } else if (item.platform === 'instagram') {
+    } else if (normalizedPlatform === 'instagram') {
       finalEmbedUrl = `${embedUrl}${connector}autoplay=1`;
     } else {
       finalEmbedUrl = embedUrl;
@@ -411,6 +386,7 @@ function SnapCard({
             controls 
             loop
             playsInline
+            preload="metadata"
             className="w-full h-full object-contain z-10 transition-transform duration-500" 
             onError={() => setMediaError(true)}
           />
@@ -418,8 +394,12 @@ function SnapCard({
           <div className="absolute top-1/2 left-1/2 flex items-center justify-center transition-transform duration-500 origin-center z-10"
             style={{ width: `${baseSize.w}px`, height: `${baseSize.w === 640 ? 'auto' : baseSize.h + 'px'}`, aspectRatio: baseSize.w === 640 ? '16/9' : 'auto', transform: `translate(-50%, -50%) scale(${scale})` }}>
             <iframe 
+              key={finalEmbedUrl}
               src={finalEmbedUrl} 
               allow="autoplay; fullscreen; picture-in-picture; encrypted-media; accelerometer; clipboard-write; gyroscope" 
+              referrerPolicy="origin-when-cross-origin"
+              loading="eager"
+              title={item.title || `Video de ${item.display_name || 'Forbiddens'}`}
               className={cn("w-full h-full bg-transparent outline-none shadow-2xl transition-all duration-500 transform-gpu", !cinemaMode && "lg:rounded-xl", item.platform === 'instagram' ? "bg-white" : "")} 
               style={{ border: "none" }} 
               scrolling="no" 
@@ -1187,7 +1167,7 @@ export default function FeedPage() {
           }
         });
       },
-      { threshold: 0.6 }
+      { root: containerRef.current, threshold: 0.35 }
     );
 
     cards.forEach((card) => observer.observe(card));

@@ -215,7 +215,10 @@ export default function MainLayout() {
       {/* 🔥 FIX MAESTRO: main en celular tiene exactamente 100dvh menos 104px del footer. 🔥 */}
       <main
         className={cn(
-          "flex-1 flex flex-col min-w-0 overflow-y-auto overflow-x-hidden lg:h-auto lg:overflow-visible",
+          "flex-1 flex flex-col min-w-0 overflow-y-auto overflow-x-hidden",
+          launcherDetected
+            ? "min-h-0 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:overflow-x-hidden"
+            : "lg:h-auto lg:overflow-visible",
           isLandscape
             ? "h-[100dvh] transition-[padding-right] duration-300"
             : "h-[calc(100dvh-104px)]"
