@@ -344,6 +344,7 @@ export default function StorePage() {
     if (isAvatarFrameItem(item)) return getAvatarFrame(item.slug)?.thumbnailUrl || null;
     if (isProfileTransitionItem(item)) return getProfileTransition(item.slug)?.thumbnailUrl || null;
     if (isEmulatorShellItem(item)) return getEmulatorShell(item.slug)?.thumbnailUrl || null;
+    if (isBoosterItem(item)) return "/cosmetics/boosters/boost-x3.svg";
     return null;
   };
 
@@ -364,7 +365,7 @@ export default function StorePage() {
       : isEventTicketItem(item)
       ? <Ticket className={className} />
       : isBoosterItem(item)
-        ? <Sparkles className={className} />
+        ? <img src="/cosmetics/boosters/boost-x3.svg" alt="Potenciador x3" className={cn("h-full w-full object-contain", className)} />
         : isSkinItem(item)
           ? <Palette className={className} />
           : <Archive className={className} />

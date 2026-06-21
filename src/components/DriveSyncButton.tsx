@@ -148,17 +148,11 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
       const state = encodeDriveOAuthState(returnPath);
       localStorage.setItem(DRIVE_SYNC_OAUTH_STATE_KEY, state);
       localStorage.setItem(DRIVE_SYNC_OAUTH_RETURN_KEY, returnPath);
-      const redirectUri = import.meta.env.VITE_GOOGLE_DRIVE_REDIRECT_URI || `${window.location.origin}/launcher/drive-sync`;
-      const params = new URLSearchParams({
-        client_id: clientId,
-        redirect_uri: redirectUri,
-        response_type: 'token',
-        scope: 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file',
-        include_granted_scopes: 'true',
-        prompt: 'consent select_account',
-        state,
-      });
-      void launcher.openExternal(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
+      const connectionUrl = new URL('/launcher/drive-sync', 'https://forbiddens.net');
+      connectionUrl.searchParams.set('start', '1');
+      connectionUrl.searchParams.set('state', state);
+      connectionUrl.searchParams.set('return', returnPath);
+      void launcher.openExternal(connectionUrl.toString());
       toast({
         title: 'Autoriza Google en tu navegador',
         description: 'Se abrió Google fuera del launcher. Al volver a FORBIDDENS se sincronizará tu Drive.',

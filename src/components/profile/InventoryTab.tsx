@@ -923,6 +923,11 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
   const boosterUsedByMe = (item: any) => Array.isArray(item?.metadata?.used_by_users) && item.metadata.used_by_users.includes(userId);
   const boosterCanBeUsed = (item: any) => isBoosterItem(item) && !itemIsActive(item) && !boosterUsedByMe(item);
   const itemLabel = (item: any) => item?.item_name || (isMembershipItem(item) ? "Membresia" : isEventTicketItem(item) ? "Entrada de evento" : "Objeto");
+  const boosterIconUrl = (item: any) => {
+    if (itemIsActive(item)) return "/cosmetics/boosters/boost-x3-active.svg";
+    if (boosterIsExpired(item)) return "/cosmetics/boosters/boost-x3-expired.svg";
+    return "/cosmetics/boosters/boost-x3.svg";
+  };
   const markStackSeen = (item: any) => {
     const ids = getInventoryItemSourceIds(item);
     if (ids.length === 0) return;
@@ -945,7 +950,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
       : isEventTicketItem(item)
       ? <Ticket className={className} />
       : isBoosterItem(item)
-        ? <Sparkles className={className} />
+        ? <img src={boosterIconUrl(item)} alt="Potenciador x3" className={cn("h-full w-full object-contain", className)} />
         : isSkinItem(item)
           ? <Palette className={className} />
         : <Archive className={className} />
@@ -1895,6 +1900,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                           isAvatarFrameItem(item) && "overflow-hidden border-pink-300/70 bg-[#3a1730]",
                           isProfileTransitionItem(item) && "overflow-hidden border-orange-300/70 bg-[#2b1006]",
                           isEmulatorShellItem(item) && "overflow-hidden border-pink-300/80 bg-pink-100",
+                          isBoosterItem(item) && "overflow-hidden border-yellow-300/70 bg-[#3b2d21]",
                           isMembershipItem(item)
                             ? "border-neon-magenta/70 bg-[#4a235e]"
                             : isEventTicketItem(item)
@@ -1906,12 +1912,12 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                         )}>
                           <div className={cn(
                             "absolute inset-1 rounded-sm border border-black/30 bg-[linear-gradient(135deg,rgba(255,255,255,0.16),transparent_45%)]",
-                            (isSkinItem(item) && getSkinThumbnailUrl(item.item_slug) || isAvatarFrameItem(item) || isProfileTransitionItem(item) || isEmulatorShellItem(item)) && "hidden",
+                            (isSkinItem(item) && getSkinThumbnailUrl(item.item_slug) || isAvatarFrameItem(item) || isProfileTransitionItem(item) || isEmulatorShellItem(item) || isBoosterItem(item)) && "hidden",
                           )} />
                           <ItemIcon
                             item={item}
                             className={cn(
-                              isSkinItem(item) && getSkinThumbnailUrl(item.item_slug) || isAvatarFrameItem(item) || isProfileTransitionItem(item) || isEmulatorShellItem(item) ? "relative h-full w-full" : "relative h-5 w-5 drop-shadow-[0_0_8px_rgba(250,204,21,0.7)]",
+                              isSkinItem(item) && getSkinThumbnailUrl(item.item_slug) || isAvatarFrameItem(item) || isProfileTransitionItem(item) || isEmulatorShellItem(item) || isBoosterItem(item) ? "relative h-full w-full" : "relative h-5 w-5 drop-shadow-[0_0_8px_rgba(250,204,21,0.7)]",
                               itemBoosterExpired
                                 ? "text-zinc-400 grayscale opacity-70 drop-shadow-none"
                                 : isProfileTransitionItem(item) ? item?.item_slug?.startsWith("boomshacka") ? "text-red-200 drop-shadow-[0_0_10px_rgba(248,113,113,0.75)]" : "text-orange-300 drop-shadow-[0_0_10px_rgba(249,115,22,0.75)]" : isMembershipItem(item) ? "text-neon-magenta" : isEventTicketItem(item) ? "text-neon-cyan" : "text-neon-yellow",

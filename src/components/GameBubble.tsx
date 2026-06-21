@@ -546,6 +546,11 @@ export default function GameBubble() {
     if (usesRositaNesShell && !isMobile) return getRositaDesktopWindowSize();
     return getLargeGameWindowSize();
   }, [isMobile, usesRositaNesShell, usesSnesRetroLandscapeShell, usesSnesRetroPortraitShell]);
+  const preferredWindowSizeRef = useRef(getPreferredWindowSize);
+
+  useEffect(() => {
+    preferredWindowSizeRef.current = getPreferredWindowSize;
+  }, [getPreferredWindowSize]);
 
   useEffect(() => {
     if (!usesSnesRetroShell) setSnesToolsOpen(false);
@@ -614,11 +619,11 @@ export default function GameBubble() {
     setExpandedControlsOpen(false);
     setIsFullscreen(false);
     setPosition({ x: 0, y: 0 });
-    setPopupSize(getPreferredWindowSize());
+    setPopupSize(preferredWindowSizeRef.current());
     if (document.fullscreenElement) {
       document.exitFullscreen().catch(() => {});
     }
-  }, [activeGame?.romUrl, getPreferredWindowSize]);
+  }, [activeGame?.romUrl]);
 
   // 🎮 PS2: ventana emergente flotante (NO modo teatro maximizado)
   const isTheaterActive = theaterRect && !minimized && !forceFloating && !isPs2 && !usesCustomEmulatorShell;
@@ -1081,6 +1086,7 @@ export default function GameBubble() {
       timeRef.current = 0;
       return;
     }
+    let disposed = false;
     scoreRef.current = activeGame.score || 0;
     timeRef.current = activeGame.playTime || 0;
 
@@ -1096,6 +1102,7 @@ export default function GameBubble() {
       }
 
       await new Promise((r) => setTimeout(r, 200));
+      if (disposed) return;
       const el = canvasRef.current;
       const frame = emulatorFrameRef.current;
       if (!el && !frame) return;
@@ -1573,12 +1580,14 @@ window.EJS_onGameStart=function(){
 </script><script src=${JSON.stringify(emulatorLoaderSrc)}></script></body></html>`;
 
           const onMessage = (event: MessageEvent) => {
+            if (disposed) return;
             if (event.data?.type !== "forbiddens-emulator-started") return;
             setRomLoaded(true);
             lastInputRef.current = Date.now();
             window.removeEventListener("message", onMessage);
           };
           const onRealSaveMessage = (event: MessageEvent) => {
+            if (disposed) return;
             const data = event.data;
             if (!data || data.type !== "forbiddens-real-save-update") return;
             if (data.gameName !== activeGame.gameName || data.consoleType !== activeGame.consoleName) return;
@@ -1609,8 +1618,10 @@ window.EJS_onGameStart=function(){
             pause: () => (frame.contentWindow as any)?.EJS_emulator?.pause?.(),
             resume: () => (frame.contentWindow as any)?.EJS_emulator?.play?.(),
             exit: () => {
+              window.removeEventListener("message", onMessage);
               window.removeEventListener("message", onRealSaveMessage);
               frame.srcdoc = "";
+              frame.src = "about:blank";
               revokeEmulatorObjectUrls();
             },
             flushRealSave: async () => {
@@ -1711,6 +1722,10 @@ window.EJS_onGameStart=function(){
             openMenu: () => (frame.contentWindow as any)?.EJS_emulator?.menu?.open?.(),
           };
 
+          if (disposed) {
+            emulatorJsInstance.exit();
+            return;
+          }
           nostalgistRef.current = emulatorJsInstance;
           setNostalgistInstance(emulatorJsInstance);
           setTimeout(() => {
@@ -1787,6 +1802,10 @@ window.EJS_onGameStart=function(){
 
         if (!instance) throw lastErr || new Error("No se pudo cargar ningún core compatible");
 
+        if (disposed) {
+          try { instance.exit(); } catch {}
+          return;
+        }
         nostalgistRef.current = instance;
         setNostalgistInstance(instance);
         // 🛠️ Restaurar configuración interna del emulador (controles, etc.)
@@ -1814,6 +1833,7 @@ window.EJS_onGameStart=function(){
     loadEmu();
 
     return () => {
+      disposed = true;
       if (nostalgistRef.current) {
         try {
           import("@/lib/nostalgistPersist").then(m => m.saveEmulatorConfig(nostalgistRef.current, activeGame?.consoleName || "")).catch(() => {});
@@ -1822,6 +1842,10 @@ window.EJS_onGameStart=function(){
           nostalgistRef.current.exit();
         } catch {}
         nostalgistRef.current = null;
+      }
+      if (emulatorFrameRef.current) {
+        emulatorFrameRef.current.srcdoc = "";
+        emulatorFrameRef.current.src = "about:blank";
       }
     };
   }, [
@@ -1880,6 +1904,9 @@ window.EJS_onGameStart=function(){
           try {
             window.dispatchEvent(new Event("resize"));
           } catch {}
+          try {
+            emulatorFrameRef.current?.contentWindow?.dispatchEvent(new Event("resize"));
+          } catch {}
           if (!minimized && nostalgistRef.current && !paused) {
             try {
               nostalgistRef.current.resume();
@@ -1896,12 +1923,14 @@ window.EJS_onGameStart=function(){
         }
         // Siempre forzamos el backbuffer del canvas también (algunos cores
         // no implementan setCanvasSize y solo leen canvas.width/height).
-        if (canvas.width !== w) canvas.width = w;
-        if (canvas.height !== h) canvas.height = h;
       } catch {}
 
       try {
         window.dispatchEvent(new Event("resize"));
+      } catch {}
+
+      try {
+        emulatorFrameRef.current?.contentWindow?.dispatchEvent(new Event("resize"));
       } catch {}
 
       if (!minimized && nostalgistRef.current && !paused) {
@@ -2312,6 +2341,9 @@ window.EJS_onGameStart=function(){
   };
 
   const handleClose = async (idx?: number) => {
+    if (nostalgistRef.current && (idx === undefined || idx === currentGameIndex)) {
+      try { nostalgistRef.current.pause?.(); } catch {}
+    }
     await autoSaveOnClose();
     if (activeGame && scoreRef.current > 0 && user) void handleSaveScore(true);
     if (nostalgistRef.current && (idx === undefined || idx === currentGameIndex)) {

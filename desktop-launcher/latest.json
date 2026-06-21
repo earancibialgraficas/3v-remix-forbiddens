@@ -1,15 +1,15 @@
 {
-  "version": "0.1.14",
-  "notes": "Estrena instalador visual retro arcade de FORBIDDENS y conserva el gestor local de multiples BIOS para PS2.",
-  "pub_date": "2026-06-20T08:36:50Z",
+  "version": "0.1.15",
+  "notes": "Corrige la vinculacion de Google Drive, estabiliza apertura, cierre y rotacion de juegos, y actualiza la interfaz del launcher.",
+  "pub_date": "2026-06-21T20:05:20Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRRXZQQXVxYjV4VW9IRkxDOGF0V0N4SUdnZGcwTmxYMjU5bThvN1JJODJ4RHRQMkZGcjZLM2pVQVB3UkF3S3ZNRnorVXZVUGZidmhHYWx4UFNnenN3N1VRRmQ1Y2dIREFrPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgxOTQ0NTUxCWZpbGU6Rk9SQklEREVOU18wLjEuMTRfeDY0LXNldHVwLmV4ZQp0djNKaDJvRjhmMFVwTi8xTms1YTNVZWsyVmZSQWZ4eFpRd0ppQ2wzdW1EMkswZTA4S3k1SHY3dTBMVHgxUk1SRVFPQnlWbys1TTcwdk03S1lJZ3REQT09Cg==",
-      "url": "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.14_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRRXZQQXVxYjV4VWdTdmI4RmFXT1k3TE0wdTJNYmtuTFpRdXZKTElWVmZJbGpQOHRlcy9WcnRZV0d2R3BwMnpGdHcvSVorT3gybzlHbENRTjU4Qjg3L2ZsK0ZRYUIvZEFRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMDcyMjU3CWZpbGU6Rk9SQklEREVOU18wLjEuMTVfeDY0LXNldHVwLmV4ZQpCNmk3eFA2RkVQalRBUno0ZWhlVkZGbkdzczlrSzlVaTRTOHAvdVhpSmpEUTUyRFJUcFJMWHFqZnBGTkJIRFVncUdnOXYvKzZVSXlXUEFEaXVMZXhCdz09Cg==",
+      "url": "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.15_x64-setup.exe"
     },
     "windows-x86_64-pc-windows-msvc": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRRXZQQXVxYjV4VW9IRkxDOGF0V0N4SUdnZGcwTmxYMjU5bThvN1JJODJ4RHRQMkZGcjZLM2pVQVB3UkF3S3ZNRnorVXZVUGZidmhHYWx4UFNnenN3N1VRRmQ1Y2dIREFrPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgxOTQ0NTUxCWZpbGU6Rk9SQklEREVOU18wLjEuMTRfeDY0LXNldHVwLmV4ZQp0djNKaDJvRjhmMFVwTi8xTms1YTNVZWsyVmZSQWZ4eFpRd0ppQ2wzdW1EMkswZTA4S3k1SHY3dTBMVHgxUk1SRVFPQnlWbys1TTcwdk03S1lJZ3REQT09Cg==",
-      "url": "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.14_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRRXZQQXVxYjV4VWdTdmI4RmFXT1k3TE0wdTJNYmtuTFpRdXZKTElWVmZJbGpQOHRlcy9WcnRZV0d2R3BwMnpGdHcvSVorT3gybzlHbENRTjU4Qjg3L2ZsK0ZRYUIvZEFRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMDcyMjU3CWZpbGU6Rk9SQklEREVOU18wLjEuMTVfeDY0LXNldHVwLmV4ZQpCNmk3eFA2RkVQalRBUno0ZWhlVkZGbkdzczlrSzlVaTRTOHAvdVhpSmpEUTUyRFJUcFJMWHFqZnBGTkJIRFVncUdnOXYvKzZVSXlXUEFEaXVMZXhCdz09Cg==",
+      "url": "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.15_x64-setup.exe"
     }
   }
 }

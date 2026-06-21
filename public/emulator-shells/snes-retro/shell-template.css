@@ -29,3 +29,21 @@
   pointer-events: all;
   touch-action: none;
 }
+
+.gamebubble-shell-snes-retro.snes-retro-shell-landscape .snes-retro-shell-viewport {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(calc(100vw - 8px), calc((100dvh - 8px) * 2.22295082));
+  height: min(calc(100dvh - 8px), calc((100vw - 8px) / 2.22295082));
+  transform: translate(-50%, -50%);
+  overflow: hidden;
+  background: transparent;
+}
+
+.gamebubble-shell-snes-retro.snes-retro-shell-landscape .snes-retro-game-screen {
+  left: 26.85%;
+  top: 5.45%;
+  width: 46.65%;
+  height: 87.3%;
+}

@@ -4,12 +4,13 @@ import { useNavigate } from "react-router-dom";
 
 const DRIVE_SYNC_RESUME_KEY = "drive_sync_resume_after_reload";
 
-type CallbackState = "processing" | "ready" | "error";
+type CallbackState = "authorize" | "processing" | "ready" | "error";
 
 export default function LauncherDriveSyncPage() {
   const navigate = useNavigate();
-  const [status, setStatus] = useState<CallbackState>("processing");
-  const [message, setMessage] = useState("Validando la autorizacion de Google Drive...");
+  const isStartPage = new URLSearchParams(window.location.search).get("start") === "1";
+  const [status, setStatus] = useState<CallbackState>(isStartPage ? "authorize" : "processing");
+  const [message, setMessage] = useState(isStartPage ? "Continua desde FORBIDDENS para autorizar Google Drive." : "Validando la autorizacion de Google Drive...");
 
   const destination = useMemo(() => {
     const fallback = "/perfil?tab=storage";
@@ -31,6 +32,14 @@ export default function LauncherDriveSyncPage() {
   }, []);
 
   useEffect(() => {
+    if (isStartPage) {
+      const query = new URLSearchParams(window.location.search);
+      const state = query.get("state");
+      const returnPath = query.get("return");
+      if (state) localStorage.setItem("drive_sync_oauth_external_state", state);
+      if (returnPath?.startsWith("/")) localStorage.setItem("drive_sync_oauth_return_path", returnPath);
+      return;
+    }
     const hash = window.location.hash.startsWith("#") ? window.location.hash.slice(1) : "";
     const params = new URLSearchParams(hash);
     const error = params.get("error");
@@ -58,7 +67,28 @@ export default function LauncherDriveSyncPage() {
     window.history.replaceState(null, "", window.location.pathname);
     setStatus("ready");
     setMessage("Google Drive quedo autorizado. Ya puedes continuar hacia tu almacenamiento.");
-  }, []);
+  }, [isStartPage]);
+
+  const beginAuthorization = () => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      setStatus("error");
+      setMessage("Google Drive no esta configurado en FORBIDDENS.");
+      return;
+    }
+    const state = localStorage.getItem("drive_sync_oauth_external_state") || "";
+    const redirectUri = import.meta.env.VITE_GOOGLE_DRIVE_REDIRECT_URI || "https://forbiddens.net/launcher/drive-sync";
+    const params = new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      response_type: "token",
+      scope: "https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file",
+      include_granted_scopes: "true",
+      prompt: "consent select_account",
+      state,
+    });
+    window.location.assign(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
+  };
 
   const continueToStorage = () => navigate(destination.startsWith("/") ? destination : "/perfil?tab=storage", { replace: true });
 
@@ -80,12 +110,12 @@ export default function LauncherDriveSyncPage() {
             {status === "ready" && <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-neon-green" />}
             {status === "error" && <TriangleAlert className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />}
             <div>
-              <p className="text-sm font-semibold">{status === "processing" ? "Procesando" : status === "ready" ? "Autorizacion completada" : "No se pudo sincronizar"}</p>
+              <p className="text-sm font-semibold">{status === "authorize" ? "Conectar Google Drive" : status === "processing" ? "Procesando" : status === "ready" ? "Autorizacion completada" : "No se pudo sincronizar"}</p>
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{message}</p>
             </div>
           </div>
-          <button type="button" onClick={continueToStorage} disabled={status === "processing"} className="mt-4 h-10 w-full rounded border border-primary/45 bg-primary/15 px-4 text-xs font-semibold text-primary transition-colors hover:bg-primary/25 disabled:cursor-wait disabled:opacity-50">
-            {status === "error" ? "Volver a almacenamiento" : "Continuar en FORBIDDENS"}
+          <button type="button" onClick={status === "authorize" ? beginAuthorization : continueToStorage} disabled={status === "processing"} className="mt-4 h-10 w-full rounded border border-primary/45 bg-primary/15 px-4 text-xs font-semibold text-primary transition-colors hover:bg-primary/25 disabled:cursor-wait disabled:opacity-50">
+            {status === "authorize" ? "Vincular con Google" : status === "error" ? "Volver a almacenamiento" : "Continuar en FORBIDDENS"}
           </button>
           <p className="mt-3 text-center text-[10px] text-muted-foreground">Esta pagina solo procesa conexiones iniciadas desde FORBIDDENS.</p>
         </div>

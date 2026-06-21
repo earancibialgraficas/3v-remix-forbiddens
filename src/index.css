@@ -4216,11 +4216,55 @@ aside,
     left: 50% !important;
     top: 50% !important;
     flex: none !important;
-    width: min(100vw, calc(100dvh * 2.22295082)) !important;
-    height: min(100dvh, calc(100vw / 2.22295082)) !important;
+    width: min(calc(100vw - 8px), calc((100dvh - 8px) * 2.22295082)) !important;
+    height: min(calc(100dvh - 8px), calc((100vw - 8px) / 2.22295082)) !important;
     transform: translate(-50%, -50%);
     background: transparent !important;
     overflow: hidden !important;
+  }
+
+  @media (max-width: 640px) {
+    .public-profile-music-player .public-profile-player-content {
+      padding: 8px 10px 10px;
+    }
+
+    .public-profile-music-player .public-profile-player-content > div {
+      min-height: 172px;
+    }
+
+    .public-profile-music-player .public-profile-track-title {
+      order: 2;
+      padding: 4px 0 0;
+    }
+
+    .public-profile-music-player .public-profile-track-title > p {
+      margin-bottom: 0;
+    }
+
+    .public-profile-music-player .public-profile-player-controls {
+      order: 3;
+      gap: 8px;
+      padding: 0;
+    }
+
+    .public-profile-music-player .public-profile-player-controls button {
+      width: 30px;
+      height: 30px;
+    }
+
+    .public-profile-music-player .public-profile-player-controls button:nth-child(2) {
+      width: 38px;
+      height: 38px;
+    }
+
+    .public-profile-music-player .public-profile-player-controls svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .public-profile-music-player .public-profile-player-seek {
+      order: 4;
+    }
   }
 
   .gamebubble-shell-snes-retro.snes-retro-shell-landscape .snes-retro-info {

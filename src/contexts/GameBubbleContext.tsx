@@ -67,7 +67,11 @@ export function GameBubbleProvider({ children }: { children: React.ReactNode }) 
 
   const launchGame = useCallback((session: GameSession) => {
     setActiveGames(prev => {
-      const existing = prev.findIndex(g => g.romUrl === session.romUrl);
+      const normalizedName = session.gameName.trim().toLocaleLowerCase();
+      const existing = prev.findIndex(g =>
+        g.romUrl === session.romUrl ||
+        (g.consoleName === session.consoleName && g.gameName.trim().toLocaleLowerCase() === normalizedName)
+      );
       if (existing >= 0) {
         setCurrentGameIndex(existing);
         return prev;

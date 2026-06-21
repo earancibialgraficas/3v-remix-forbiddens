@@ -20,12 +20,22 @@
       "heightPercent": 34.55
     },
     "landscape": {
-      "leftPercent": 26.7,
-      "topPercent": 5.25,
-      "widthPercent": 46.85,
-      "heightPercent": 87.65
+      "leftPercent": 26.85,
+      "topPercent": 5.45,
+      "widthPercent": 46.65,
+      "heightPercent": 87.3
     },
     "fit": "contain"
+  },
+  "infoBar": {
+    "landscape": {
+      "leftPercent": 28.6,
+      "topPercent": 5.45,
+      "topOffsetPx": 10,
+      "widthPercent": 43.1,
+      "titleSizePx": [5, 8],
+      "metaSizePx": [4, 7]
+    }
   },
   "controls": ["up", "down", "left", "right", "l", "r", "y", "x", "b", "a", "select", "start", "config", "tools", "minimize", "maximize", "restore", "close"]
 }

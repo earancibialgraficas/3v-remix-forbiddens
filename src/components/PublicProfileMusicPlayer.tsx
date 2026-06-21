@@ -564,7 +564,7 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
         {compactPlaylistOpen ? <ChevronUp className="h-4 w-4" /> : <ListMusic className="h-4 w-4" />}
       </button>
 
-      <div className="relative z-10 p-3 sm:w-[35%] sm:max-w-[35%]">
+      <div className="public-profile-player-content relative z-10 p-3 sm:w-[35%] sm:max-w-[35%]">
         <div className="flex min-h-[188px] min-w-0 flex-col justify-between">
           <div className="flex items-center gap-2 pl-11 sm:pl-10">
             <div className="min-w-0 leading-none">
@@ -573,7 +573,7 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
             </div>
           </div>
 
-          <div className="py-3">
+          <div className="public-profile-track-title py-3">
             <p className="mb-1 truncate text-[10px] text-muted-foreground">Playlist de {displayName}</p>
             <div
               className="relative h-8 overflow-hidden"
@@ -598,7 +598,7 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
           </div>
 
 
-          <div className="flex items-center justify-center gap-3 py-1">
+          <div className="public-profile-player-controls flex items-center justify-center gap-3 py-1">
             <button type="button" onClick={() => jump(-1)} className="grid h-9 w-9 place-items-center rounded-full text-white/70 transition-colors hover:bg-white/5 hover:text-neon-cyan focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neon-cyan/60" aria-label="Anterior">
               <SkipBack className="h-5 w-5" />
             </button>
@@ -610,7 +610,7 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
             </button>
           </div>
 
-          <div className="space-y-2">
+          <div className="public-profile-player-seek space-y-2">
             <div className="flex items-center gap-2 rounded border border-white/5 bg-muted/20 px-2 py-1.5">
               <div
                 className="public-profile-volume-control relative shrink-0"
