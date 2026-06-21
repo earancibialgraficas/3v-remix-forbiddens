@@ -1,16 +1,17 @@
 # Consola Retro SNES
 
-Paquete autocontenido de la shell `snes_retro`, exclusiva para SNES en celular/tablet vertical.
+Paquete autocontenido de la shell `snes_retro`, exclusiva para SNES en celular y tablet.
 
 ## Archivos
 
 - `vertical-celular.svg`: carcasa normal.
 - `vertical-celular-expanded.svg`: carcasa con el control de restaurar visible.
+- `horizontal-mobile.svg`: carcasa para celular/tablet en horizontal.
 - `shell-manifest.json`: contrato de layout, botones y compatibilidad.
 - `shell-template.css`: CSS aislado de referencia para futuras shells.
 - `COLORS.txt`: mapa editable de colores para controles HTML y estados.
 
-El SVG usa `viewBox="0 0 914.88 2033.999918"`. Todas las hitboxes se calculan en ese mismo sistema de coordenadas y escalan junto con el SVG. No deben convertirse a posiciones en pixeles de pantalla.
+La variante vertical usa `viewBox="0 0 914.88 2033.999918"` y la horizontal `viewBox="0 0 2034 915"`. Cada grupo de hitboxes usa el sistema de coordenadas de su SVG y escala junto con el arte. No deben convertirse a posiciones en pixeles de pantalla.
 
 ## Reglas
 

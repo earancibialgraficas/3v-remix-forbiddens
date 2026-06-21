@@ -1,4 +1,4 @@
-export type ProfileTransitionSlug = 'fuego_infernal' | 'varita_magica' | 'boomshacka' | 'boomshacka_v2';
+export type ProfileTransitionSlug = 'fuego_infernal' | 'varita_magica' | 'boomshacka' | 'boomshacka_v2' | 'dragon_fuego';
 
 export type ProfileTransitionTheme = {
   slug: ProfileTransitionSlug;
@@ -12,6 +12,8 @@ export type ProfileTransitionTheme = {
   fadeInMs?: number;
   fadeOutMs?: number;
   blackTransparentWindowsMs?: Array<[number, number]>;
+  blackRemovalMode?: 'standard' | 'preserve-warm';
+  edgeFeatherPx?: number;
 };
 
 export const PROFILE_TRANSITIONS: Record<ProfileTransitionSlug, ProfileTransitionTheme> = {
@@ -66,6 +68,20 @@ export const PROFILE_TRANSITIONS: Record<ProfileTransitionSlug, ProfileTransitio
       [0, 2000],
       [4000, 6000],
     ],
+  },
+  dragon_fuego: {
+    slug: 'dragon_fuego',
+    name: 'Transicion Dragon de Fuego',
+    description: 'Un dragon ardiente atraviesa la pantalla para presentar tu perfil.',
+    videoUrl: '/cosmetics/transitions/dragon-fire/dragon-fire.mp4',
+    thumbnailUrl: '/shop-thumbnails/dragon-fire.png',
+    price: 5000,
+    priceType: 'fcoins',
+    durationMs: 10000,
+    fadeInMs: 450,
+    fadeOutMs: 650,
+    blackRemovalMode: 'preserve-warm',
+    edgeFeatherPx: 0.65,
   },
 };
 

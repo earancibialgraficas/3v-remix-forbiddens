@@ -33,7 +33,7 @@ export const EMULATOR_SHELLS: Record<EmulatorShellSlug, EmulatorShellTheme> = {
   snes_retro: {
     slug: 'snes_retro',
     name: 'Consola Retro SNES',
-    description: 'Interfaz vertical para juegos SNES en celular y tablet.',
+    description: 'Interfaz princess vertical y horizontal para juegos SNES en celular y tablet.',
     thumbnailUrl: '/shop-thumbnails/snes-retro.png',
     price: 10000,
     priceType: 'fcoins',

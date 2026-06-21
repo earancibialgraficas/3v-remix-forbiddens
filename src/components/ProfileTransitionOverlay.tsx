@@ -99,7 +99,25 @@ export default function ProfileTransitionOverlay({ slug, playKey, onDone, classN
           const g = data[i + 1];
           const b = data[i + 2];
           const max = Math.max(r, g, b);
+          const min = Math.min(r, g, b);
+          const chroma = max - min;
           const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+
+          if (transition.blackRemovalMode === 'preserve-warm') {
+            const isWarmPixel = r > g * 1.16 && r > b * 1.08 && chroma > 14;
+
+            if (isWarmPixel) {
+              // Preserve dark reds/oranges from the dragon instead of treating them as black.
+              data[i + 3] = Math.min(255, Math.round(data[i + 3] * 1.08));
+            } else if (max < 24 && chroma < 12) {
+              data[i + 3] = 0;
+            } else if (luma < 82 && chroma < 22) {
+              data[i + 3] = Math.round(Math.max(0, (luma - 18) / 64) * 225);
+            } else {
+              data[i + 3] = Math.min(255, Math.round(data[i + 3] * 1.04));
+            }
+            continue;
+          }
 
           if (max < 42 || luma < 34) {
             data[i + 3] = 0;
@@ -179,7 +197,11 @@ export default function ProfileTransitionOverlay({ slug, playKey, onDone, classN
       />
       <canvas
         ref={canvasRef}
-        className="h-full w-full opacity-95 [filter:brightness(1.08)_contrast(1.1)_saturate(1.12)]"
+        className="h-full w-full opacity-95"
+        style={{
+          filter: `brightness(1.08) contrast(1.1) saturate(1.12)${transition.edgeFeatherPx ? ` blur(${transition.edgeFeatherPx}px)` : ''}`,
+          transform: transition.edgeFeatherPx ? 'scale(1.002)' : undefined,
+        }}
       />
     </div>,
     document.body,

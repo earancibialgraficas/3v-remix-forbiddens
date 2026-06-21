@@ -4052,7 +4052,8 @@ aside,
     }
   }
 
-  .gamebubble-shell-snes-retro.snes-retro-shell-portrait {
+  .gamebubble-shell-snes-retro.snes-retro-shell-portrait,
+  .gamebubble-shell-snes-retro.snes-retro-shell-landscape {
     border: 0 !important;
     background: transparent !important;
     box-shadow: none !important;
@@ -4200,6 +4201,54 @@ aside,
   .snes-retro-hit-shape-window:active {
     fill: rgba(255, 218, 236, 0.3);
     stroke: rgba(178, 77, 117, 0.55);
+  }
+
+  .gamebubble-shell-snes-retro.snes-retro-shell-landscape .snes-retro-game-screen {
+    left: 26.85% !important;
+    top: 5.45% !important;
+    width: 46.65% !important;
+    height: 87.3% !important;
+    border-radius: clamp(12px, 2.2vw, 30px);
+  }
+
+  .gamebubble-shell-snes-retro.snes-retro-shell-landscape .snes-retro-shell-viewport {
+    position: absolute !important;
+    left: 50% !important;
+    top: 50% !important;
+    flex: none !important;
+    width: min(100vw, calc(100dvh * 2.22295082)) !important;
+    height: min(100dvh, calc(100vw / 2.22295082)) !important;
+    transform: translate(-50%, -50%);
+    background: transparent !important;
+    overflow: hidden !important;
+  }
+
+  .gamebubble-shell-snes-retro.snes-retro-shell-landscape .snes-retro-info {
+    left: 28.6%;
+    top: calc(5.45% + 10px);
+    width: 43.1%;
+    height: clamp(18px, 4.1%, 27px);
+    justify-content: center;
+    gap: clamp(4px, 0.72vw, 9px);
+    padding: 2px 7px;
+    background: transparent;
+    color: #7c2447;
+    text-shadow: none;
+  }
+
+  .gamebubble-shell-snes-retro.snes-retro-shell-landscape .snes-retro-title {
+    font-size: clamp(5px, 0.82vw, 8px);
+  }
+
+  .gamebubble-shell-snes-retro.snes-retro-shell-landscape .snes-retro-meta {
+    font-size: clamp(4px, 0.68vw, 7px);
+  }
+
+  .gamebubble-shell-snes-retro.snes-retro-shell-landscape .snes-retro-tools-bubble {
+    left: 58.5%;
+    top: 86%;
+    width: min(38%, 360px);
+    transform: translate(-50%, -100%);
   }
 
   .snes-retro-tools-bubble {

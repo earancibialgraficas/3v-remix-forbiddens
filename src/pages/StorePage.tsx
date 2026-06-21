@@ -126,6 +126,13 @@ const shopVisuals = {
     background:
       "radial-gradient(circle at 50% 42%, rgba(248,113,113,.5), transparent 34%), linear-gradient(135deg, #4a0a05, #080302)",
   },
+  dragon_fuego: {
+    frame: "border-orange-300/80 bg-[#200600]",
+    icon: "text-orange-100",
+    badge: "DRAGON",
+    background:
+      "radial-gradient(circle at 50% 42%, rgba(255,166,35,.5), transparent 35%), linear-gradient(135deg, #481000, #070201)",
+  },
   ticket: {
     frame: "border-sky-300/70 bg-[#102b3a]",
     icon: "text-sky-200",

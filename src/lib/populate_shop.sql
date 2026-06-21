@@ -132,6 +132,16 @@ VALUES
     'cosmetic',
     'novato',
     '/cosmetics/transitions/boomshacka/boomshacka.mp4'
+  ),
+  (
+    'dragon_fuego',
+    'Transicion Dragon de Fuego',
+    'Un dragon ardiente atraviesa la pantalla para presentar tu perfil.',
+    5000,
+    'fcoins',
+    'cosmetic',
+    'novato',
+    '/cosmetics/transitions/dragon-fire/dragon-fire.mp4'
   )
 ON CONFLICT (slug) DO UPDATE SET
   name = EXCLUDED.name,
