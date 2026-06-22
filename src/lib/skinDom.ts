@@ -38,9 +38,9 @@ const MERCENARIO_BOCASAS_PRELOAD_ASSETS = DEMONIACO_PRELOAD_ASSETS.map((src) =>
   src.replace('/skins/demoniaco/', '/skins/mercenario_bocasas/').replace('?v=20260601c', '?v=20260604a')
 );
 
-const MI_MELODIA_ROSA_PRELOAD_ASSETS = DEMONIACO_PRELOAD_ASSETS.map((src) =>
-  src.replace('/skins/demoniaco/', '/skins/mi_melodia_rosa/').replace('?v=20260601c', '?v=20260612a')
-);
+const MI_MELODIA_ROSA_PRELOAD_ASSETS = DEMONIACO_PRELOAD_ASSETS
+  .filter((src) => !src.includes('/frames/barra-launcher.svg'))
+  .map((src) => src.replace('/skins/demoniaco/', '/skins/mi_melodia_rosa/'));
 
 const preloadSkinAssets = (slug?: string) => {
   if (typeof window === 'undefined') return;

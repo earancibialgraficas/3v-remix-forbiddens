@@ -1102,3 +1102,96 @@ body[data-skin-slug="mi_melodia_rosa"] .profile-social-content-tab .grid > .grou
   display: none !important;
   background: none !important;
 }
+
+/* Final pink-skin guardrails: never inherit the demonic launcher texture. */
+:is(
+  html.skin-theme-mi_melodia_rosa,
+  html[data-skin-slug="mi_melodia_rosa"],
+  html[style*="--skin-slug: mi_melodia_rosa"],
+  body.skin-theme-mi_melodia_rosa,
+  body[data-skin-slug="mi_melodia_rosa"]
+) .desktop-launcher-titlebar {
+  background-color: #f7d5e7 !important;
+  background-image: linear-gradient(90deg, #f7d5e7 0%, #fff0f7 48%, #ead2ee 100%) !important;
+  border-color: rgba(111, 66, 140, 0.34) !important;
+  color: #613778 !important;
+  box-shadow: 0 6px 18px rgba(111, 66, 140, 0.14) !important;
+}
+
+:is(
+  html.skin-theme-angelical,
+  html[data-skin-slug="angelical"],
+  html[style*="--skin-slug: angelical"],
+  body.skin-theme-angelical,
+  body[data-skin-slug="angelical"]
+) .desktop-launcher-titlebar {
+  background-color: #f9ddea !important;
+  background-image: linear-gradient(90deg, #f4c8de 0%, #fdeaf3 48%, #e9c9ef 100%) !important;
+  border-color: rgba(124, 77, 155, 0.3) !important;
+  color: #603878 !important;
+  box-shadow: 0 6px 18px rgba(124, 77, 155, 0.13) !important;
+}
+
+/* Inventory menu needs explicit contrast because it is rendered in a body portal. */
+:is(
+  html.skin-theme-mi_melodia_rosa,
+  html[data-skin-slug="mi_melodia_rosa"],
+  html[style*="--skin-slug: mi_melodia_rosa"],
+  html.skin-theme-angelical,
+  html[data-skin-slug="angelical"],
+  html[style*="--skin-slug: angelical"]
+) .inventory-context-menu {
+  background: rgba(255, 239, 248, 0.99) !important;
+  background-image: none !important;
+  border-color: rgba(111, 66, 140, 0.48) !important;
+  color: #59316f !important;
+  box-shadow: 0 14px 34px rgba(91, 45, 105, 0.24) !important;
+}
+
+:is(
+  html.skin-theme-mi_melodia_rosa,
+  html[data-skin-slug="mi_melodia_rosa"],
+  html[style*="--skin-slug: mi_melodia_rosa"],
+  html.skin-theme-angelical,
+  html[data-skin-slug="angelical"],
+  html[style*="--skin-slug: angelical"]
+) .inventory-context-menu > button {
+  background: transparent !important;
+  color: #59316f !important;
+  text-shadow: none !important;
+}
+
+:is(
+  html.skin-theme-mi_melodia_rosa,
+  html[data-skin-slug="mi_melodia_rosa"],
+  html[style*="--skin-slug: mi_melodia_rosa"],
+  html.skin-theme-angelical,
+  html[data-skin-slug="angelical"],
+  html[style*="--skin-slug: angelical"]
+) .inventory-context-menu > button:hover:not(:disabled) {
+  background: #d98fbd !important;
+  color: #fff !important;
+}
+
+:is(
+  html.skin-theme-mi_melodia_rosa,
+  html[data-skin-slug="mi_melodia_rosa"],
+  html[style*="--skin-slug: mi_melodia_rosa"],
+  html.skin-theme-angelical,
+  html[data-skin-slug="angelical"],
+  html[style*="--skin-slug: angelical"]
+) .inventory-context-menu > .inventory-context-menu-danger {
+  color: #a62d60 !important;
+}
+
+:is(
+  html.skin-theme-mi_melodia_rosa,
+  html[data-skin-slug="mi_melodia_rosa"],
+  html[style*="--skin-slug: mi_melodia_rosa"],
+  html.skin-theme-angelical,
+  html[data-skin-slug="angelical"],
+  html[style*="--skin-slug: angelical"]
+) .inventory-context-menu > .inventory-context-menu-danger:hover:not(:disabled) {
+  background: #b73b70 !important;
+  color: #fff !important;
+}

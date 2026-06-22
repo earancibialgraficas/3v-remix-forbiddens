@@ -49,7 +49,8 @@ html[style*="--skin-slug: mi_melodia_rosa"] main {
 html[style*="--skin-slug: mi_melodia_rosa"] [data-tauri-drag-region].fixed.inset-x-0,
 html[style*="--skin-slug: mi_melodia_rosa"] .desktop-launcher-titlebar.fixed.inset-x-0,
 html[style*="--skin-slug: mi_melodia_rosa"] .lg\:hidden.fixed.inset-x-0.top-0 {
-  background: var(--skin-pattern-topbar) !important;
+  background-color: #f7d5e7 !important;
+  background-image: linear-gradient(90deg, #f7d5e7 0%, #fff0f7 48%, #ead2ee 100%) !important;
   border-color: rgba(217, 79, 134, 0.28) !important;
   color: var(--pastel-ink) !important;
   box-shadow: 0 10px 28px rgba(169, 59, 111, 0.16), inset 0 -1px 0 rgba(255, 255, 255, 0.78) !important;
@@ -395,7 +396,8 @@ html[style*="--skin-slug: mi_melodia_rosa"] .demoniaco-profile-hero.bg-card.bord
 
 html[style*="--skin-slug: mi_melodia_rosa"] .desktop-launcher-titlebar.fixed.inset-x-0,
 html[style*="--skin-slug: mi_melodia_rosa"] [data-tauri-drag-region].fixed.inset-x-0 {
-  background: var(--skin-pattern-topbar) !important;
+  background-color: #f7d5e7 !important;
+  background-image: linear-gradient(90deg, #f7d5e7 0%, #fff0f7 48%, #ead2ee 100%) !important;
 }
 
 html[style*="--skin-slug: mi_melodia_rosa"] .bg-destructive,

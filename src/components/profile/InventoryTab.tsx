@@ -933,14 +933,15 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
   const isEmulatorShellItem = (item: any) => isEmulatorShellSlug(item?.item_slug);
   const itemActiveUntil = (item: any) => getStatBoostActiveUntil(item);
   const itemIsActive = (item: any) => isStatBoostActive(item);
-  const boosterIsExpired = (item: any) => isStatBoostExpired(item);
   const boosterUsedByMe = (item: any) => Array.isArray(item?.metadata?.used_by_users) && item.metadata.used_by_users.includes(userId);
+  const boosterIsExpired = (item: any) =>
+    isStatBoostExpired(item) || (boosterUsedByMe(item) && !itemIsActive(item));
   const boosterCanBeUsed = (item: any) => isBoosterItem(item) && !itemIsActive(item) && !boosterUsedByMe(item);
   const itemLabel = (item: any) => item?.item_name || (isMembershipItem(item) ? "Membresia" : isEventTicketItem(item) ? "Entrada de evento" : "Objeto");
   const boosterIconUrl = (item: any) => {
-    if (itemIsActive(item)) return "/cosmetics/boosters/boost-x3-active.svg";
-    if (boosterIsExpired(item)) return "/cosmetics/boosters/boost-x3-expired.svg";
-    return "/cosmetics/boosters/boost-x3.svg";
+    if (itemIsActive(item)) return "/cosmetics/boosters/boost-x3-active.svg?v=20260621-2";
+    if (boosterIsExpired(item)) return "/cosmetics/boosters/boost-x3-expired.svg?v=20260621-2";
+    return "/cosmetics/boosters/boost-x3.svg?v=20260621-2";
   };
   const markStackSeen = (item: any) => {
     const ids = getInventoryItemSourceIds(item);
@@ -2345,7 +2346,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
 
       {contextMenu && typeof document !== "undefined" && createPortal((
         <div
-          className="fixed z-[600] w-44 overflow-hidden rounded border border-[#d6b16f]/70 bg-[#1b140f] p-1 text-xs shadow-2xl shadow-black/70"
+          className="inventory-context-menu fixed z-[600] w-44 overflow-hidden rounded border border-[#d6b16f]/70 bg-[#1b140f] p-1 text-xs shadow-2xl shadow-black/70"
           style={{ left: `${contextMenu.x}px`, top: `${contextMenu.y}px` }}
           onClick={(event) => event.stopPropagation()}
         >
@@ -2356,7 +2357,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
             Tradear item
           </button>
           <button
-            className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-left text-red-200 hover:bg-red-500/15 disabled:cursor-not-allowed disabled:opacity-45"
+            className="inventory-context-menu-danger flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-left text-red-200 hover:bg-red-500/15 disabled:cursor-not-allowed disabled:opacity-45"
             disabled={busy || !canSellItem(contextMenu.item)}
             onClick={() => handleSellItems([contextMenu.item], contextMenu.slot)}
           >
@@ -2477,7 +2478,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
             Separar
           </button>
           <button
-            className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-left text-red-300 hover:bg-red-500/15 disabled:cursor-not-allowed disabled:opacity-45"
+            className="inventory-context-menu-danger flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-left text-red-300 hover:bg-red-500/15 disabled:cursor-not-allowed disabled:opacity-45"
             disabled={busy}
             onClick={() => openDiscardStack(contextMenu.item, contextMenu.slot)}
           >

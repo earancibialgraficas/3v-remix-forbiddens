@@ -128,7 +128,7 @@ export const MI_MELODIA_ROSA_SKIN: SkinTheme = {
   patterns: {
     background: "radial-gradient(circle at 16% 18%, rgba(255, 203, 229, 0.36), transparent 18rem), linear-gradient(rgba(255, 250, 253, 0.9), rgba(255, 238, 247, 0.92)), url('/skins/mi_melodia_rosa/backgrounds/solid/hellscape-castle.png') center top / cover fixed, linear-gradient(135deg, #fff9fc 0%, #ffe7f3 52%, #ffd1e7 100%)",
     card: "linear-gradient(rgba(255, 250, 253, 0.82), rgba(255, 240, 248, 0.9)), url('/skins/mi_melodia_rosa/backgrounds/solid/basalt-wide.png') center / cover, linear-gradient(135deg, rgba(255, 244, 250, 0.9), rgba(255, 221, 237, 0.88))",
-    topbar: "linear-gradient(rgba(255, 250, 253, 0.86), rgba(255, 232, 243, 0.92)), url('/skins/mi_melodia_rosa/textures/AZ5xjYg286URBkpJZIxzeQ-AZ5xjcojgoGln-NTZLbqsw.png') center / 100% 100%, linear-gradient(90deg, #fffafd, #ffd9eb 50%, #fff8fc)",
+    topbar: "linear-gradient(90deg, #f7d5e7 0%, #fff0f7 48%, #ead2ee 100%)",
     sidebar: "linear-gradient(rgba(255, 247, 251, 0.68), rgba(255, 228, 242, 0.8)), url('/skins/mi_melodia_rosa/backgrounds/solid/window-rock.png') center top / cover, linear-gradient(180deg, #fffafd, #ffe3f1)",
     panel: "linear-gradient(rgba(255, 250, 253, 0.72), rgba(255, 235, 246, 0.84)), url('/skins/mi_melodia_rosa/backgrounds/solid/window-rock.png') center / cover, linear-gradient(135deg, #fffafd, #ffe4f2)",
     profileHeader: "linear-gradient(90deg, rgba(255, 247, 251, 0.3), rgba(255, 213, 234, 0.2) 48%, rgba(255, 247, 251, 0.42)), url('/skins/mi_melodia_rosa/backgrounds/solid/profile-banner.png') center / cover",
