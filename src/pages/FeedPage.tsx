@@ -602,7 +602,7 @@ function SnapCard({
         cinemaMode && !cinemaPanelOpen && "social-detail-panel-closed",
         cinemaMode 
           ? "fixed bottom-0 left-0 w-full h-[50dvh] rounded-t-2xl bg-card border-t p-4 lg:p-4" 
-          : "fixed lg:relative top-0 right-0 h-full w-[85%] max-w-[320px] lg:w-[240px] lg:w-[260px] p-3 lg:p-0 border-l lg:border-none lg:shadow-none lg:pt-[44px]", // PC conserva sus 4px visuales
+          : "fixed lg:relative top-0 right-0 h-full w-[85%] max-w-[320px] lg:w-[240px] lg:w-[260px] p-3 lg:p-0 border-l lg:border-none lg:shadow-none lg:pt-[50px]", // Separación visual respecto de los filtros superiores
         cinemaMode && !cinemaPanelOpen ? "translate-y-full pointer-events-none" : "",
         cinemaMode && cinemaPanelOpen ? "translate-y-0" : "",
         !cinemaMode && !showMobilePanel ? "translate-x-full opacity-0 pointer-events-none lg:translate-x-0 lg:opacity-100 lg:pointer-events-auto" : "",
@@ -1188,7 +1188,7 @@ export default function FeedPage() {
     <div id="social-hub-page" className="social-hub-page animate-fade-in flex flex-col h-[calc(100dvh-104px)] lg:h-[calc(100vh-50px)] w-full relative overflow-hidden bg-background">
       
       {/* 🔥 BANNER AUTO-OCULTABLE A LOS 2 SEG 🔥 */}
-      <div className={cn("transition-all duration-700 overflow-hidden shrink-0 z-[150]", showHeader ? "max-h-[100px] opacity-100 pt-1 lg:pt-2 px-1 lg:px-2" : "max-h-0 opacity-0 pt-0 border-none")}>
+      <div className={cn("social-auto-header-shell transition-all duration-700 overflow-hidden shrink-0 z-[150]", showHeader ? "max-h-[100px] opacity-100 pt-1 lg:pt-2 px-1 lg:px-2" : "max-h-0 opacity-0 pt-0 border-none")}>
         <div className="social-hub-auto-header bg-card border border-neon-cyan/30 rounded-xl p-2.5 lg:p-3 shadow-sm relative">
           {isFetching && items.length === 0 && <div className="absolute top-0 left-0 w-full h-1 bg-neon-cyan animate-pulse z-50" />}
           <h1 className="font-pixel text-sm text-neon-cyan mb-1 flex items-center gap-2"><Globe className="w-4 h-4" /> FEED GLOBAL</h1>
@@ -1198,7 +1198,7 @@ export default function FeedPage() {
 
       {/* 🔥 CONTENEDOR PRINCIPAL 🔥 */}
       <div className={cn(
-        "w-full relative flex flex-col min-h-0 transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)]",
+        "social-feed-shell w-full relative flex flex-col min-h-0 transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)]",
         "lg:flex-1", 
         "flex-1"
       )}>
@@ -1270,16 +1270,16 @@ export default function FeedPage() {
             </Button>
           </div>
         ) : (
-          <div className="relative flex-1 min-h-0 w-full overflow-hidden pt-0 lg:pt-0">
+          <div className="social-feed-viewport relative flex-1 min-h-0 w-full overflow-hidden pt-0 lg:pt-0">
             <div 
               ref={containerRef} 
-              className={cn("h-full w-full relative z-0", isSnapping ? "snap-y snap-mandatory overflow-y-auto" : "overflow-hidden")} 
+              className={cn("social-feed-track h-full w-full relative z-0", isSnapping ? "snap-y snap-mandatory overflow-y-auto" : "overflow-hidden")} 
               style={{ scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
             >
               <style>{`div::-webkit-scrollbar { display: none; }`}</style>
               
               {filteredItems.map((item, i) => (
-                <div key={item.id} id={`feed-post-${item.id}`} data-card-index={i} className="h-full w-full snap-center snap-always">
+                <div key={item.id} id={`feed-post-${item.id}`} data-card-index={i} className="social-feed-slide h-full w-full snap-center snap-always">
                   <SnapCard 
                     item={item} 
                     isVisible={i === visibleIndex} 

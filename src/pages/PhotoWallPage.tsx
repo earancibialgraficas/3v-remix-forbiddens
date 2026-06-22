@@ -106,7 +106,8 @@ function PhotoCardMiniature({ photo, onExpand, onReaction, onHide, onDelete, onS
         />
         
         {/* OVERLAY INVISIBLE HASTA HOVER */}
-        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-2 sm:p-3 rounded-xl z-10">
+        <div className="photo-wall-hover-overlay absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-2 sm:p-3 rounded-xl z-10">
+          <Maximize2 className="photo-wall-expand-action absolute left-1/2 top-1/2 z-20 w-7 h-7 sm:w-9 sm:h-9 -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
           <div className="flex justify-between items-start">
             
             {isStaff && !isOwner && (
@@ -152,7 +153,6 @@ function PhotoCardMiniature({ photo, onExpand, onReaction, onHide, onDelete, onS
 
           </div>
           <div className="flex flex-col items-center gap-2 sm:gap-4">
-             <Maximize2 className="w-6 h-6 sm:w-8 sm:h-8 text-white/50 mb-1 sm:mb-2 pointer-events-none" />
              <div className="flex items-center gap-2 sm:gap-4 text-white font-body text-[10px] sm:text-xs">
                 
                 <button onClick={(e) => { e.stopPropagation(); onReaction(photo.id, "like", photo.target_type); }} className={cn("flex items-center gap-1 sm:gap-1.5 transition-transform hover:scale-105 z-20", userReaction === "like" ? "text-neon-green" : "text-white hover:text-neon-green")}>
@@ -163,7 +163,7 @@ function PhotoCardMiniature({ photo, onExpand, onReaction, onHide, onDelete, onS
                    <ThumbsDown className={cn("w-3 h-3 sm:w-4 sm:h-4", userReaction === "dislike" && "fill-current")} /> <span className="hidden sm:inline">{photo.dislikes}</span>
                 </button>
 
-                <span className="flex items-center gap-1 sm:gap-1.5 pointer-events-none"><MessageSquare className="w-3 h-3 sm:w-4 sm:h-4" /></span>
+                <span className="photo-wall-comments-action flex items-center gap-1 sm:gap-1.5 pointer-events-none"><MessageSquare className="w-3 h-3 sm:w-4 sm:h-4" /></span>
              </div>
           </div>
         </div>
@@ -267,16 +267,16 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
   if (typeof document === "undefined") return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[6000] bg-black/90 backdrop-blur-md animate-fade-in flex items-center justify-center p-2 sm:p-4" onClick={onClose}>
+    <div className="photo-wall-expanded-overlay fixed inset-0 z-[6000] bg-black/90 backdrop-blur-md animate-fade-in flex items-center justify-center p-2 sm:p-4" onClick={onClose}>
       <div 
-        className="w-[95%] max-w-5xl max-h-[90vh] bg-card rounded-xl flex flex-col md:flex-row overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.9)] animate-scale-in border border-white/10" 
+        className="photo-wall-expanded-modal w-[95%] max-w-5xl max-h-[90vh] bg-card rounded-xl flex flex-col md:flex-row overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.9)] animate-scale-in border border-white/10" 
         onClick={e => e.stopPropagation()}
         style={neonStyle}
       >
-        <div className="relative bg-black w-full md:w-[60%] flex flex-col items-center justify-center p-4 shrink-0 h-[40vh] md:h-[85vh] min-h-[300px]">
+        <div className="photo-wall-expanded-stage relative bg-black w-full md:w-[60%] flex flex-col items-center justify-center p-4 shrink-0 h-[40vh] md:h-[85vh] min-h-[300px]">
           <a 
             href={originalUrl} target="_blank" rel="noopener noreferrer" 
-            className="absolute bottom-4 left-4 z-20 bg-black/70 border border-white/10 hover:border-neon-cyan p-2 rounded-lg text-white hover:text-neon-cyan backdrop-blur-md flex items-center gap-2 font-pixel text-[9px] uppercase tracking-widest transition-all"
+            className="photo-wall-expanded-original-link absolute bottom-4 left-4 z-20 bg-black/70 border border-white/10 hover:border-neon-cyan p-2 rounded-lg text-white hover:text-neon-cyan backdrop-blur-md flex items-center gap-2 font-pixel text-[9px] uppercase tracking-widest transition-all"
           >
             <ExternalLink className="w-3.5 h-3.5"/> <span className="hidden sm:inline">Ver original</span>
           </a>
@@ -289,12 +289,12 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
           />
         </div>
 
-        <div className="relative w-full md:w-[40%] flex flex-col bg-background/95 backdrop-blur-md border-t md:border-t-0 md:border-l border-border h-[50vh] md:h-[85vh]">
-          <button onClick={onClose} className="absolute top-2 right-2 z-50 bg-black/50 p-1.5 rounded-full text-white hover:bg-destructive hover:text-white transition-colors border border-white/10">
+        <div className="photo-wall-expanded-panel relative w-full md:w-[40%] flex flex-col bg-background/95 backdrop-blur-md border-t md:border-t-0 md:border-l border-border h-[50vh] md:h-[85vh]">
+          <button onClick={onClose} className="photo-wall-expanded-close absolute top-2 right-2 z-50 bg-black/50 p-1.5 rounded-full text-white hover:bg-destructive hover:text-white transition-colors border border-white/10">
             <X className="w-4 h-4" />
           </button>
 
-          <div className="p-3 border-b border-border flex items-center gap-3 bg-muted/10 shrink-0 pr-10">
+          <div className="photo-wall-expanded-author p-3 border-b border-border flex items-center gap-3 bg-muted/10 shrink-0 pr-10">
             <Avatar
               className={cn("social-author-avatar-frame w-10 h-10 border border-neon-orange/30", photo.profiles?.launcher_frame_class, photo.profiles?.avatar_frame_slug && "avatar-frame-custom")}
               style={getAvatarFrameStyle(photo.profiles?.avatar_frame_slug)}
@@ -308,7 +308,7 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-3 space-y-3 retro-scrollbar">
+          <div className="photo-wall-expanded-content flex-1 overflow-y-auto p-3 space-y-3 retro-scrollbar">
             {isEditing ? (
               <div className="mb-2 space-y-2">
                 <Textarea value={editTitle} onChange={e => setEditTitle(e.target.value)} className="text-xs font-body min-h-[50px] resize-none bg-black/50 border-white/10" placeholder="Escribe tu descripción..." />
@@ -318,7 +318,7 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
                 </div>
               </div>
             ) : (
-              (photo.caption || photo.title) && <p className="text-[11px] leading-relaxed text-foreground/90 bg-white/5 p-2 rounded-lg border border-white/5 font-body italic">"{photo.caption || photo.title}"</p>
+              (photo.caption || photo.title) && <p className="photo-wall-expanded-caption text-[11px] leading-relaxed text-foreground/90 bg-white/5 p-2 rounded-lg border border-white/5 font-body italic">"{photo.caption || photo.title}"</p>
             )}
 
             <div className="space-y-3">
@@ -329,13 +329,13 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
                 </div>
               ) : (
                 comments.map(c => (
-                  <div key={c.id} id={`comment-${c.id}`} className={cn("group flex items-start gap-2 text-[10px] font-body", c.parent_id && "ml-4 border-l border-white/10 pl-2")}>
+                  <div key={c.id} id={`comment-${c.id}`} className={cn("photo-wall-expanded-comment group flex items-start gap-2 text-[10px] font-body", c.parent_id && "ml-4 border-l border-white/10 pl-2")}>
                     <Avatar
                       className={cn("photowall-comment-avatar w-7 h-7 shrink-0 mt-1", launcherFrameCommentUsers[c.user_id], avatarFrameCommentUsers[c.user_id] && "avatar-frame-custom")}
                       style={getAvatarFrameStyle(avatarFrameCommentUsers[c.user_id])}
                     ><AvatarImage src={c.avatar_url || ""} /></Avatar>
                     <div className="flex-1 min-w-0">
-                      <div className="bg-white/5 rounded-lg px-2 py-1.5 inline-block max-w-full">
+                      <div className="photo-wall-expanded-comment-bubble bg-white/5 rounded-lg px-2 py-1.5 inline-block max-w-full">
                         <div className="flex items-baseline gap-1.5 mb-0.5 flex-wrap">
                           <span className="text-primary font-bold text-[9px]">{c.display_name}</span>
                           <span className="text-[8px] text-muted-foreground/70">{formatRelativeDate(c.created_at)}</span>
@@ -368,8 +368,8 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
             </div>
           </div>
 
-          <div className="p-3 border-t border-border bg-muted/5 space-y-3 shrink-0">
-            <div className="flex items-center justify-between">
+          <div className="photo-wall-expanded-footer p-3 border-t border-border bg-muted/5 space-y-3 shrink-0">
+            <div className="photo-wall-expanded-actions flex items-center justify-between">
               <div className="flex gap-3">
                 <button onClick={() => onReaction(photo.id, "like", photo.target_type)} className={cn("flex items-center gap-1 text-[11px] transition-transform hover:scale-110", userReaction === "like" ? "text-neon-green" : "text-muted-foreground hover:text-neon-green")}><ThumbsUp className={cn("w-3.5 h-3.5", userReaction === "like" && "fill-current")} /> {photo.likes}</button>
                 <button onClick={() => onReaction(photo.id, "dislike", photo.target_type)} className={cn("flex items-center gap-1 text-[11px] transition-transform hover:scale-110", userReaction === "dislike" ? "text-destructive" : "text-muted-foreground hover:text-destructive")}><ThumbsDown className={cn("w-3.5 h-3.5", userReaction === "dislike" && "fill-current")} /> {photo.dislikes}</button>
@@ -421,9 +421,9 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
                     onChange={e => setCommentText(e.target.value)} 
                     placeholder={`Comentar... (Máx ${limits.maxForumChars} carac.)`} 
                     maxLength={limits.maxForumChars}
-                    className="h-7 text-[10px] bg-black/40 border-border" 
+                    className="photo-wall-expanded-comment-input h-7 text-[10px] bg-black/40 border-border" 
                   />
-                  <Button onClick={handleSubmitComment} size="sm" className="h-7 px-2 bg-neon-orange text-black shrink-0 hover:bg-neon-orange/80"><Send className="w-3.5 h-3.5" /></Button>
+                  <Button onClick={handleSubmitComment} size="sm" className="photo-wall-expanded-comment-submit h-7 px-2 bg-neon-orange text-black shrink-0 hover:bg-neon-orange/80"><Send className="w-3.5 h-3.5" /></Button>
                 </div>
               </div>
             ) : <p className="text-[9px] text-center text-muted-foreground font-pixel uppercase py-1">Inicia sesión</p>}
@@ -781,8 +781,8 @@ export default function PhotoWallPage() {
              </div>
              <span className="text-[11px] text-neon-cyan">{dailyGlobalCount} / {GLOBAL_DAILY_LIMIT}</span>
            </div>
-           <div className="w-full h-2 bg-muted rounded-full overflow-hidden relative">
-             <div className={cn("h-full transition-all duration-1000", dailyGlobalCount >= GLOBAL_DAILY_LIMIT ? "bg-destructive" : "bg-neon-cyan")} style={{ width: `${uploadPercentage}%` }} />
+           <div className="photo-wall-progress-track w-full h-2 bg-muted rounded-full overflow-hidden relative">
+             <div className={cn("photo-wall-progress-fill h-full transition-all duration-1000", dailyGlobalCount >= GLOBAL_DAILY_LIMIT ? "is-full bg-destructive" : "bg-neon-cyan")} style={{ width: `${uploadPercentage}%` }} />
            </div>
         </div>
       </div>
@@ -804,7 +804,7 @@ export default function PhotoWallPage() {
             <ChevronDown className="w-3 h-3 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-white/70" />
           </div>
 
-          <div className="w-px h-5 bg-border mx-0.5" />
+          <div className="photo-wall-filter-divider w-px h-5 bg-border mx-0.5" />
           
           {/* Botones Top/Nuevos */}
           <div className="photo-wall-sort-buttons flex p-0.5 rounded border border-border/50 bg-black/20 shrink-0 gap-0.5">

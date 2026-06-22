@@ -1129,7 +1129,7 @@ export default function EmulatorPage() {
                            value={nativeBiosStatus?.selected_bios || ""}
                            onChange={(event) => void selectCurrentNativeBios(event.target.value)}
                            disabled={nativeBusy}
-                           className="mb-2 h-9 w-full rounded border border-white/20 bg-black/70 px-2 text-[11px] text-white outline-none focus:border-neon-cyan"
+                           className="emulator-ps2-bios-select mb-2 h-9 w-full rounded border border-white/20 bg-black/70 px-2 text-[11px] text-white outline-none focus:border-neon-cyan"
                            aria-label="BIOS activa de PlayStation 2"
                          >
                            {nativeBiosStatus?.bioses?.map((bios) => (

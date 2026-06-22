@@ -552,7 +552,7 @@ html:is(
   [data-skin-slug="mi_melodia_rosa"],
   [data-skin-slug="demoniaco"],
   [data-skin-slug="mercenario_bocasas"]
-) body[data-skin-slug] #social-hub-page.social-hub-page .social-author-avatar-frame::after {
+) body[data-skin-slug] #social-hub-page.social-hub-page .social-author-avatar-frame.avatar-frame-custom::after {
   background-image: var(--avatar-frame-url) !important;
 }
 
@@ -723,4 +723,180 @@ html[data-skin-slug] body[data-skin-slug] #photo-wall-page :is(
   content: none !important;
   display: none !important;
   background: none !important;
+}
+
+/* Última limpieza de superficies: válida también para la skin predeterminada. */
+#social-hub-page.social-hub-page,
+#social-hub-page.social-hub-page .social-feed-shell,
+#social-hub-page.social-hub-page .social-feed-viewport,
+#social-hub-page.social-hub-page .social-feed-track,
+#social-hub-page.social-hub-page .social-feed-slide,
+#social-hub-page.social-hub-page .social-snap-card,
+#social-hub-page.social-hub-page .social-detail-panel,
+#social-hub-page.social-hub-page .social-detail-panel-open,
+#social-hub-page.social-hub-page .social-detail-panel-closed {
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+/* El armazón que envuelve cada publicación nunca recibe ornamentos de una skin. */
+#social-hub-page.social-hub-page::before,
+#social-hub-page.social-hub-page::after,
+#social-hub-page.social-hub-page .social-feed-shell::before,
+#social-hub-page.social-hub-page .social-feed-shell::after,
+#social-hub-page.social-hub-page .social-feed-viewport::before,
+#social-hub-page.social-hub-page .social-feed-viewport::after,
+#social-hub-page.social-hub-page .social-feed-track::before,
+#social-hub-page.social-hub-page .social-feed-track::after,
+#social-hub-page.social-hub-page .social-feed-slide::before,
+#social-hub-page.social-hub-page .social-feed-slide::after,
+#social-hub-page.social-hub-page .social-snap-card::before,
+#social-hub-page.social-hub-page .social-snap-card::after {
+  content: none !important;
+  display: none !important;
+  background: none !important;
+  background-image: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+#photo-wall-page.photo-wall-page,
+#photo-wall-page.photo-wall-page .photo-wall-sort-buttons,
+#photo-wall-page.photo-wall-page .photo-wall-grid,
+#photo-wall-page.photo-wall-page .photo-wall-item,
+#photo-wall-page.photo-wall-page .photo-wall-card,
+#photo-wall-page.photo-wall-page .photo-wall-media {
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+#photo-wall-page.photo-wall-page .photo-wall-sort-buttons {
+  border-color: transparent !important;
+}
+
+/* La barra completa de controles sí es una superficie sólida del tema. */
+html[data-skin-slug] body[data-skin-slug] #photo-wall-page.photo-wall-page .photo-wall-filters {
+  background-color: color-mix(in srgb, var(--photo-wall-panel) 88%, transparent) !important;
+  background-image: none !important;
+  border-color: var(--photo-wall-border) !important;
+  box-shadow: none !important;
+}
+
+/* El adhesivo no crea otra placa; la barra diaria sí conserva una superficie translúcida. */
+html[data-skin-slug] body[data-skin-slug] #photo-wall-page.photo-wall-page .photo-wall-daily-strip {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+html[data-skin-slug] body[data-skin-slug] #photo-wall-page.photo-wall-page .photo-wall-daily-card {
+  background-color: color-mix(in srgb, var(--photo-wall-panel) 88%, transparent) !important;
+  background-image: none !important;
+  border-color: var(--photo-wall-border) !important;
+  box-shadow: none !important;
+}
+
+/* El título temporal de Feed, Reels y Videos flota sin tarjeta ni textura. */
+#social-hub-page.social-hub-page .social-auto-header-shell,
+#social-hub-page.social-hub-page .social-hub-auto-header {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+#social-hub-page.social-hub-page .social-auto-header-shell::before,
+#social-hub-page.social-hub-page .social-auto-header-shell::after,
+#social-hub-page.social-hub-page .social-hub-auto-header::before,
+#social-hub-page.social-hub-page .social-hub-auto-header::after {
+  content: none !important;
+  display: none !important;
+  background: none !important;
+  background-image: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+#photo-wall-page.photo-wall-page .photo-wall-filter-divider {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+#photo-wall-page.photo-wall-page .photo-wall-sort-buttons::before,
+#photo-wall-page.photo-wall-page .photo-wall-sort-buttons::after,
+#photo-wall-page.photo-wall-page .photo-wall-filter-divider::before,
+#photo-wall-page.photo-wall-page .photo-wall-filter-divider::after {
+  content: none !important;
+  display: none !important;
+  background: none !important;
+}
+
+/* Progreso diario: la skin aporta el color, no una textura. */
+html[data-skin-slug] body[data-skin-slug] #photo-wall-page .photo-wall-progress-track {
+  background-color: color-mix(in srgb, var(--skin-card) 74%, var(--skin-background) 26%) !important;
+  background-image: none !important;
+  border: 1px solid color-mix(in srgb, var(--skin-border) 72%, transparent) !important;
+  box-shadow: inset 0 1px 2px color-mix(in srgb, var(--skin-background) 48%, transparent) !important;
+}
+
+html[data-skin-slug] body[data-skin-slug] #photo-wall-page .photo-wall-progress-fill {
+  background-color: var(--skin-primary) !important;
+  background-image: none !important;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--skin-primary) 58%, transparent) !important;
+}
+
+html[data-skin-slug] body[data-skin-slug] #photo-wall-page .photo-wall-progress-fill.is-full {
+  background-color: #dc4f64 !important;
+  box-shadow: 0 0 8px rgba(220, 79, 100, 0.5) !important;
+}
+
+/* Sello de transparencia con la misma prioridad que las reglas temáticas. */
+html:is(
+  [data-skin-slug="mi_melodia_rosa"],
+  [data-skin-slug="demoniaco"],
+  [data-skin-slug="mercenario_bocasas"]
+) body[data-skin-slug] #social-hub-page.social-hub-page,
+html:is(
+  [data-skin-slug="mi_melodia_rosa"],
+  [data-skin-slug="demoniaco"],
+  [data-skin-slug="mercenario_bocasas"]
+) body[data-skin-slug] #social-hub-page.social-hub-page :is(
+  .social-snap-card,
+  .social-detail-panel,
+  .social-detail-panel-open,
+  .social-detail-panel-closed
+) {
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+html[data-skin-slug] body[data-skin-slug] #photo-wall-page.photo-wall-page :is(
+  .photo-wall-filters,
+  .photo-wall-sort-buttons,
+  .photo-wall-grid,
+  .photo-wall-item,
+  .photo-wall-card,
+  .photo-wall-media
+) {
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+html[data-skin-slug] body[data-skin-slug] #photo-wall-page.photo-wall-page :is(
+  .photo-wall-filters,
+  .photo-wall-sort-buttons
+) {
+  border-color: transparent !important;
 }

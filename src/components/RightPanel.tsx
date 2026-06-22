@@ -213,7 +213,7 @@ export default function RightPanel() {
     <div className="site-rightbar-panel melodia-rightbar w-full shrink-0 flex flex-col h-full md:h-full" data-melodia-surface="rightbar">
       
       {!isMobile && (
-        <div className="flex items-center justify-end gap-1 bg-background z-40 py-1 mb-2 shrink-0">
+        <div className="right-panel-toolbar flex items-center justify-end gap-1 bg-background z-40 py-1 mb-2 shrink-0">
           {!isHome && (
             <div className="flex items-center gap-0.5 rounded bg-card border border-border p-0.5">
               <button onClick={() => navigate(-1)} className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"><ChevronLeft className="w-3.5 h-3.5" /></button>
