@@ -395,10 +395,8 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
       }
     })();
     const visibleBoosters = boosters.filter((item) => {
-      // The consumed x3 unit lives in its own row so its expiry can be tracked,
-      // but while active it is represented by the global x3 indicator instead
-      // of looking like a duplicated inventory item.
-      if (item.item_slug === STAT_BOOST_SLUG && isStatBoostActive(item)) return false;
+      // Los x3 activos siguen siendo objetos del usuario: permanecen visibles
+      // en el inventario con su icono/estado activo hasta que termine el efecto.
       if (isSkinItem(item) && activeSkinSlugs.has(item.item_slug)) return false;
       if (isAvatarFrameSlug(item.item_slug) && activeAvatarFrameSlug === item.item_slug) return false;
       if (isProfileTransitionSlug(item.item_slug) && activeProfileTransitionSlug === item.item_slug) return false;
@@ -936,7 +934,11 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
   const boosterUsedByMe = (item: any) => Array.isArray(item?.metadata?.used_by_users) && item.metadata.used_by_users.includes(userId);
   const boosterIsExpired = (item: any) =>
     isStatBoostExpired(item) || (boosterUsedByMe(item) && !itemIsActive(item));
-  const boosterCanBeUsed = (item: any) => isBoosterItem(item) && !itemIsActive(item) && !boosterUsedByMe(item);
+  const boosterCanBeUsed = (item: any) =>
+    isBoosterItem(item)
+    && !activeInventoryStatBoost.active
+    && !itemIsActive(item)
+    && !boosterUsedByMe(item);
   const itemLabel = (item: any) => item?.item_name || (isMembershipItem(item) ? "Membresia" : isEventTicketItem(item) ? "Entrada de evento" : "Objeto");
   const boosterIconUrl = (item: any) => {
     if (itemIsActive(item)) return "/cosmetics/boosters/boost-x3-active.svg?v=20260621-2";
@@ -974,6 +976,10 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
   const quickMoveToTrade = (slotIndex: number) => {
     const item = slotItemsRef.current[slotIndex];
     if (!item) return;
+    if (isBoosterItem(item) && itemIsActive(item)) {
+      toast({ title: "Potenciador activo", description: "No puedes tradearlo mientras su efecto x3 esta activo.", variant: "destructive" });
+      return;
+    }
     const result = placeStackInTradeSlots(tradeSlotsRef.current, item);
     if (!result.placed) {
       toast({ title: "Barra de trueque llena", variant: "destructive" });
@@ -1275,7 +1281,11 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
     }
   };
 
-  const canSellItem = (item: any) => Boolean(item?.item_slug && priceMap[item.item_slug]);
+  const canSellItem = (item: any) => Boolean(
+    item?.item_slug
+    && priceMap[item.item_slug]
+    && !(isBoosterItem(item) && itemIsActive(item))
+  );
 
   const isSkinItem = (item: any) => item?.item_slug && (ALL_SKINS as any)[item.item_slug];
   const activeEquipmentEntries = useMemo(() => {
@@ -2352,6 +2362,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
         >
           <button
             className="block w-full rounded px-2 py-1.5 text-left hover:bg-[#d6b16f]/15 disabled:cursor-not-allowed disabled:opacity-45"
+            disabled={busy || (isBoosterItem(contextMenu.item) && itemIsActive(contextMenu.item))}
             onClick={() => sendStackToTrade(contextMenu.slot)}
           >
             Tradear item

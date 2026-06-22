@@ -20,6 +20,8 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [banReason, setBanReason] = useState("");
   const [fcoinsToGrant, setFcoinsToGrant] = useState("10000");
+  const [boostersToGrant, setBoostersToGrant] = useState("1");
+  const [isGrantingBoosters, setIsGrantingBoosters] = useState(false);
   const [selectedTier, setSelectedTier] = useState("novato");
   const [bannedContent, setBannedContent] = useState<any[]>([]);
   const [bannedUsers, setBannedUsers] = useState<any[]>([]);
@@ -239,7 +241,7 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
                     
                     {/* 🔥 HERRAMIENTA EXCLUSIVA PARA EL MASTER WEB 🔥 */}
                     {isMasterWeb && (
-                      <div className="bg-black/30 p-2.5 rounded border border-neon-cyan/20 mb-3 space-y-2 shadow-[inset_0_0_10px_rgba(0,255,255,0.05)]">
+                      <div className="bg-black/30 p-2.5 rounded border border-neon-cyan/20 mb-3 space-y-3 shadow-[inset_0_0_10px_rgba(0,255,255,0.05)]">
                          <p className="text-[7px] font-pixel text-neon-cyan uppercase tracking-tighter">Subvención de Emergencia (Master Only)</p>
                          <div className="flex gap-1">
                            <Input 
@@ -272,6 +274,51 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
                                toast({title: "Error", description: e.message || "Error desconocido al transferir fcoins", variant: "destructive"});
                              }
                            }} className="h-7 bg-neon-cyan text-black text-[8px] font-pixel hover:bg-neon-cyan/80">OTORGAR</Button>
+                         </div>
+                         <div className="border-t border-white/10 pt-3">
+                           <p className="mb-2 text-[7px] font-pixel uppercase tracking-tighter text-neon-yellow">Potenciadores x3 individuales</p>
+                           <div className="flex gap-1">
+                             <Input
+                               type="number"
+                               min="1"
+                               max="1000"
+                               value={boostersToGrant}
+                               onChange={e => setBoostersToGrant(e.target.value)}
+                               className="h-7 bg-[#1b140f] text-xs font-mono border-white/10"
+                               aria-label="Cantidad de potenciadores x3"
+                             />
+                             <Button
+                               disabled={isGrantingBoosters}
+                               onClick={async () => {
+                                 const amount = Math.floor(Number(boostersToGrant));
+                                 if (!foundUser?.user_id || !Number.isFinite(amount) || amount < 1 || amount > 1000) {
+                                   toast({ title: "Cantidad no válida", description: "Ingresa entre 1 y 1000 potenciadores.", variant: "destructive" });
+                                   return;
+                                 }
+
+                                 setIsGrantingBoosters(true);
+                                 try {
+                                   const { data: result, error: rpcError } = await (supabase as any).rpc("grant_user_boosters", {
+                                     p_user_id: foundUser.user_id,
+                                     p_quantity: amount,
+                                   });
+                                   if (rpcError || !result?.success) {
+                                     toast({ title: "No se pudo regalar", description: rpcError?.message || result?.error || "Operación rechazada", variant: "destructive" });
+                                     return;
+                                   }
+                                   toast({
+                                     title: "Potenciadores regalados",
+                                     description: `${amount.toLocaleString()} boost x3 enviados a ${foundUser.display_name}.`,
+                                   });
+                                 } finally {
+                                   setIsGrantingBoosters(false);
+                                 }
+                               }}
+                               className="h-7 bg-neon-yellow text-black text-[8px] font-pixel hover:bg-neon-yellow/80"
+                             >
+                               {isGrantingBoosters ? "ENVIANDO..." : "REGALAR"}
+                             </Button>
+                           </div>
                          </div>
                       </div>
                     )}
