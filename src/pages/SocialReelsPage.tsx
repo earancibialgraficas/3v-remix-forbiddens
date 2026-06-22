@@ -235,6 +235,14 @@ function SnapCard({
     }
   }, [isVisible, isVideo, isDirectMp4, onPauseMusic]);
 
+  useEffect(() => {
+    if (!cinemaMode || !cinemaPanelOpen) return;
+    nativeVideoRef.current?.pause();
+    const iframe = videoContainerRef.current?.querySelector("iframe");
+    iframe?.contentWindow?.postMessage(JSON.stringify({ event: "command", func: "pauseVideo", args: [] }), "*");
+    iframe?.contentWindow?.postMessage({ method: "pause" }, "*");
+  }, [cinemaMode, cinemaPanelOpen]);
+
   // 🔥 Optimización extrema: requestAnimationFrame para el ResizeObserver 🔥
   useEffect(() => {
     if (!videoContainerRef.current || !isVideo || isDirectMp4 || isPhoto) return;
@@ -524,7 +532,7 @@ function SnapCard({
         )}>
              
              {/* Avatar y Burbuja Glassmorphism (PC) */}
-             <div className="relative pointer-events-auto group/bubble"
+             <div className="social-cinema-author relative pointer-events-auto group/bubble"
                   onMouseEnter={() => setShowBubble(true)}
                   onMouseLeave={() => setShowBubble(false)}>
                 
@@ -539,7 +547,7 @@ function SnapCard({
                 )}>
                    <div className="absolute bg-transparent bottom-[-16px] left-0 w-full h-4" />
                    
-                   <div className="w-56 lg:w-64 bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl p-3.5 shadow-2xl flex flex-col gap-1">
+                   <div className="social-author-popup w-56 lg:w-64 bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl p-3.5 shadow-2xl flex flex-col gap-1">
                       <Link to={`/usuario/${item.user_id}`} onClick={e => e.stopPropagation()} className="text-neon-cyan text-[11px] lg:text-xs font-bold hover:underline block truncate" style={getNameStyle(item.color_name)}>{item.display_name}</Link>
                       <div className="text-[8px] lg:text-[9px] text-muted-foreground mb-1">{formatFeedDate(item.created_at)}</div>
                       <p className="text-[9px] lg:text-[10px] text-white/90 line-clamp-3 leading-snug mb-2">{item.caption || item.title || "Sin descripción."}</p>
@@ -549,7 +557,7 @@ function SnapCard({
              </div>
 
              {/* Acciones Rápidas (PC) */}
-             <div className="flex items-center gap-2 lg:gap-3 pointer-events-auto absolute left-1/2 -translate-x-1/2 bottom-4 lg:bottom-6 flex-row" style={{ bottom: cinemaMode ? "0.75rem" : undefined }}>
+             <div className="social-cinema-actions flex items-center gap-2 lg:gap-3 pointer-events-auto absolute left-1/2 -translate-x-1/2 bottom-4 lg:bottom-6 flex-row" style={{ bottom: cinemaMode ? "0.75rem" : undefined }}>
                 <button onClick={(e) => { e.stopPropagation(); handleReaction("like"); }} className="flex flex-col items-center gap-0.5 group">
                    <div className={cn("rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors", cinemaMode ? "w-8 h-8 lg:w-9 lg:h-9" : "w-10 h-10 lg:w-12 lg:h-12")}>
                       <ThumbsUp className={cn("transition-transform group-active:scale-90", cinemaMode ? "w-3.5 h-3.5" : "w-4 h-4 lg:w-5 lg:h-5", userReaction === "like" ? "text-neon-green" : "text-white")} />
@@ -581,7 +589,7 @@ function SnapCard({
              </div>
 
              {/* Subir / Bajar (PC) */}
-             <div className="flex pointer-events-auto gap-2">
+             <div className="social-cinema-navigation flex pointer-events-auto gap-2">
                 <button onClick={(e) => { e.stopPropagation(); onScrollUp(); }} className={cn("rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors active:scale-95 group", cinemaMode ? "w-8 h-8 lg:w-9 lg:h-9" : "w-10 h-10 lg:w-12 lg:h-12")}>
                    <ChevronUp className={cn("text-white group-hover:text-neon-cyan transition-colors", cinemaMode ? "w-4 h-4" : "w-5 h-5 lg:w-6 lg:h-6")} />
                 </button>
@@ -595,7 +603,7 @@ function SnapCard({
 
       {/* 🔥 BOTONERA INTELIGENTE MÓVIL+TABLET (Vertical para Reels, Abajo para Clásicos) 🔥 */}
       <div className={cn(
-        "lg:hidden absolute z-[90] flex pointer-events-auto transition-opacity duration-300 transform-gpu",
+        "social-mobile-controls lg:hidden absolute z-[90] flex pointer-events-auto transition-opacity duration-300 transform-gpu",
         cinemaMode ? "opacity-30 hover:opacity-100" : "opacity-100",
         isFloatingBottom 
           ? "bottom-[20px] left-0 w-full px-3 flex-row items-end justify-between"
@@ -604,7 +612,7 @@ function SnapCard({
       style={isFloatingBottom ? { transform: "translateZ(0)" } : { transform: "translate3d(0, -50%, 0)", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}
       >
         {/* Avatar + Burbuja Movil */}
-        <div className="relative pointer-events-auto group/bubble"
+        <div className="social-mobile-author relative pointer-events-auto group/bubble"
              onMouseEnter={() => setShowBubble(true)}
              onMouseLeave={() => setShowBubble(false)}>
            
@@ -618,7 +626,7 @@ function SnapCard({
                isFloatingBottom ? "bottom-full left-0 mb-3 origin-bottom-left" : "right-full top-0 mr-3 origin-top-right"
            )}>
               <div className={cn("absolute bg-transparent", isFloatingBottom ? "bottom-[-16px] left-0 w-full h-4" : "right-[-16px] top-0 w-4 h-full")} />
-              <div className="w-56 bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl p-3.5 shadow-2xl flex flex-col gap-1">
+              <div className="social-author-popup w-56 bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl p-3.5 shadow-2xl flex flex-col gap-1">
                  <Link to={`/usuario/${item.user_id}`} onClick={e => e.stopPropagation()} className="text-neon-cyan text-[11px] font-bold hover:underline block truncate" style={getNameStyle(item.color_name)}>{item.display_name}</Link>
                  <div className="text-[8px] text-muted-foreground mb-1">{formatFeedDate(item.created_at)}</div>
                  <p className="text-[9px] text-white/90 line-clamp-3 leading-snug mb-2">{item.caption || item.title || "Sin descripción."}</p>
@@ -628,7 +636,7 @@ function SnapCard({
         </div>
 
         {/* Acciones */}
-        <div className={cn("flex items-center pointer-events-auto", isFloatingBottom ? "absolute left-1/2 -translate-x-1/2 flex-row gap-2.5" : "flex-col gap-0.5 mt-1")}>
+        <div className={cn("social-mobile-actions flex items-center pointer-events-auto", isFloatingBottom ? "absolute left-1/2 -translate-x-1/2 flex-row gap-2.5" : "flex-col gap-0.5 mt-1")}>
           <button onClick={(e) => { e.stopPropagation(); handleReaction("like"); }} className="flex flex-col items-center gap-0.5 group">
              <div className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors">
                 <ThumbsUp className={cn("w-3.5 h-3.5 transition-transform group-active:scale-90", userReaction === "like" ? "text-neon-green" : "text-white")} />
@@ -662,7 +670,7 @@ function SnapCard({
         </div>
 
         {/* Flechas Subir/Bajar */}
-        <div className={cn("flex pointer-events-auto", isFloatingBottom ? "flex-row gap-1.5" : "flex-col gap-1 mt-1.5")}>
+        <div className={cn("social-mobile-navigation flex pointer-events-auto", isFloatingBottom ? "flex-row gap-1.5" : "flex-col gap-1 mt-1.5")}>
            <button onClick={(e) => { e.stopPropagation(); onScrollUp(); }} className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center active:scale-95 transition-transform hover:bg-black/80 group">
               <ChevronUp className="w-4 h-4 text-white group-hover:text-neon-cyan" />
            </button>
@@ -681,7 +689,7 @@ function SnapCard({
         cinemaMode && cinemaPanelOpen && "social-detail-panel-open",
         cinemaMode && !cinemaPanelOpen && "social-detail-panel-closed",
         cinemaMode 
-          ? "fixed bottom-0 left-0 w-full h-[80%] rounded-t-2xl bg-card border-t p-4 lg:p-4" 
+          ? "fixed bottom-0 left-0 w-full h-[50dvh] rounded-t-2xl bg-card border-t p-4 lg:p-4" 
           : "fixed lg:relative top-0 right-0 h-full w-[85%] max-w-[320px] lg:w-[240px] lg:w-[260px] p-3 lg:p-0 border-l lg:border-none lg:shadow-none lg:pt-[44px]", // PC conserva sus 4px visuales
         cinemaMode && !cinemaPanelOpen ? "translate-y-full pointer-events-none" : "",
         cinemaMode && cinemaPanelOpen ? "translate-y-0" : "",
@@ -690,7 +698,7 @@ function SnapCard({
       )}
       style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}
       >
-        <div className="flex justify-between items-center mb-1 lg:hidden">
+        <div className="social-detail-mobile-header flex justify-between items-center mb-1 lg:hidden">
           <span className="font-pixel text-[11px] text-neon-cyan">{cinemaMode ? "DETALLES DEL POST" : "Detalles"}</span>
           <button onClick={() => {setShowMobilePanel(false); setCinemaPanelOpen(false);}} className="p-1.5 bg-muted/50 rounded-full text-muted-foreground hover:text-white transition-colors">
             <X className="w-4 h-4" />
@@ -698,7 +706,7 @@ function SnapCard({
         </div>
 
         {cinemaMode && (
-          <div className="hidden lg:flex justify-between items-center mb-2">
+          <div className="social-detail-cinema-header hidden lg:flex justify-between items-center mb-2">
             <span className="font-pixel text-xs text-neon-cyan">COMENTARIOS Y DETALLES</span>
             <button onClick={() => setCinemaPanelOpen(false)} className="p-1.5 hover:bg-muted/50 rounded-full text-muted-foreground transition-colors"><X className="w-5 h-5"/></button>
           </div>
@@ -714,7 +722,7 @@ function SnapCard({
               <span className="text-[8px] text-muted-foreground font-body uppercase tracking-wider">{item.platform}</span>
             </div>
             
-            <div className="ml-auto flex items-center gap-1 shrink-0">
+            <div className="social-detail-author-actions ml-auto flex items-center gap-1 shrink-0">
               {user && (
                 <button onClick={() => onSavePost(item)} className="p-1 text-muted-foreground hover:text-neon-cyan hover:bg-neon-cyan/10 rounded transition-colors" title="Guardar">
                   <Bookmark className="w-3 h-3" />
@@ -766,7 +774,7 @@ function SnapCard({
           </div>
           
           {isEditing ? (
-            <div className="mb-2 mt-1 space-y-2 animate-fade-in">
+            <div className="social-detail-post-editor mb-2 mt-1 space-y-2 animate-fade-in">
               <Textarea 
                 value={editTitle} 
                 onChange={e => setEditTitle(e.target.value)} 
@@ -779,7 +787,7 @@ function SnapCard({
               </div>
             </div>
           ) : (
-            <p className="text-[10px] font-body text-foreground line-clamp-3 leading-snug mb-2">{item.title || item.caption || "Contenido de la comunidad"}</p>
+            <p className="social-detail-post-title text-[10px] font-body text-foreground line-clamp-3 leading-snug mb-2">{item.title || item.caption || "Contenido de la comunidad"}</p>
           )}
           
           <div className="social-detail-reactions hidden lg:flex items-center gap-3">
@@ -792,7 +800,7 @@ function SnapCard({
           </div>
         </div>
 
-        <div className="flex-1 flex flex-row gap-2 min-h-0 w-full">
+        <div className="social-detail-content-row flex-1 flex flex-row gap-2 min-h-0 w-full">
           <div className="social-detail-comments-card flex-1 flex flex-col border border-border lg:rounded-xl rounded-lg shadow-sm overflow-hidden min-w-0">
             <div className="social-detail-comments-header shrink-0 px-2.5 py-2 border-b border-border text-[9px] font-pixel text-neon-cyan flex items-center gap-1">
               <MessageSquare className="w-2.5 h-2.5" /> COMENTARIOS ({comments.length})
@@ -800,7 +808,7 @@ function SnapCard({
             {/* 🔥 overscroll-contain corrige bug del scroll de celular 🔥 */}
             <div className="social-detail-comments-list flex-1 overflow-y-auto p-2.5 space-y-3 min-h-0 overscroll-contain touch-pan-y" style={{ scrollbarWidth: 'none' }}>
               {comments.map(c => (
-                <div key={c.id} id={`comment-${c.id}`} className={cn("group text-[10px] font-body flex items-start justify-between gap-2", c.parent_id && "ml-4 border-l border-border pl-2")}>
+                <div key={c.id} id={`comment-${c.id}`} className={cn("social-detail-comment-item group text-[10px] font-body flex items-start justify-between gap-2", c.parent_id && "social-detail-comment-reply ml-4 border-l border-border pl-2")}>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline gap-1.5 flex-wrap">
                       <span className="text-primary font-medium">{c.display_name}</span>
@@ -822,7 +830,7 @@ function SnapCard({
                       </button>
                     )}
                   </div>
-                  <div className="flex gap-1.5 items-center shrink-0">
+                  <div className="social-detail-comment-actions flex gap-1.5 items-center shrink-0">
                     {user && user.id !== c.user_id && (
                       <button onClick={() => setReportingComment({ userId: c.user_id, userName: c.display_name || "Anónimo", commentId: c.id })} className="text-muted-foreground hover:text-destructive transition-colors" title="Reportar comentario">
                         <Flag className="w-3 h-3" />
@@ -859,7 +867,7 @@ function SnapCard({
           </div>
 
           {!cinemaMode && (
-            <div className="hidden lg:flex flex-col gap-2 w-8 shrink-0 h-full">
+            <div className="social-detail-navigation hidden lg:flex flex-col gap-2 w-8 shrink-0 h-full">
               <button onClick={onScrollUp} className="flex-1 bg-card border-2 border-border hover:border-neon-cyan hover:bg-neon-cyan/5 rounded-xl flex flex-col items-center justify-center gap-1 shadow-[0_3px_0_rgba(0,0,0,0.3)] active:shadow-none active:translate-y-[3px] transition-all group" title="Subir">
                 <ChevronUp className="w-4 h-4 text-muted-foreground group-hover:text-neon-cyan transition-colors" strokeWidth={3} />
                 <div className="font-pixel text-[7px] text-muted-foreground group-hover:text-neon-cyan transition-colors flex flex-col items-center gap-[1px]"><span>S</span><span>U</span><span>B</span><span>I</span><span>R</span></div>
@@ -1248,7 +1256,7 @@ export default function SocialReelsPage() {
   }, [filteredItems, hasMore, isFetching, isSnapping]);
 
   return (
-    <div className="social-hub-page animate-fade-in flex flex-col h-[calc(100dvh-104px)] lg:h-[calc(100vh-50px)] w-full relative overflow-hidden bg-background">
+    <div id="social-hub-page" className="social-hub-page animate-fade-in flex flex-col h-[calc(100dvh-104px)] lg:h-[calc(100vh-50px)] w-full relative overflow-hidden bg-background">
       
       {/* 🔥 BANNER AUTO-OCULTABLE A LOS 2 SEG 🔥 */}
       <div className={cn("transition-all duration-700 overflow-hidden shrink-0 z-[150]", showHeader ? "max-h-[100px] opacity-100 pt-1 lg:pt-2 px-1 lg:px-2" : "max-h-0 opacity-0 pt-0 border-none")}>

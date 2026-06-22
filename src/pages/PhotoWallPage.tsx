@@ -84,13 +84,13 @@ function PhotoCardMiniature({ photo, onExpand, onReaction, onHide, onDelete, onS
   return (
     <div 
       className={cn(
-        "relative group rounded-xl bg-[#09090b] cursor-pointer transition-all duration-300 overflow-hidden shadow-sm h-full w-full",
+        "photo-wall-card relative group rounded-xl bg-[#09090b] cursor-pointer transition-all duration-300 overflow-hidden shadow-sm h-full w-full",
         !hasNeon && "border border-border/50 hover:border-neon-orange hover:shadow-[0_0_15px_rgba(255,107,0,0.3)]"
       )}
       style={neonStyle}
       onClick={onExpand}
     >
-      <div className="relative w-full h-full overflow-hidden rounded-xl bg-transparent flex items-center justify-center min-h-[150px]">
+      <div className="photo-wall-media relative w-full h-full overflow-hidden rounded-xl bg-transparent flex items-center justify-center min-h-[150px]">
         {/* Imagen cargada directamente con el proxy y la extracción limpia */}
         <img 
           src={finalImageUrl} 
@@ -761,19 +761,19 @@ export default function PhotoWallPage() {
   const reachedDailyLimit = !isStaff && dailyGlobalCount >= GLOBAL_DAILY_LIMIT;
 
   return (
-    <div className="social-hub-page space-y-6 animate-fade-in pb-20 max-w-[1200px] mx-auto px-1 md:px-4">
+    <div id="photo-wall-page" className="social-hub-page photo-wall-page space-y-6 animate-fade-in pb-20 max-w-[1200px] mx-auto px-1 md:px-4">
       
       {/* Hide scrollbar styles injected for the horizontal filter container */}
       <style>{`.no-scrollbar::-webkit-scrollbar { display: none; } .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }`}</style>
 
-      <div className="bg-card border border-neon-orange/30 rounded-xl p-4 shadow-lg text-center md:text-left mx-2 md:mx-0 relative overflow-hidden">
+      <div className="photo-wall-header bg-card border border-neon-orange/30 rounded-xl p-4 shadow-lg text-center md:text-left mx-2 md:mx-0 relative overflow-hidden">
         {isFetching && page === 0 && <div className="absolute top-0 left-0 w-full h-1 bg-neon-orange animate-pulse z-50" />}
         <h1 className="font-pixel text-sm text-neon-orange mb-1 flex items-center justify-center md:justify-start gap-2"><Camera className="w-4 h-4" /> MURO <VaultHint letter="F" position={9} color="text-neon-cyan" />OTOGRÁFICO</h1>
         <p className="text-[10px] text-muted-foreground font-body uppercase tracking-tight">Galería de la comunidad — Haz clic para expandir</p>
       </div>
 
-      <div className="sticky top-0 z-[100] py-2 bg-background/80 backdrop-blur-md px-2 md:px-0">
-        <div className="bg-black/60 border border-neon-cyan/40 rounded-xl p-3 shadow-neon-sm">
+      <div className="photo-wall-daily-strip sticky top-0 z-[100] py-2 bg-background/80 backdrop-blur-md px-2 md:px-0">
+        <div className="photo-wall-daily-card bg-black/60 border border-neon-cyan/40 rounded-xl p-3 shadow-neon-sm">
            <div className="flex justify-between items-end mb-1.5 font-pixel">
              <div className="flex items-center gap-1.5">
                <Zap className={cn("w-3.5 h-3.5", dailyGlobalCount >= GLOBAL_DAILY_LIMIT ? "text-destructive" : "text-neon-cyan")} />
@@ -788,7 +788,7 @@ export default function PhotoWallPage() {
       </div>
 
       {/* 🔥 FILTROS COMPACTOS Y RESPONSIVOS (Una sola línea garantizada) 🔥 */}
-      <div className="flex justify-between items-center bg-card/30 p-2 rounded-lg border border-border/50 mx-2 md:mx-0 flex-nowrap gap-2 overflow-x-auto no-scrollbar">
+      <div className="photo-wall-filters flex justify-between items-center bg-card/30 p-2 rounded-lg border border-border/50 mx-2 md:mx-0 flex-nowrap gap-2 overflow-x-auto no-scrollbar">
         <div className="flex gap-1.5 items-center shrink-0">
           
           {/* Dropdown Todos/Amigos */}
@@ -807,7 +807,7 @@ export default function PhotoWallPage() {
           <div className="w-px h-5 bg-border mx-0.5" />
           
           {/* Botones Top/Nuevos */}
-          <div className="flex p-0.5 rounded border border-border/50 bg-black/20 shrink-0 gap-0.5">
+          <div className="photo-wall-sort-buttons flex p-0.5 rounded border border-border/50 bg-black/20 shrink-0 gap-0.5">
             <Button variant="ghost" size="sm" onClick={() => handleSetSort('popular')} className={cn("text-[9px] sm:text-[10px] font-body h-7 px-2 transition-colors", sort === "popular" ? "bg-background text-neon-orange shadow-sm" : "text-muted-foreground hover:text-neon-orange")}>
               <Flame className={cn("w-3 h-3 sm:mr-1", isFetching && sort === 'popular' && "animate-pulse")} /> <span className="hidden sm:inline">Top</span>
             </Button>
@@ -845,11 +845,11 @@ export default function PhotoWallPage() {
       ) : (
         <>
           <div className={cn(
-            "columns-2 md:columns-3 lg:columns-3 gap-2 sm:gap-4 px-1 md:px-0 relative transition-all duration-300",
+            "photo-wall-grid columns-2 md:columns-3 lg:columns-3 gap-2 sm:gap-4 px-1 md:px-0 relative transition-all duration-300",
             (isFetching && page === 0) ? "opacity-40 blur-[2px] pointer-events-none" : "opacity-100 blur-0"
           )}>
             {displayPhotos.map(photo => (
-              <div key={`${photo.target_type}-${photo.id}`} id={`photo-post-${photo.id}`} className="w-full mb-2 sm:mb-4 break-inside-avoid relative">
+              <div key={`${photo.target_type}-${photo.id}`} id={`photo-post-${photo.id}`} className="photo-wall-item w-full mb-2 sm:mb-4 break-inside-avoid relative">
                 <PhotoCardMiniature photo={photo} onExpand={() => handleExpandPhoto(photo.id)} onReaction={handleReaction} onHide={handleHide} onDelete={handleDeletePost} onSave={handleSaveToProfile} userReaction={userReactions[photo.id]} isStaff={isStaff} onReport={() => setReportingPhotoIdMini(photo.id)} />
               </div>
             ))}

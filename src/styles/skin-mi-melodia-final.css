@@ -1195,3 +1195,211 @@ body[data-skin-slug="mi_melodia_rosa"] .profile-social-content-tab .grid > .grou
   background: #b73b70 !important;
   color: #fff !important;
 }
+
+/* Social Hub modal cleanup: the only textured surface is the media/video stage. */
+:is(
+  html.skin-theme-mi_melodia_rosa,
+  html[data-skin-slug="mi_melodia_rosa"],
+  html[style*="--skin-slug: mi_melodia_rosa"],
+  body.skin-theme-mi_melodia_rosa,
+  body[data-skin-slug="mi_melodia_rosa"]
+) .social-hub-page .social-video-stage {
+  background:
+    linear-gradient(rgba(72, 37, 67, 0.16), rgba(67, 30, 61, 0.24)),
+    url('/skins/mi_melodia_rosa/backgrounds/solid/window-rock.png') center / cover no-repeat !important;
+}
+
+:is(
+  html.skin-theme-mi_melodia_rosa,
+  html[data-skin-slug="mi_melodia_rosa"],
+  html[style*="--skin-slug: mi_melodia_rosa"],
+  body.skin-theme-mi_melodia_rosa,
+  body[data-skin-slug="mi_melodia_rosa"]
+) .social-hub-page :is(
+  .social-snap-card,
+  .social-detail-panel,
+  .social-detail-panel-open,
+  .social-detail-panel-closed
+) {
+  background: #ffeff8 !important;
+  background-color: #ffeff8 !important;
+  background-image: none !important;
+  background-blend-mode: normal !important;
+  filter: none !important;
+}
+
+:is(
+  html.skin-theme-mi_melodia_rosa,
+  html[data-skin-slug="mi_melodia_rosa"],
+  html[style*="--skin-slug: mi_melodia_rosa"],
+  body.skin-theme-mi_melodia_rosa,
+  body[data-skin-slug="mi_melodia_rosa"]
+) .social-hub-page :is(
+  .social-hub-auto-header,
+  .social-detail-author-card,
+  .social-detail-comments-card,
+  .social-detail-comments-header,
+  .social-detail-comments-list,
+  .social-detail-comment-composer
+) {
+  background-image: none !important;
+  background-blend-mode: normal !important;
+  filter: none !important;
+}
+
+:is(
+  html.skin-theme-mi_melodia_rosa,
+  html[data-skin-slug="mi_melodia_rosa"],
+  html[style*="--skin-slug: mi_melodia_rosa"],
+  body.skin-theme-mi_melodia_rosa,
+  body[data-skin-slug="mi_melodia_rosa"]
+) .social-hub-page .social-detail-author-card {
+  background: #ffe3f2 !important;
+  border-color: rgba(180, 71, 127, 0.28) !important;
+  box-shadow: 0 6px 16px rgba(180, 71, 127, 0.08) !important;
+}
+
+:is(
+  html.skin-theme-mi_melodia_rosa,
+  html[data-skin-slug="mi_melodia_rosa"],
+  html[style*="--skin-slug: mi_melodia_rosa"],
+  body.skin-theme-mi_melodia_rosa,
+  body[data-skin-slug="mi_melodia_rosa"]
+) .social-hub-page .social-detail-comments-card {
+  background: #fff5fa !important;
+  border-color: rgba(180, 71, 127, 0.3) !important;
+  box-shadow: 0 8px 20px rgba(180, 71, 127, 0.08) !important;
+}
+
+:is(
+  html.skin-theme-mi_melodia_rosa,
+  html[data-skin-slug="mi_melodia_rosa"],
+  html[style*="--skin-slug: mi_melodia_rosa"],
+  body.skin-theme-mi_melodia_rosa,
+  body[data-skin-slug="mi_melodia_rosa"]
+) .social-hub-page .social-detail-comments-header {
+  background: #f8d4e8 !important;
+  border-color: rgba(180, 71, 127, 0.24) !important;
+}
+
+:is(
+  html.skin-theme-mi_melodia_rosa,
+  html[data-skin-slug="mi_melodia_rosa"],
+  html[style*="--skin-slug: mi_melodia_rosa"],
+  body.skin-theme-mi_melodia_rosa,
+  body[data-skin-slug="mi_melodia_rosa"]
+) .social-hub-page :is(.social-detail-comments-list, .social-detail-comment-composer) {
+  background: transparent !important;
+}
+
+:is(
+  html.skin-theme-mi_melodia_rosa,
+  html[data-skin-slug="mi_melodia_rosa"],
+  html[style*="--skin-slug: mi_melodia_rosa"],
+  body.skin-theme-mi_melodia_rosa,
+  body[data-skin-slug="mi_melodia_rosa"]
+) .social-hub-page .social-detail-comment-item {
+  padding: 0.5rem !important;
+  border: 1px solid rgba(180, 71, 127, 0.2) !important;
+  border-radius: 0.6rem !important;
+  background: rgba(255, 226, 242, 0.78) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+:is(
+  html.skin-theme-mi_melodia_rosa,
+  html[data-skin-slug="mi_melodia_rosa"],
+  html[style*="--skin-slug: mi_melodia_rosa"],
+  body.skin-theme-mi_melodia_rosa,
+  body[data-skin-slug="mi_melodia_rosa"]
+) .social-hub-page .social-detail-comment-reply {
+  border-left: 3px solid rgba(143, 92, 173, 0.38) !important;
+}
+
+:is(
+  html.skin-theme-mi_melodia_rosa,
+  html[data-skin-slug="mi_melodia_rosa"],
+  html[style*="--skin-slug: mi_melodia_rosa"],
+  body.skin-theme-mi_melodia_rosa,
+  body[data-skin-slug="mi_melodia_rosa"]
+) .social-hub-page :is(
+  .social-detail-mobile-header,
+  .social-detail-cinema-header,
+  .social-detail-post-title,
+  .social-detail-post-editor,
+  .social-detail-author-actions,
+  .social-detail-comment-actions,
+  .social-detail-reactions
+) {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+:is(
+  html.skin-theme-mi_melodia_rosa,
+  html[data-skin-slug="mi_melodia_rosa"],
+  html[style*="--skin-slug: mi_melodia_rosa"],
+  body.skin-theme-mi_melodia_rosa,
+  body[data-skin-slug="mi_melodia_rosa"]
+) .social-hub-page :is(.social-detail-author-actions, .social-detail-comment-actions, .social-detail-reactions) button {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+:is(
+  html.skin-theme-mi_melodia_rosa,
+  html[data-skin-slug="mi_melodia_rosa"],
+  html[style*="--skin-slug: mi_melodia_rosa"],
+  body.skin-theme-mi_melodia_rosa,
+  body[data-skin-slug="mi_melodia_rosa"]
+) .social-hub-page :is(.social-detail-author-actions, .social-detail-comment-actions, .social-detail-reactions) button:hover {
+  background: rgba(229, 151, 199, 0.3) !important;
+  color: #6b3f86 !important;
+}
+
+:is(
+  html.skin-theme-mi_melodia_rosa,
+  html[data-skin-slug="mi_melodia_rosa"],
+  html[style*="--skin-slug: mi_melodia_rosa"],
+  body.skin-theme-mi_melodia_rosa,
+  body[data-skin-slug="mi_melodia_rosa"]
+) .social-hub-page :is(
+  .social-detail-author-card,
+  .social-detail-comments-card,
+  .social-detail-comments-header,
+  .social-detail-comments-list,
+  .social-detail-comment-composer,
+  .social-detail-comment-item,
+  .social-detail-post-title,
+  .social-detail-author-actions,
+  .social-detail-comment-actions
+)::before,
+:is(
+  html.skin-theme-mi_melodia_rosa,
+  html[data-skin-slug="mi_melodia_rosa"],
+  html[style*="--skin-slug: mi_melodia_rosa"],
+  body.skin-theme-mi_melodia_rosa,
+  body[data-skin-slug="mi_melodia_rosa"]
+) .social-hub-page :is(
+  .social-detail-author-card,
+  .social-detail-comments-card,
+  .social-detail-comments-header,
+  .social-detail-comments-list,
+  .social-detail-comment-composer,
+  .social-detail-comment-item,
+  .social-detail-post-title,
+  .social-detail-author-actions,
+  .social-detail-comment-actions
+)::after {
+  content: none !important;
+  display: none !important;
+  background: none !important;
+}

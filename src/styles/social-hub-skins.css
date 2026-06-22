@@ -1,0 +1,726 @@
+/*
+ * Social Hub skin boundary
+ * ------------------------
+ * Feed y Reels conservan exactamente el layout de la skin predeterminada.
+ * Las skins solo definen esta paleta y una textura para el escenario multimedia.
+ * Este archivo se importa al final para aislar el Hub de texturas globales antiguas.
+ */
+
+html[data-skin-slug="mi_melodia_rosa"] .social-hub-page {
+  --hub-page: #fff4f8;
+  --hub-panel: #ffeff8;
+  --hub-card: #fff9fc;
+  --hub-card-soft: #ffe3f2;
+  --hub-comment: #ffedf6;
+  --hub-control: #ffdbea;
+  --hub-control-hover: #f6bcd8;
+  --hub-text: #452437;
+  --hub-muted: #86596e;
+  --hub-accent: #a93b6f;
+  --hub-border: rgba(217, 79, 134, 0.34);
+  --hub-shadow: rgba(169, 59, 111, 0.12);
+  --hub-media-overlay: rgba(69, 36, 55, 0.18);
+  --hub-media-texture: url('/skins/mi_melodia_rosa/backgrounds/solid/window-rock.png');
+}
+
+html[data-skin-slug="demoniaco"] .social-hub-page {
+  --hub-page: #0a0a0a;
+  --hub-panel: #11100f;
+  --hub-card: #1a1716;
+  --hub-card-soft: #251713;
+  --hub-comment: #201512;
+  --hub-control: #2b1713;
+  --hub-control-hover: #4a211a;
+  --hub-text: #f0c1aa;
+  --hub-muted: #b98778;
+  --hub-accent: #e06a4f;
+  --hub-border: rgba(217, 74, 56, 0.38);
+  --hub-shadow: rgba(0, 0, 0, 0.34);
+  --hub-media-overlay: rgba(12, 3, 2, 0.26);
+  --hub-media-texture: url('/skins/demoniaco/backgrounds/solid/window-rock.png');
+}
+
+html[data-skin-slug="mercenario_bocasas"] .social-hub-page {
+  --hub-page: #070707;
+  --hub-panel: #111010;
+  --hub-card: #181414;
+  --hub-card-soft: #241613;
+  --hub-comment: #211513;
+  --hub-control: #2d1816;
+  --hub-control-hover: #54231f;
+  --hub-text: #f2c8bd;
+  --hub-muted: #ae7d74;
+  --hub-accent: #e0574b;
+  --hub-border: rgba(224, 71, 63, 0.38);
+  --hub-shadow: rgba(0, 0, 0, 0.38);
+  --hub-media-overlay: rgba(8, 2, 2, 0.3);
+  --hub-media-texture: url('/skins/mercenario_bocasas/backgrounds/solid/window-rock.png');
+}
+
+html:is(
+  [data-skin-slug="mi_melodia_rosa"],
+  [data-skin-slug="demoniaco"],
+  [data-skin-slug="mercenario_bocasas"]
+) body[data-skin-slug] .social-hub-page {
+  background: var(--hub-page) !important;
+  background-image: none !important;
+  color: var(--hub-text) !important;
+}
+
+/* El lienzo exterior y los paneles replican las superficies planas predeterminadas. */
+html:is(
+  [data-skin-slug="mi_melodia_rosa"],
+  [data-skin-slug="demoniaco"],
+  [data-skin-slug="mercenario_bocasas"]
+) body[data-skin-slug] .social-hub-page :is(
+  .social-snap-card,
+  .social-hub-auto-header,
+  .social-desktop-filter,
+  .social-detail-panel,
+  .social-detail-panel-open,
+  .social-detail-panel-closed,
+  .social-detail-author-card,
+  .social-detail-comments-card,
+  .social-detail-comments-header,
+  .social-detail-comments-list,
+  .social-detail-comment-composer,
+  .social-detail-comment-item
+) {
+  background-image: none !important;
+  background-blend-mode: normal !important;
+  filter: none !important;
+}
+
+html:is(
+  [data-skin-slug="mi_melodia_rosa"],
+  [data-skin-slug="demoniaco"],
+  [data-skin-slug="mercenario_bocasas"]
+) body[data-skin-slug] .social-hub-page .social-snap-card {
+  background: var(--hub-page) !important;
+}
+
+html:is(
+  [data-skin-slug="mi_melodia_rosa"],
+  [data-skin-slug="demoniaco"],
+  [data-skin-slug="mercenario_bocasas"]
+) body[data-skin-slug] .social-hub-page :is(
+  .social-hub-auto-header,
+  .social-desktop-filter,
+  .social-detail-panel,
+  .social-detail-panel-open,
+  .social-detail-panel-closed
+) {
+  background: var(--hub-panel) !important;
+  border-color: var(--hub-border) !important;
+  color: var(--hub-text) !important;
+  box-shadow: 0 8px 22px var(--hub-shadow) !important;
+}
+
+html:is(
+  [data-skin-slug="mi_melodia_rosa"],
+  [data-skin-slug="demoniaco"],
+  [data-skin-slug="mercenario_bocasas"]
+) body[data-skin-slug] .social-hub-page .social-detail-author-card {
+  background: var(--hub-card-soft) !important;
+  border-color: var(--hub-border) !important;
+  color: var(--hub-text) !important;
+  box-shadow: 0 5px 14px var(--hub-shadow) !important;
+}
+
+html:is(
+  [data-skin-slug="mi_melodia_rosa"],
+  [data-skin-slug="demoniaco"],
+  [data-skin-slug="mercenario_bocasas"]
+) body[data-skin-slug] .social-hub-page .social-detail-comments-card {
+  background: var(--hub-card) !important;
+  border-color: var(--hub-border) !important;
+  color: var(--hub-text) !important;
+  box-shadow: 0 6px 16px var(--hub-shadow) !important;
+}
+
+html:is(
+  [data-skin-slug="mi_melodia_rosa"],
+  [data-skin-slug="demoniaco"],
+  [data-skin-slug="mercenario_bocasas"]
+) body[data-skin-slug] .social-hub-page .social-detail-comments-header {
+  background: var(--hub-card-soft) !important;
+  border-color: var(--hub-border) !important;
+  color: var(--hub-accent) !important;
+}
+
+html:is(
+  [data-skin-slug="mi_melodia_rosa"],
+  [data-skin-slug="demoniaco"],
+  [data-skin-slug="mercenario_bocasas"]
+) body[data-skin-slug] .social-hub-page :is(.social-detail-comments-list, .social-detail-comment-composer) {
+  background: transparent !important;
+  border-color: var(--hub-border) !important;
+}
+
+html:is(
+  [data-skin-slug="mi_melodia_rosa"],
+  [data-skin-slug="demoniaco"],
+  [data-skin-slug="mercenario_bocasas"]
+) body[data-skin-slug] .social-hub-page .social-detail-comment-item {
+  background: transparent !important;
+  background-image: none !important;
+  color: var(--hub-text) !important;
+  box-shadow: none !important;
+}
+
+html:is(
+  [data-skin-slug="mi_melodia_rosa"],
+  [data-skin-slug="demoniaco"],
+  [data-skin-slug="mercenario_bocasas"]
+) body[data-skin-slug] .social-hub-page .social-detail-comment-reply {
+  border-left-width: 3px !important;
+  border-left-color: var(--hub-accent) !important;
+}
+
+/* Título, grupos de acciones y reacciones no son tarjetas. */
+html:is(
+  [data-skin-slug="mi_melodia_rosa"],
+  [data-skin-slug="demoniaco"],
+  [data-skin-slug="mercenario_bocasas"]
+) body[data-skin-slug] .social-hub-page :is(
+  .social-detail-mobile-header,
+  .social-detail-cinema-header,
+  .social-detail-post-title,
+  .social-detail-post-editor,
+  .social-detail-author-actions,
+  .social-detail-comment-actions,
+  .social-detail-reactions
+) {
+  background: transparent !important;
+  background-image: none !important;
+  color: var(--hub-text) !important;
+  box-shadow: none !important;
+}
+
+/* Controles: misma forma y tamaño predeterminados; cambia solamente la paleta. */
+html:is(
+  [data-skin-slug="mi_melodia_rosa"],
+  [data-skin-slug="demoniaco"],
+  [data-skin-slug="mercenario_bocasas"]
+) body[data-skin-slug] .social-hub-page :is(button, [role="button"], [role="tab"], input, textarea, select) {
+  background-image: none !important;
+  border-color: var(--hub-border) !important;
+  color: var(--hub-text) !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+html:is(
+  [data-skin-slug="mi_melodia_rosa"],
+  [data-skin-slug="demoniaco"],
+  [data-skin-slug="mercenario_bocasas"]
+) body[data-skin-slug] .social-hub-page :is(button, [role="button"], [role="tab"], input, textarea, select) {
+  background-color: var(--hub-control) !important;
+}
+
+html:is(
+  [data-skin-slug="mi_melodia_rosa"],
+  [data-skin-slug="demoniaco"],
+  [data-skin-slug="mercenario_bocasas"]
+) body[data-skin-slug] .social-hub-page :is(button, [role="button"], [role="tab"]):hover {
+  background-color: var(--hub-control-hover) !important;
+  color: var(--hub-accent) !important;
+}
+
+html:is(
+  [data-skin-slug="mi_melodia_rosa"],
+  [data-skin-slug="demoniaco"],
+  [data-skin-slug="mercenario_bocasas"]
+) body[data-skin-slug] .social-hub-page :is(.social-detail-author-actions, .social-detail-comment-actions, .social-detail-reactions) button {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+html:is(
+  [data-skin-slug="mi_melodia_rosa"],
+  [data-skin-slug="demoniaco"],
+  [data-skin-slug="mercenario_bocasas"]
+) body[data-skin-slug] .social-hub-page :is(.social-detail-author-actions, .social-detail-comment-actions, .social-detail-reactions) button:hover {
+  background: var(--hub-control-hover) !important;
+}
+
+html:is(
+  [data-skin-slug="mi_melodia_rosa"],
+  [data-skin-slug="demoniaco"],
+  [data-skin-slug="mercenario_bocasas"]
+) body[data-skin-slug] .social-hub-page :is(.text-foreground, .text-white, [class*="text-white/"]) {
+  color: var(--hub-text) !important;
+}
+
+html:is(
+  [data-skin-slug="mi_melodia_rosa"],
+  [data-skin-slug="demoniaco"],
+  [data-skin-slug="mercenario_bocasas"]
+) body[data-skin-slug] .social-hub-page :is(.text-muted-foreground, [class*="text-muted-foreground"]) {
+  color: var(--hub-muted) !important;
+}
+
+html:is(
+  [data-skin-slug="mi_melodia_rosa"],
+  [data-skin-slug="demoniaco"],
+  [data-skin-slug="mercenario_bocasas"]
+) body[data-skin-slug] .social-hub-page :is(.text-primary, [class*="text-neon-"]) {
+  color: var(--hub-accent) !important;
+  text-shadow: none !important;
+}
+
+/* Unica textura permitida dentro del Hub. */
+html:is(
+  [data-skin-slug="mi_melodia_rosa"],
+  [data-skin-slug="demoniaco"],
+  [data-skin-slug="mercenario_bocasas"]
+) body[data-skin-slug] .social-hub-page .social-video-stage {
+  background:
+    linear-gradient(var(--hub-media-overlay), var(--hub-media-overlay)),
+    var(--hub-media-texture) center / cover no-repeat !important;
+  border-color: var(--hub-border) !important;
+}
+
+/* Neutraliza pseudo-texturas globales en las superficies, sin tocar marcos de avatar. */
+html:is(
+  [data-skin-slug="mi_melodia_rosa"],
+  [data-skin-slug="demoniaco"],
+  [data-skin-slug="mercenario_bocasas"]
+) body[data-skin-slug] .social-hub-page :is(
+  .social-hub-auto-header,
+  .social-desktop-filter,
+  .social-detail-panel,
+  .social-detail-author-card,
+  .social-detail-comments-card,
+  .social-detail-comments-header,
+  .social-detail-comments-list,
+  .social-detail-comment-composer,
+  .social-detail-comment-item
+)::before,
+html:is(
+  [data-skin-slug="mi_melodia_rosa"],
+  [data-skin-slug="demoniaco"],
+  [data-skin-slug="mercenario_bocasas"]
+) body[data-skin-slug] .social-hub-page :is(
+  .social-hub-auto-header,
+  .social-desktop-filter,
+  .social-detail-panel,
+  .social-detail-author-card,
+  .social-detail-comments-card,
+  .social-detail-comments-header,
+  .social-detail-comments-list,
+  .social-detail-comment-composer,
+  .social-detail-comment-item
+)::after {
+  content: none !important;
+  display: none !important;
+  background: none !important;
+}
+
+/*
+ * Cascade seal: el id existe en Feed y Reels y supera cualquier selector
+ * histórico de las skins sin alterar una sola medida del layout original.
+ */
+html:is(
+  [data-skin-slug="mi_melodia_rosa"],
+  [data-skin-slug="demoniaco"],
+  [data-skin-slug="mercenario_bocasas"]
+) body[data-skin-slug] #social-hub-page.social-hub-page {
+  background: var(--hub-page) !important;
+  background-image: none !important;
+  color: var(--hub-text) !important;
+}
+
+html:is(
+  [data-skin-slug="mi_melodia_rosa"],
+  [data-skin-slug="demoniaco"],
+  [data-skin-slug="mercenario_bocasas"]
+) body[data-skin-slug] #social-hub-page.social-hub-page :is(
+  .social-hub-auto-header,
+  .social-desktop-filter,
+  .social-detail-panel,
+  .social-detail-panel-open,
+  .social-detail-panel-closed
+) {
+  background: var(--hub-panel) !important;
+  background-image: none !important;
+  border-color: var(--hub-border) !important;
+  color: var(--hub-text) !important;
+}
+
+html:is(
+  [data-skin-slug="mi_melodia_rosa"],
+  [data-skin-slug="demoniaco"],
+  [data-skin-slug="mercenario_bocasas"]
+) body[data-skin-slug] #social-hub-page.social-hub-page .social-detail-author-card {
+  background: var(--hub-card-soft) !important;
+  background-image: none !important;
+}
+
+html:is(
+  [data-skin-slug="mi_melodia_rosa"],
+  [data-skin-slug="demoniaco"],
+  [data-skin-slug="mercenario_bocasas"]
+) body[data-skin-slug] #social-hub-page.social-hub-page .social-detail-comments-card {
+  background: var(--hub-card) !important;
+  background-image: none !important;
+}
+
+html:is(
+  [data-skin-slug="mi_melodia_rosa"],
+  [data-skin-slug="demoniaco"],
+  [data-skin-slug="mercenario_bocasas"]
+) body[data-skin-slug] #social-hub-page.social-hub-page .social-detail-comments-header {
+  background: var(--hub-card-soft) !important;
+  background-image: none !important;
+}
+
+html:is(
+  [data-skin-slug="mi_melodia_rosa"],
+  [data-skin-slug="demoniaco"],
+  [data-skin-slug="mercenario_bocasas"]
+) body[data-skin-slug] #social-hub-page.social-hub-page :is(
+  .social-detail-comments-list,
+  .social-detail-comment-composer,
+  .social-detail-comment-item,
+  .social-detail-post-title,
+  .social-detail-author-actions,
+  .social-detail-comment-actions,
+  .social-detail-reactions
+) {
+  background: transparent !important;
+  background-image: none !important;
+}
+
+html:is(
+  [data-skin-slug="mi_melodia_rosa"],
+  [data-skin-slug="demoniaco"],
+  [data-skin-slug="mercenario_bocasas"]
+) body[data-skin-slug] #social-hub-page.social-hub-page .social-video-stage {
+  background:
+    linear-gradient(var(--hub-media-overlay), var(--hub-media-overlay)),
+    var(--hub-media-texture) center / cover no-repeat !important;
+}
+
+/* Reset profundo de las zonas internas que antes heredaban texturas globales. */
+html:is(
+  [data-skin-slug="mi_melodia_rosa"],
+  [data-skin-slug="demoniaco"],
+  [data-skin-slug="mercenario_bocasas"]
+) body[data-skin-slug] #social-hub-page.social-hub-page :is(
+  .social-detail-comment-item,
+  .social-detail-content-row,
+  .social-detail-navigation,
+  .social-detail-author-card,
+  .social-detail-author-actions,
+  .social-cinema-author,
+  .social-cinema-actions,
+  .social-cinema-navigation,
+  .social-mobile-controls,
+  .social-mobile-author,
+  .social-mobile-actions,
+  .social-mobile-navigation,
+  .social-author-popup
+) :where(*) {
+  background-image: none !important;
+  background-blend-mode: normal !important;
+}
+
+html:is(
+  [data-skin-slug="mi_melodia_rosa"],
+  [data-skin-slug="demoniaco"],
+  [data-skin-slug="mercenario_bocasas"]
+) body[data-skin-slug] #social-hub-page.social-hub-page :is(
+  .social-detail-comment-item,
+  .social-detail-content-row,
+  .social-detail-author-actions,
+  .social-cinema-author,
+  .social-cinema-actions,
+  .social-cinema-navigation,
+  .social-mobile-controls,
+  .social-mobile-author,
+  .social-mobile-actions,
+  .social-mobile-navigation
+) {
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+/* Texto de comentarios sin placas ni pseudofondos. */
+html:is(
+  [data-skin-slug="mi_melodia_rosa"],
+  [data-skin-slug="demoniaco"],
+  [data-skin-slug="mercenario_bocasas"]
+) body[data-skin-slug] #social-hub-page.social-hub-page .social-detail-comment-item :is(span, p, a, small, strong) {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+html:is(
+  [data-skin-slug="mi_melodia_rosa"],
+  [data-skin-slug="demoniaco"],
+  [data-skin-slug="mercenario_bocasas"]
+) body[data-skin-slug] #social-hub-page.social-hub-page .social-detail-comment-item :where(*)::before,
+html:is(
+  [data-skin-slug="mi_melodia_rosa"],
+  [data-skin-slug="demoniaco"],
+  [data-skin-slug="mercenario_bocasas"]
+) body[data-skin-slug] #social-hub-page.social-hub-page .social-detail-comment-item :where(*)::after {
+  background: none !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+/* Burbuja de autor: superficie plana y legible en normal, móvil y cine. */
+html:is(
+  [data-skin-slug="mi_melodia_rosa"],
+  [data-skin-slug="demoniaco"],
+  [data-skin-slug="mercenario_bocasas"]
+) body[data-skin-slug] #social-hub-page.social-hub-page .social-author-popup {
+  background: var(--hub-card) !important;
+  background-color: var(--hub-card) !important;
+  background-image: none !important;
+  border-color: var(--hub-border) !important;
+  color: var(--hub-text) !important;
+  box-shadow: 0 10px 24px var(--hub-shadow) !important;
+  filter: none !important;
+}
+
+html:is(
+  [data-skin-slug="mi_melodia_rosa"],
+  [data-skin-slug="demoniaco"],
+  [data-skin-slug="mercenario_bocasas"]
+) body[data-skin-slug] #social-hub-page.social-hub-page .social-author-popup :is(a, div, p, span) {
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+/* Barra de cine: sólo degradado de legibilidad; nunca una imagen de textura. */
+html:is(
+  [data-skin-slug="mi_melodia_rosa"],
+  [data-skin-slug="demoniaco"],
+  [data-skin-slug="mercenario_bocasas"]
+) body[data-skin-slug] #social-hub-page.social-hub-page .social-cinema-bottom-bar {
+  background-color: transparent !important;
+  background-image: linear-gradient(to top, rgba(0, 0, 0, 0.82), rgba(0, 0, 0, 0.32), transparent) !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+/* Círculos de likes/comentarios y navegación sin imágenes detrás. */
+html:is(
+  [data-skin-slug="mi_melodia_rosa"],
+  [data-skin-slug="demoniaco"],
+  [data-skin-slug="mercenario_bocasas"]
+) body[data-skin-slug] #social-hub-page.social-hub-page :is(
+  .social-cinema-actions,
+  .social-cinema-navigation,
+  .social-mobile-actions,
+  .social-mobile-navigation,
+  .social-detail-navigation
+) :is(button, button > div) {
+  background-image: none !important;
+  background-color: var(--hub-control) !important;
+  border-color: var(--hub-border) !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+html:is(
+  [data-skin-slug="mi_melodia_rosa"],
+  [data-skin-slug="demoniaco"],
+  [data-skin-slug="mercenario_bocasas"]
+) body[data-skin-slug] #social-hub-page.social-hub-page :is(
+  .social-cinema-actions,
+  .social-cinema-navigation,
+  .social-mobile-actions,
+  .social-mobile-navigation,
+  .social-detail-navigation
+) button:hover :is(div) {
+  background-color: var(--hub-control-hover) !important;
+}
+
+/* Conserva únicamente el marco cosmético real del avatar. */
+html:is(
+  [data-skin-slug="mi_melodia_rosa"],
+  [data-skin-slug="demoniaco"],
+  [data-skin-slug="mercenario_bocasas"]
+) body[data-skin-slug] #social-hub-page.social-hub-page .social-author-avatar-frame::after {
+  background-image: var(--avatar-frame-url) !important;
+}
+
+/* El marco equipado es un cosmético del usuario, no una textura del panel. */
+#social-hub-page .social-author-avatar-frame.avatar-frame-custom::after {
+  content: "" !important;
+  display: block !important;
+  position: absolute !important;
+  inset: -30% !important;
+  z-index: 4 !important;
+  pointer-events: none !important;
+  background: var(--avatar-frame-url) var(--avatar-frame-background-position, center) / var(--avatar-frame-background-size, contain) no-repeat !important;
+}
+
+#social-hub-page .social-author-avatar-frame:is(
+  .avatar-frame-mi-melodia-rosa,
+  .avatar-frame-demoniaco,
+  .avatar-frame-mercenario-bocasas
+)::after {
+  content: "" !important;
+  display: block !important;
+  z-index: 4 !important;
+  pointer-events: none !important;
+}
+
+/* En todas las skins, incluida default, acciones textuales de comentarios transparentes. */
+#social-hub-page .social-detail-comment-item button,
+#social-hub-page .social-detail-comment-item button:hover,
+#social-hub-page .social-detail-comment-item button:focus {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Muro Fotográfico: colores del tema, estructura default y cero texturas internas. */
+html[data-skin-slug] #photo-wall-page {
+  --photo-wall-page: var(--skin-background);
+  --photo-wall-panel: var(--skin-card);
+  --photo-wall-control: color-mix(in srgb, var(--skin-card) 82%, var(--skin-primary) 18%);
+  --photo-wall-control-hover: color-mix(in srgb, var(--skin-card) 62%, var(--skin-primary) 38%);
+  --photo-wall-text: var(--skin-text);
+  --photo-wall-muted: var(--skin-text-muted);
+  --photo-wall-accent: var(--skin-primary);
+  --photo-wall-border: var(--skin-border);
+  background: transparent !important;
+  background-image: none !important;
+  color: var(--photo-wall-text) !important;
+}
+
+html[data-skin-slug] body[data-skin-slug] #photo-wall-page :is(
+  .photo-wall-header,
+  .photo-wall-daily-strip,
+  .photo-wall-daily-card,
+  .photo-wall-filters,
+  .photo-wall-sort-buttons,
+  .photo-wall-grid,
+  .photo-wall-item,
+  .photo-wall-card,
+  .photo-wall-media
+) {
+  background-image: none !important;
+  background-blend-mode: normal !important;
+  filter: none !important;
+}
+
+html[data-skin-slug] body[data-skin-slug] #photo-wall-page .photo-wall-header {
+  background: var(--photo-wall-panel) !important;
+  border-color: var(--photo-wall-border) !important;
+  color: var(--photo-wall-text) !important;
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--skin-primary) 16%, transparent) !important;
+}
+
+html[data-skin-slug] body[data-skin-slug] #photo-wall-page .photo-wall-header :is(h1, p, span, svg, path) {
+  background: transparent !important;
+  background-image: none !important;
+}
+
+html[data-skin-slug] body[data-skin-slug] #photo-wall-page .photo-wall-header h1,
+html[data-skin-slug] body[data-skin-slug] #photo-wall-page .photo-wall-header h1 :is(span, svg, path) {
+  color: var(--photo-wall-accent) !important;
+  text-shadow: none !important;
+}
+
+html[data-skin-slug] body[data-skin-slug] #photo-wall-page .photo-wall-daily-strip {
+  background: color-mix(in srgb, var(--photo-wall-page) 88%, transparent) !important;
+  background-image: none !important;
+}
+
+html[data-skin-slug] body[data-skin-slug] #photo-wall-page .photo-wall-daily-card {
+  background: var(--photo-wall-panel) !important;
+  background-image: none !important;
+  border-color: var(--photo-wall-border) !important;
+  color: var(--photo-wall-text) !important;
+  box-shadow: none !important;
+}
+
+html[data-skin-slug] body[data-skin-slug] #photo-wall-page .photo-wall-daily-card :is(div, span, svg, path) {
+  background-image: none !important;
+}
+
+html[data-skin-slug] body[data-skin-slug] #photo-wall-page .photo-wall-filters {
+  background: var(--photo-wall-panel) !important;
+  background-image: none !important;
+  border-color: var(--photo-wall-border) !important;
+  color: var(--photo-wall-text) !important;
+}
+
+html[data-skin-slug] body[data-skin-slug] #photo-wall-page .photo-wall-filters :is(div, button, select, span, svg, path) {
+  background-image: none !important;
+  filter: none !important;
+}
+
+html[data-skin-slug] body[data-skin-slug] #photo-wall-page .photo-wall-filters :is(button, select) {
+  background-color: var(--photo-wall-control) !important;
+  border-color: var(--photo-wall-border) !important;
+  color: var(--photo-wall-text) !important;
+  box-shadow: none !important;
+}
+
+html[data-skin-slug] body[data-skin-slug] #photo-wall-page .photo-wall-filters button:hover {
+  background-color: var(--photo-wall-control-hover) !important;
+  color: var(--photo-wall-accent) !important;
+}
+
+html[data-skin-slug] body[data-skin-slug] #photo-wall-page :is(.photo-wall-grid, .photo-wall-item) {
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+html[data-skin-slug] body[data-skin-slug] #photo-wall-page .photo-wall-card {
+  background: var(--photo-wall-page) !important;
+  background-image: none !important;
+  border-color: var(--photo-wall-border) !important;
+  filter: none !important;
+}
+
+html[data-skin-slug] body[data-skin-slug] #photo-wall-page .photo-wall-media {
+  background: transparent !important;
+  background-image: none !important;
+  filter: none !important;
+}
+
+html[data-skin-slug] body[data-skin-slug] #photo-wall-page :is(
+  .photo-wall-header,
+  .photo-wall-daily-strip,
+  .photo-wall-daily-card,
+  .photo-wall-filters,
+  .photo-wall-sort-buttons,
+  .photo-wall-grid,
+  .photo-wall-item,
+  .photo-wall-card,
+  .photo-wall-media
+)::before,
+html[data-skin-slug] body[data-skin-slug] #photo-wall-page :is(
+  .photo-wall-header,
+  .photo-wall-daily-strip,
+  .photo-wall-daily-card,
+  .photo-wall-filters,
+  .photo-wall-sort-buttons,
+  .photo-wall-grid,
+  .photo-wall-item,
+  .photo-wall-card,
+  .photo-wall-media
+)::after {
+  content: none !important;
+  display: none !important;
+  background: none !important;
+}
