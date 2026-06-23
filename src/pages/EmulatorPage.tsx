@@ -543,6 +543,31 @@ export default function EmulatorPage() {
     }
   };
 
+  const reinstallCurrentNativeEngine = async () => {
+    const bridge = getLauncherBridge();
+    if (!bridge?.reinstallNativeEngine) return;
+    const engineName = nativeStatus?.engine_name || currentSystem.short;
+    const wantsReinstall = window.confirm(`¿Reinstalar ${engineName} para ${currentSystem.short}? Esto reparara archivos incompletos o corruptos del emulador.`);
+    if (!wantsReinstall) return;
+
+    setNativeBusy(true);
+    try {
+      toast({ title: "Reinstalando motor nativo", description: `Reparando ${engineName} para ${currentSystem.short}.` });
+      const status = await bridge.reinstallNativeEngine(currentSystem.id);
+      setNativeStatus(status);
+      writeCachedNativeStatus(currentSystem.id, status);
+      toast({ title: "Emulador reparado", description: `${status.engine_name} quedo reinstalado para ${currentSystem.short}.` });
+    } catch (error: any) {
+      toast({
+        title: "No se pudo reinstalar",
+        description: formatLauncherBridgeError(error, "No se pudo reparar el emulador nativo."),
+        variant: "destructive",
+      });
+    } finally {
+      setNativeBusy(false);
+    }
+  };
+
   const importCurrentNativeBios = async () => {
     const bridge = getLauncherBridge();
     if (!bridge?.importNativeBios) return;
@@ -1112,6 +1137,20 @@ export default function EmulatorPage() {
                {canUseNativeCurrent && nativeStatus?.installed && (
                  <div className="mb-2 flex flex-col items-center gap-2">
                    <p className="text-center font-pixel text-[8px] uppercase tracking-widest text-neon-green">{nativeStatus.engine_name} instalado</p>
+                   <button
+                     type="button"
+                     onClick={reinstallCurrentNativeEngine}
+                     disabled={nativeBusy || !getLauncherBridge()?.reinstallNativeEngine}
+                     className={cn(
+                       "group relative w-full sm:w-auto px-4 sm:px-5 py-1.5 bg-neon-yellow/10 hover:bg-neon-yellow/20 border border-neon-yellow/35 rounded-full backdrop-blur-md transition-all flex items-center justify-center gap-2 overflow-hidden active:scale-95",
+                       nativeBusy && "cursor-wait opacity-70",
+                     )}
+                   >
+                     {nativeBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin text-neon-yellow" /> : <RefreshCw className="h-3.5 w-3.5 text-neon-yellow" />}
+                     <span className="font-pixel text-[clamp(0.48rem,1.55vw,0.58rem)] uppercase tracking-widest text-neon-yellow whitespace-nowrap">
+                       {`Reinstalar ${nativeStatus.engine_name}`}
+                     </span>
+                   </button>
                    {currentSystem.id === "ps2" && (
                      <div className="w-full max-w-md rounded border border-white/15 bg-black/35 p-2.5 backdrop-blur-md">
                        <div className="mb-2 flex items-center justify-between gap-3">
@@ -1224,7 +1263,7 @@ export default function EmulatorPage() {
 
       {/* 🎮 PS2 (Play!.js) — Modal informativo, NO se embebe el emulador */}
       <Dialog open={ps2DialogOpen} onOpenChange={setPs2DialogOpen}>
-        <DialogContent className="max-w-lg bg-black/95 border-2 border-neon-magenta/50 shadow-[0_0_50px_rgba(217,70,239,0.4)] text-white">
+        <DialogContent className="emulator-ps2-info-dialog max-w-lg bg-black/95 border-2 border-neon-magenta/50 shadow-[0_0_50px_rgba(217,70,239,0.4)] text-white">
           <DialogHeader>
             <div className="flex items-center gap-2 mb-2">
               <span className="font-pixel text-[10px] px-2 py-1 rounded border border-red-500/60 bg-red-600/20 text-red-400 animate-pulse tracking-widest uppercase">

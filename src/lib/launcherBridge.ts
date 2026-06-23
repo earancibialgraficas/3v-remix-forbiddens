@@ -41,6 +41,7 @@ type LauncherBridge = {
   launcherWindowAction?: (action: "minimize" | "toggle_maximize" | "maximize" | "close") => Promise<void>;
   nativeEngineStatus?: (consoleId: string) => Promise<NativeEngineStatus>;
   installNativeEngine?: (consoleId: string) => Promise<NativeEngineStatus>;
+  reinstallNativeEngine?: (consoleId: string) => Promise<NativeEngineStatus>;
   nativeBiosStatus?: (consoleId: string) => Promise<NativeBiosStatus>;
   importNativeBios?: (consoleId: string) => Promise<NativeBiosStatus | null>;
   importNativeBiosFolder?: (consoleId: string) => Promise<NativeBiosStatus | null>;
@@ -65,7 +66,8 @@ const buildBridgeFromTauri = (): LauncherBridge | null => {
   const bridge: LauncherBridge = {
     launcherInfo: () => invoke("launcher_info"),
     openExternal: async (url: string) => {
-      await invoke("open_external_url", { url });
+      const href = new URL(String(url || ""), window.location.href).href;
+      await invoke("open_external_url", { url: href });
       return true;
     },
     checkUpdate: () => invoke("check_launcher_update"),
@@ -74,6 +76,7 @@ const buildBridgeFromTauri = (): LauncherBridge | null => {
     launcherWindowAction: (action: "minimize" | "toggle_maximize" | "maximize" | "close") => invoke("launcher_window_action", { action }),
     nativeEngineStatus: (consoleId: string) => invoke("native_engine_status", { consoleId }),
     installNativeEngine: (consoleId: string) => invoke("install_native_engine", { consoleId }),
+    reinstallNativeEngine: (consoleId: string) => invoke("reinstall_native_engine", { consoleId }),
     nativeBiosStatus: (consoleId: string) => invoke("native_bios_status", { consoleId }),
     importNativeBios: (consoleId: string) => invoke("import_native_bios", { consoleId }),
     importNativeBiosFolder: (consoleId: string) => invoke("import_native_bios_folder", { consoleId }),

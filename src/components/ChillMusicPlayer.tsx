@@ -233,7 +233,7 @@ export default function ChillMusicPlayer() {
       return;
     }
     const syncPalette = () => {
-      setRositaEmulatorPalette(Boolean(document.querySelector(".gamebubble-shell-rosita-nes")));
+      setRositaEmulatorPalette(Boolean(document.querySelector(".gamebubble-shell-rosita-nes, .gamebubble-shell-snes-retro.snes-retro-shell-desktop")));
     };
     syncPalette();
     const observer = new MutationObserver(syncPalette);

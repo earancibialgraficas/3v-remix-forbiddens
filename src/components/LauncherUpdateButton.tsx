@@ -3,9 +3,7 @@ import { RefreshCw } from "lucide-react";
 import { getLauncherBridge } from "@/lib/launcherBridge";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-
-const RECOMMENDED_LAUNCHER_VERSION = "0.1.10";
-const MANUAL_LAUNCHER_DOWNLOAD_URL = "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.10_x64-setup.exe";
+import { LAUNCHER_DOWNLOAD_URL, RECOMMENDED_LAUNCHER_VERSION } from "@/lib/launcherDownload";
 
 const isOlderVersion = (current: string, target: string) => {
   const currentParts = current.split(".").map((part) => Number(part) || 0);
@@ -48,10 +46,10 @@ export default function LauncherUpdateButton() {
     if (!bridge?.checkUpdate) return;
     const openManualInstaller = async () => {
       if (bridge.openExternal) {
-        await bridge.openExternal(MANUAL_LAUNCHER_DOWNLOAD_URL);
+        await bridge.openExternal(LAUNCHER_DOWNLOAD_URL);
         return;
       }
-      window.open(MANUAL_LAUNCHER_DOWNLOAD_URL, "_blank", "noopener,noreferrer");
+      window.open(LAUNCHER_DOWNLOAD_URL, "_blank", "noopener,noreferrer");
     };
 
     setChecking(true);

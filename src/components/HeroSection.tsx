@@ -7,9 +7,7 @@ import logo from "@/assets/forbiddens_logo.svg";
 import { useAuth } from "@/hooks/useAuth";
 import InstallAppButton from "@/components/InstallAppButton";
 import VaultHint from "@/components/VaultHint";
-
-const launcherDownloadUrl = import.meta.env.VITE_LAUNCHER_DOWNLOAD_URL
-  || "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.10_x64-setup.exe";
+import { LAUNCHER_DOWNLOAD_URL } from "@/lib/launcherDownload";
 
 export default function HeroSection() {
   const { user } = useAuth();
@@ -76,7 +74,7 @@ export default function HeroSection() {
         <div className="flex flex-wrap justify-center gap-3 mt-2">
           {showLauncherDownload && (
             <Button asChild size="sm" className="launcher-download-button bg-neon-cyan text-black hover:bg-neon-cyan/85 font-pixel text-[10px] px-5 py-2.5 shadow-[0_0_18px_rgba(34,211,238,0.35)] transition-all duration-200">
-              <a href={launcherDownloadUrl} download>
+              <a href={LAUNCHER_DOWNLOAD_URL} download>
                 <Download className="mr-1.5 h-3.5 w-3.5" />
                 DESCARGAR LAUNCHER
               </a>

@@ -2,15 +2,17 @@
   "slug": "snes_retro",
   "name": "Consola Retro SNES",
   "compatibleConsoles": ["snes"],
-  "orientations": ["portrait", "landscape"],
+  "orientations": ["portrait", "landscape", "desktop"],
   "viewport": {
     "portrait": "0 0 914.88 2033.999918",
-    "landscape": "0 0 2034 915"
+    "landscape": "0 0 2034 915",
+    "desktop": "0 0 1440 809.999993"
   },
   "assets": {
     "normal": "vertical-celular.svg",
     "expanded": "vertical-celular-expanded.svg",
-    "landscape": "horizontal-mobile.svg"
+    "landscape": "horizontal-mobile.svg",
+    "desktop": "pc.svg"
   },
   "screen": {
     "portrait": {
@@ -24,6 +26,12 @@
       "topPercent": 5.45,
       "widthPercent": 46.65,
       "heightPercent": 87.3
+    },
+    "desktop": {
+      "leftPercent": 13.2,
+      "topPercent": 14.1,
+      "widthPercent": 86.3,
+      "heightPercent": 85.9
     },
     "fit": "contain"
   },

@@ -86,7 +86,7 @@ struct NativeEmulatorWindowStateEvent {
 }
 
 const WEBSITE_URL: &str = "https://forbiddens.net/";
-const LAUNCHER_DOWNLOAD_URL: &str = "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.15_x64-setup.exe";
+const LAUNCHER_DOWNLOAD_URL: &str = "https://forbiddens.net/desktop/FORBIDDENS_0.1.17_x64-setup.exe";
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 const LAUNCHER_BRIDGE_SCRIPT: &str = r#"
 (function () {
@@ -153,6 +153,7 @@ const LAUNCHER_BRIDGE_SCRIPT: &str = r#"
     launcherWindowAction: function (action) { return invoke("launcher_window_action", { action: action }); },
     nativeEngineStatus: function (consoleId) { return invoke("native_engine_status", { consoleId: consoleId }); },
     installNativeEngine: function (consoleId) { return invoke("install_native_engine", { consoleId: consoleId }); },
+    reinstallNativeEngine: function (consoleId) { return invoke("reinstall_native_engine", { consoleId: consoleId }); },
     nativeBiosStatus: function (consoleId) { return invoke("native_bios_status", { consoleId: consoleId }); },
     importNativeBios: function (consoleId) { return invoke("import_native_bios", { consoleId: consoleId }); },
     importNativeBiosFolder: function (consoleId) { return invoke("import_native_bios_folder", { consoleId: consoleId }); },
@@ -886,6 +887,35 @@ fn find_native_engine(config: &NativeEngineConfig) -> Option<PathBuf> {
         .find(|path| path.exists())
 }
 
+fn retroarch_core_file_name(console_id: &str) -> Option<&'static str> {
+    match console_id {
+        "nes" => Some("fceumm_libretro.dll"),
+        "snes" => Some("snes9x_libretro.dll"),
+        "gba" => Some("mgba_libretro.dll"),
+        "gbc" => Some("gambatte_libretro.dll"),
+        "sega" => Some("genesis_plus_gx_libretro.dll"),
+        "n64" => Some("mupen64plus_next_libretro.dll"),
+        "arcade" => Some("fbneo_libretro.dll"),
+        _ => None,
+    }
+}
+
+fn find_retroarch_core(engine_path: &Path, console_id: &str) -> Option<PathBuf> {
+    let core_name = retroarch_core_file_name(console_id)?;
+    let retroarch_dir = engine_path.parent()?;
+    let direct = retroarch_dir.join("cores").join(core_name);
+    if direct.exists() {
+        return Some(direct);
+    }
+
+    retroarch_dir
+        .ancestors()
+        .take(3)
+        .map(|base| base.join("cores").join(core_name))
+        .find(|path| path.exists())
+        .or_else(|| find_nested_executable(retroarch_dir, core_name))
+}
+
 fn run_hidden(mut command: Command) -> Result<(), String> {
     #[cfg(windows)]
     {
@@ -1270,6 +1300,14 @@ fn install_native_engine(console_id: String) -> Result<NativeEngineStatus, Strin
     }
 
     let root = engine_install_dir(&config);
+    if root.exists() {
+        fs::remove_dir_all(&root).map_err(|error| {
+            format!(
+                "No se pudo limpiar una instalacion incompleta de {}: {}",
+                config.engine_name, error
+            )
+        })?;
+    }
     fs::create_dir_all(&root).map_err(|error| error.to_string())?;
     let archive = root.join(config.package_file_name);
     let mut downloaded_parts = Vec::new();
@@ -1299,6 +1337,26 @@ fn install_native_engine(console_id: String) -> Result<NativeEngineStatus, Strin
     } else {
         Err("Se descargo el paquete, pero no encontre el ejecutable esperado.".to_string())
     }
+}
+
+#[tauri::command]
+fn reinstall_native_engine(console_id: String) -> Result<NativeEngineStatus, String> {
+    let normalized = console_id.trim().to_lowercase();
+    let Some(config) = get_engine_config(&normalized) else {
+        return Err("Esta consola aun no tiene motor nativo configurado.".to_string());
+    };
+
+    let root = engine_install_dir(&config);
+    if root.exists() {
+        fs::remove_dir_all(&root).map_err(|error| {
+            format!(
+                "No se pudo eliminar la instalacion anterior de {}: {}",
+                config.engine_name, error
+            )
+        })?;
+    }
+
+    install_native_engine(normalized)
 }
 
 #[tauri::command]
@@ -1341,6 +1399,15 @@ fn open_native_emulator(
     let mut command = Command::new(&engine_path);
     if normalized == "ps2" {
         command.arg("-portable");
+    }
+    if let Some(core_name) = retroarch_core_file_name(&normalized) {
+        let Some(core_path) = find_retroarch_core(&engine_path, &normalized) else {
+            return Err(format!(
+                "RetroArch esta instalado, pero falta el core {}. Reinstala el emulador desde FORBIDDENS Launcher.",
+                core_name
+            ));
+        };
+        command.arg("-L").arg(core_path);
     }
     if let Some(path) = rom_path
         .as_deref()
@@ -1534,7 +1601,25 @@ fn open_ppsspp_native(
     open_native_emulator(app, "psp".to_string(), rom_path)
 }
 
+fn enable_webview2_hardware_acceleration_hints() {
+    #[cfg(windows)]
+    {
+        const GPU_ARGS: &str = "--enable-gpu-rasterization --enable-zero-copy --ignore-gpu-blocklist";
+        let existing = env::var("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS").unwrap_or_default();
+        if existing.trim().is_empty() {
+            env::set_var("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS", GPU_ARGS);
+        } else if !existing.contains("--enable-gpu-rasterization") {
+            env::set_var(
+                "WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS",
+                format!("{} {}", existing.trim(), GPU_ARGS),
+            );
+        }
+    }
+}
+
 pub fn run() {
+    enable_webview2_hardware_acceleration_hints();
+
     tauri::Builder::default()
         .append_invoke_initialization_script(LAUNCHER_BRIDGE_SCRIPT)
         .plugin(tauri_plugin_dialog::init())
@@ -1549,6 +1634,7 @@ pub fn run() {
             launcher_window_action,
             native_engine_status,
             install_native_engine,
+            reinstall_native_engine,
             native_bios_status,
             import_native_bios,
             import_native_bios_folder,

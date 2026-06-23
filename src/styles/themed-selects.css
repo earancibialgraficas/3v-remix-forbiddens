@@ -152,6 +152,130 @@ html:is(
   filter: none !important;
 }
 
+/* Mi Melodía Rosa: textos de emuladores en morado pastel para que no se pierdan sobre fondos claros. */
+html:is(
+  .skin-theme-mi_melodia_rosa,
+  [data-skin-slug="mi_melodia_rosa"],
+  [style*="--skin-slug: mi_melodia_rosa"]
+) :is(.emulator-page-screen, .emulator-ps2-info-dialog) {
+  --emulator-melodia-text: #7b4d96;
+  --emulator-melodia-text-soft: #8f5cad;
+  --emulator-melodia-muted: rgba(101, 62, 125, 0.74);
+  --emulator-melodia-chip: linear-gradient(135deg, rgba(255, 238, 248, 0.92), rgba(224, 198, 238, 0.9));
+  --emulator-melodia-chip-strong: linear-gradient(135deg, rgba(246, 196, 224, 0.96), rgba(211, 177, 231, 0.94));
+}
+
+html:is(
+  .skin-theme-mi_melodia_rosa,
+  [data-skin-slug="mi_melodia_rosa"],
+  [style*="--skin-slug: mi_melodia_rosa"]
+) .emulator-page-screen :is(
+  .text-white,
+  [class*="text-white"],
+  .text-foreground,
+  [class*="text-foreground"],
+  .font-pixel,
+  h1,
+  h2,
+  h3,
+  p,
+  span,
+  strong,
+  code,
+  label,
+  button
+) {
+  color: var(--emulator-melodia-text) !important;
+  -webkit-text-fill-color: var(--emulator-melodia-text) !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+html:is(
+  .skin-theme-mi_melodia_rosa,
+  [data-skin-slug="mi_melodia_rosa"],
+  [style*="--skin-slug: mi_melodia_rosa"]
+) .emulator-page-screen :is(
+  .text-white\/50,
+  .text-white\/60,
+  .text-white\/70,
+  .text-white\/80,
+  .text-muted-foreground,
+  [class*="text-muted-foreground"]
+) {
+  color: var(--emulator-melodia-muted) !important;
+  -webkit-text-fill-color: var(--emulator-melodia-muted) !important;
+}
+
+html:is(
+  .skin-theme-mi_melodia_rosa,
+  [data-skin-slug="mi_melodia_rosa"],
+  [style*="--skin-slug: mi_melodia_rosa"]
+) .emulator-page-screen :is(
+  .text-neon-cyan,
+  [class*="text-neon-cyan"],
+  .text-neon-purple,
+  [class*="text-neon-purple"],
+  .text-neon-yellow,
+  [class*="text-neon-yellow"]
+) {
+  color: var(--emulator-melodia-text-soft) !important;
+  -webkit-text-fill-color: var(--emulator-melodia-text-soft) !important;
+}
+
+html:is(
+  .skin-theme-mi_melodia_rosa,
+  [data-skin-slug="mi_melodia_rosa"],
+  [style*="--skin-slug: mi_melodia_rosa"]
+) .emulator-page-screen :is(
+  button,
+  select,
+  .bg-black\/35,
+  .bg-black\/60,
+  .bg-black\/70,
+  .bg-white\/10,
+  .bg-white\/20,
+  [class*="bg-neon-cyan/"],
+  [class*="bg-neon-purple/"]
+) {
+  background: var(--emulator-melodia-chip) !important;
+  background-image: var(--emulator-melodia-chip) !important;
+  border-color: rgba(143, 92, 173, 0.32) !important;
+  color: var(--emulator-melodia-text) !important;
+  -webkit-text-fill-color: var(--emulator-melodia-text) !important;
+  box-shadow: 0 8px 18px rgba(126, 75, 158, 0.14) !important;
+}
+
+html:is(
+  .skin-theme-mi_melodia_rosa,
+  [data-skin-slug="mi_melodia_rosa"],
+  [style*="--skin-slug: mi_melodia_rosa"]
+) .emulator-page-screen :is(button:hover, select:focus) {
+  background: var(--emulator-melodia-chip-strong) !important;
+  background-image: var(--emulator-melodia-chip-strong) !important;
+  border-color: rgba(123, 77, 150, 0.48) !important;
+}
+
+html:is(
+  .skin-theme-mi_melodia_rosa,
+  [data-skin-slug="mi_melodia_rosa"],
+  [style*="--skin-slug: mi_melodia_rosa"]
+) .emulator-page-screen :is(svg, .lucide) {
+  color: var(--emulator-melodia-text-soft) !important;
+  stroke: currentColor !important;
+  filter: none !important;
+}
+
+html:is(
+  .skin-theme-mi_melodia_rosa,
+  [data-skin-slug="mi_melodia_rosa"],
+  [style*="--skin-slug: mi_melodia_rosa"]
+) .emulator-ps2-info-dialog :is(.text-white, [class*="text-white"], .text-neon-cyan, [class*="text-neon-cyan"], .font-pixel, p, span, li, strong, code, button) {
+  color: var(--emulator-melodia-text) !important;
+  -webkit-text-fill-color: var(--emulator-melodia-text) !important;
+  text-shadow: none !important;
+}
+
 html:is(
   [data-skin-slug="mi_melodia_rosa"],
   [data-skin-slug="demoniaco"],

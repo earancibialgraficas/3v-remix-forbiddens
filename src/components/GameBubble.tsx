@@ -103,6 +103,7 @@ const AFK_TIMEOUT_MS = 30 * 1000;
 const ROSITA_PC_ASPECT_RATIO = 1929 / 1079;
 const SNES_RETRO_PORTRAIT_ASPECT_RATIO = 690.75 / 1200;
 const SNES_RETRO_LANDSCAPE_ASPECT_RATIO = 2034 / 915;
+const SNES_RETRO_DESKTOP_ASPECT_RATIO = 1440 / 810;
 
 const getSnesRetroPortraitWindowSize = () => {
   if (typeof window === "undefined") return { w: 390, h: 678 };
@@ -126,6 +127,19 @@ const getSnesRetroLandscapeWindowSize = () => {
   if (h > maxH) {
     h = maxH;
     w = h * SNES_RETRO_LANDSCAPE_ASPECT_RATIO;
+  }
+  return { w, h };
+};
+
+const getSnesRetroDesktopWindowSize = () => {
+  if (typeof window === "undefined") return { w: 1180, h: 664 };
+  const maxW = Math.max(720, window.innerWidth - 16);
+  const maxH = Math.max(420, window.innerHeight - 16);
+  let w = maxW;
+  let h = w / SNES_RETRO_DESKTOP_ASPECT_RATIO;
+  if (h > maxH) {
+    h = maxH;
+    w = h * SNES_RETRO_DESKTOP_ASPECT_RATIO;
   }
   return { w, h };
 };
@@ -486,7 +500,12 @@ export default function GameBubble() {
     isEmulatorShellCompatible(emulatorShell.slug, activeGame?.consoleName) &&
     isMobileOrTablet &&
     isLandscape;
-  const usesSnesRetroShell = usesSnesRetroPortraitShell || usesSnesRetroLandscapeShell;
+  const usesSnesRetroDesktopShell =
+    !minimized &&
+    emulatorShell?.slug === "snes_retro" &&
+    isEmulatorShellCompatible(emulatorShell.slug, activeGame?.consoleName) &&
+    !isMobileOrTablet;
+  const usesSnesRetroShell = usesSnesRetroPortraitShell || usesSnesRetroLandscapeShell || usesSnesRetroDesktopShell;
   const usesCustomEmulatorShell = usesRositaNesShell || usesSnesRetroShell;
   const rositaLayoutVariant: RositaLayoutVariant = isMobile
     ? isLandscape
@@ -543,9 +562,10 @@ export default function GameBubble() {
   const getPreferredWindowSize = useCallback(() => {
     if (usesSnesRetroPortraitShell) return getSnesRetroPortraitWindowSize();
     if (usesSnesRetroLandscapeShell) return getSnesRetroLandscapeWindowSize();
+    if (usesSnesRetroDesktopShell) return getSnesRetroDesktopWindowSize();
     if (usesRositaNesShell && !isMobile) return getRositaDesktopWindowSize();
     return getLargeGameWindowSize();
-  }, [isMobile, usesRositaNesShell, usesSnesRetroLandscapeShell, usesSnesRetroPortraitShell]);
+  }, [isMobile, usesRositaNesShell, usesSnesRetroDesktopShell, usesSnesRetroLandscapeShell, usesSnesRetroPortraitShell]);
   const preferredWindowSizeRef = useRef(getPreferredWindowSize);
 
   useEffect(() => {
@@ -2723,7 +2743,7 @@ window.EJS_onGameStart=function(){
   if (!minimized) {
     if (isFullscreen) {
       popupStyle = { width: "100vw", height: "100vh", borderRadius: 0 };
-    } else if (usesSnesRetroShell) {
+    } else if (usesSnesRetroShell && !usesSnesRetroDesktopShell) {
       popupStyle = {
         position: "fixed",
         inset: 0,
@@ -2769,7 +2789,11 @@ window.EJS_onGameStart=function(){
         };
       }
     } else {
-      const shellDesktopSize = usesRositaNesShell && !isMobile ? getRositaDesktopWindowSize() : null;
+      const shellDesktopSize = usesSnesRetroDesktopShell
+        ? getSnesRetroDesktopWindowSize()
+        : usesRositaNesShell && !isMobile
+          ? getRositaDesktopWindowSize()
+          : null;
       popupStyle = {
         transform: shellDesktopSize ? "none" : `translate(${position.x}px, ${position.y}px)`,
         width: `${shellDesktopSize?.w ?? popupSize.w}px`,
@@ -2793,6 +2817,7 @@ window.EJS_onGameStart=function(){
         usesSnesRetroShell && "gamebubble-shell-snes-retro",
         usesSnesRetroPortraitShell && "snes-retro-shell-portrait",
         usesSnesRetroLandscapeShell && "snes-retro-shell-landscape",
+        usesSnesRetroDesktopShell && "snes-retro-shell-desktop",
         minimized
           ? "bg-card h-[132px] w-44 rounded-xl shadow-2xl cursor-pointer border border-border"
           : isTheaterActive || isFullscreen
@@ -3035,6 +3060,8 @@ window.EJS_onGameStart=function(){
                 <img
                   src={usesSnesRetroLandscapeShell
                     ? "/emulator-shells/snes-retro/horizontal-mobile.svg"
+                    : usesSnesRetroDesktopShell
+                      ? "/emulator-shells/snes-retro/pc.svg"
                     : isExpanded
                       ? "/emulator-shells/snes-retro/vertical-celular-expanded.svg"
                       : "/emulator-shells/snes-retro/vertical-celular.svg"}
@@ -3111,11 +3138,18 @@ window.EJS_onGameStart=function(){
             <div className="snes-retro-controls-layer">
               <svg
                 className="snes-retro-hit-svg"
-                viewBox={usesSnesRetroLandscapeShell ? "0 0 2034 915" : "0 0 914.88 2034"}
+                viewBox={usesSnesRetroDesktopShell ? "0 0 1440 810" : usesSnesRetroLandscapeShell ? "0 0 2034 915" : "0 0 914.88 2034"}
                 preserveAspectRatio="none"
                 aria-hidden="false"
               >
-                {usesSnesRetroLandscapeShell ? (
+                {usesSnesRetroDesktopShell ? (
+                  <>
+                    <rect role="button" tabIndex={0} aria-label="Minimizar" className="snes-retro-hit-shape snes-retro-hit-shape-window" x={1263} y={24} width={34} height={34} rx={8} onPointerUp={(event) => handleSnesRetroActionShape(event, minimizeGame)} onContextMenu={(event) => event.preventDefault()} />
+                    <rect role="button" tabIndex={0} aria-label={isExpanded ? "Restaurar" : "Maximizar"} className="snes-retro-hit-shape snes-retro-hit-shape-window" x={1314} y={24} width={34} height={34} rx={8} onPointerUp={(event) => handleSnesRetroActionShape(event, toggleFullscreen)} onContextMenu={(event) => event.preventDefault()} />
+                    <rect role="button" tabIndex={0} aria-label="Cerrar" className="snes-retro-hit-shape snes-retro-hit-shape-window" x={1365} y={24} width={34} height={34} rx={8} onPointerUp={(event) => handleSnesRetroActionShape(event, handleClose)} onContextMenu={(event) => event.preventDefault()} />
+                    <rect role="button" tabIndex={0} aria-label="Opciones" className="snes-retro-hit-shape snes-retro-hit-shape-heart" x={816} y={22} width={72} height={72} rx={36} onPointerUp={(event) => handleSnesRetroActionShape(event, () => setSnesToolsOpen((value) => !value))} onContextMenu={(event) => event.preventDefault()} />
+                  </>
+                ) : usesSnesRetroLandscapeShell ? (
                   <>
                     {renderSnesRetroKeyRect("Arriba", "up", 231, 341, 128, 132, 22, "snes-retro-hit-shape-dpad")}
                     {renderSnesRetroKeyRect("Abajo", "down", 231, 588, 128, 130, 22, "snes-retro-hit-shape-dpad")}
@@ -3213,6 +3247,13 @@ window.EJS_onGameStart=function(){
                   </>
                 )}
               </svg>
+              {usesSnesRetroDesktopShell && (
+                <div
+                  id="music-slot-emulator"
+                  className="snes-retro-desktop-music-slot"
+                  aria-label="Mini reproductor de musica"
+                />
+              )}
               {snesToolsOpen && (
                 <div
                   ref={snesToolsBubbleRef}

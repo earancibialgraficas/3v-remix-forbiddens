@@ -10,6 +10,7 @@ commands.allow = [
   "launcher_window_action",
   "native_engine_status",
   "install_native_engine",
+  "reinstall_native_engine",
   "native_bios_status",
   "import_native_bios",
   "import_native_bios_folder",

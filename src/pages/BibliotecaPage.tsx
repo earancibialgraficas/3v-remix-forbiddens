@@ -230,6 +230,30 @@ export default function BibliotecaPage() {
       setSelectedNativeBusy(false);
     }
   };
+
+  const reinstallSelectedNativeEngine = async (event?: React.MouseEvent) => {
+    event?.stopPropagation();
+    const bridge = getLauncherBridge();
+    if (!bridge?.reinstallNativeEngine) return;
+    const engineName = selectedNativeStatus?.engine_name || selectedConsole.toUpperCase();
+    const wantsReinstall = window.confirm(`¿Reinstalar ${engineName} para ${selectedConsole.toUpperCase()}? Esto reparara archivos incompletos o corruptos del emulador.`);
+    if (!wantsReinstall) return;
+
+    setSelectedNativeBusy(true);
+    try {
+      const status = await bridge.reinstallNativeEngine(selectedConsole);
+      setSelectedNativeStatus(status);
+      toast({ title: "Emulador reparado", description: `${status.engine_name} quedo reinstalado para ${selectedConsole.toUpperCase()}.` });
+    } catch (error: any) {
+      toast({
+        title: "No se pudo reinstalar",
+        description: formatLauncherBridgeError(error, "No se pudo reparar el emulador nativo."),
+        variant: "destructive",
+      });
+    } finally {
+      setSelectedNativeBusy(false);
+    }
+  };
   
   const [leaderboard, setLeaderboard] = useState<LeaderboardScore[]>([]);
   const [leaderboardColors, setLeaderboardColors] = useState<Record<string, string | null>>({});
@@ -966,6 +990,29 @@ const handlePlayCloudGame = async (game: any) => {
                     >
                       {selectedNativeBusy ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Cpu className="mr-2 h-3.5 w-3.5" />}
                       {selectedNativeBusy ? "Instalando..." : `Instalar ${selectedNativeStatus.engine_name}`}
+                    </Button>
+                  </div>
+                </div>
+              )}
+              {launcherDetected && launcherSupportsNative(selectedConsole) && selectedNativeStatus?.installed && currentGames.some((game: any) => game.isCloud) && (
+                <div className="mb-3 rounded-lg border border-neon-yellow/25 bg-black/35 p-3 shadow-[0_0_24px_rgba(250,204,21,0.06)] backdrop-blur-sm">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <p className="font-pixel text-[9px] uppercase tracking-widest text-neon-green">
+                        {selectedNativeStatus.engine_name} instalado
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Si un juego queda en negro o el emulador se instalo a medias, reinstalalo desde aqui.
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={reinstallSelectedNativeEngine}
+                      disabled={selectedNativeBusy || !getLauncherBridge()?.reinstallNativeEngine}
+                      className="shrink-0 border border-neon-yellow/40 bg-neon-yellow/10 font-pixel text-[8px] uppercase tracking-widest text-neon-yellow hover:bg-neon-yellow/20"
+                    >
+                      {selectedNativeBusy ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="mr-2 h-3.5 w-3.5" />}
+                      {selectedNativeBusy ? "Reinstalando..." : `Reinstalar ${selectedNativeStatus.engine_name}`}
                     </Button>
                   </div>
                 </div>

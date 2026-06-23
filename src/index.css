@@ -4053,7 +4053,8 @@ aside,
   }
 
   .gamebubble-shell-snes-retro.snes-retro-shell-portrait,
-  .gamebubble-shell-snes-retro.snes-retro-shell-landscape {
+  .gamebubble-shell-snes-retro.snes-retro-shell-landscape,
+  .gamebubble-shell-snes-retro.snes-retro-shell-desktop {
     border: 0 !important;
     background: transparent !important;
     box-shadow: none !important;
@@ -4221,6 +4222,145 @@ aside,
     transform: translate(-50%, -50%);
     background: transparent !important;
     overflow: hidden !important;
+  }
+
+  .gamebubble-shell-snes-retro.snes-retro-shell-desktop {
+    border-radius: 0 !important;
+  }
+
+  .gamebubble-shell-snes-retro.snes-retro-shell-desktop .snes-retro-shell-viewport {
+    position: absolute !important;
+    inset: 0 !important;
+    flex: none !important;
+    width: 100% !important;
+    height: 100% !important;
+    background: transparent !important;
+    overflow: hidden !important;
+  }
+
+  .gamebubble-shell-snes-retro.snes-retro-shell-desktop .snes-retro-game-screen {
+    left: 13.2% !important;
+    top: 14.1% !important;
+    width: 86.3% !important;
+    height: 85.9% !important;
+    border-radius: clamp(20px, 2vw, 34px);
+  }
+
+  .gamebubble-shell-snes-retro.snes-retro-shell-desktop .snes-retro-info {
+    left: 14.6%;
+    top: calc(13.4% + 8px);
+    width: 78.4%;
+    height: 28px;
+    justify-content: flex-start;
+    gap: clamp(6px, 0.8vw, 12px);
+    padding-inline: clamp(8px, 1vw, 16px);
+    color: #7c2447;
+    text-shadow: none;
+    opacity: 0.78;
+  }
+
+  .gamebubble-shell-snes-retro.snes-retro-shell-desktop .snes-retro-title {
+    color: #8e3f65;
+    font-size: clamp(6px, 0.75vw, 10px);
+  }
+
+  .gamebubble-shell-snes-retro.snes-retro-shell-desktop .snes-retro-meta {
+    font-size: clamp(5px, 0.62vw, 8px);
+  }
+
+  .gamebubble-shell-snes-retro.snes-retro-shell-desktop .snes-retro-tools-bubble {
+    left: 59%;
+    top: 15%;
+    width: min(34%, 360px);
+    transform: translate(-50%, 0);
+  }
+
+  .gamebubble-shell-snes-retro.snes-retro-shell-desktop .snes-retro-desktop-music-slot {
+    position: absolute;
+    left: 88.15%;
+    top: 57.6%;
+    z-index: 92;
+    width: 8.9%;
+    height: 31.1%;
+    min-width: 104px;
+    padding: clamp(3px, 0.42vw, 7px);
+    pointer-events: auto;
+    overflow: visible;
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    border-radius: clamp(11px, 1.1vw, 18px);
+    background:
+      radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.54), transparent 42%),
+      linear-gradient(180deg, rgba(255, 239, 248, 0.58), rgba(255, 204, 226, 0.34)) !important;
+    border: 1px solid rgba(216, 91, 144, 0.3);
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.42),
+      0 10px 22px rgba(142, 43, 89, 0.12);
+    backdrop-filter: blur(5px);
+  }
+
+  .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-compact {
+    height: 100%;
+    display: flex;
+    align-items: stretch;
+  }
+
+  .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-panel {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(180deg, hsl(343 100% 97% / 0.96), hsl(326 100% 94% / 0.94)) !important;
+    border-color: hsl(337 76% 73% / 0.78) !important;
+    box-shadow: 0 8px 18px hsl(337 48% 38% / 0.14), inset 0 0 0 1px hsl(0 0% 100% / 0.58) !important;
+  }
+
+  .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-panel *,
+  .gamebubble-shell-snes-retro.snes-retro-shell-desktop .rosita-song-toast * {
+    text-shadow: none !important;
+    filter: none !important;
+  }
+
+  .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-header,
+  .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-category button,
+  .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-track > div {
+    background: hsl(346 100% 98% / 0.82) !important;
+    border-color: hsl(338 70% 74% / 0.64) !important;
+    box-shadow: inset 0 0 0 1px hsl(0 0% 100% / 0.45) !important;
+  }
+
+  .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-category button:hover {
+    background: hsl(336 100% 95% / 0.9) !important;
+    border-color: hsl(336 72% 68% / 0.72) !important;
+  }
+
+  .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-panel p,
+  .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-panel span,
+  .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-panel svg,
+  .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-track span {
+    color: hsl(336 58% 42%) !important;
+    fill: currentColor !important;
+  }
+
+  .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-play,
+  .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-skip-button,
+  .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-volume-button {
+    background: hsl(340 100% 95% / 0.86) !important;
+    border-color: hsl(337 72% 70% / 0.78) !important;
+    color: hsl(336 58% 42%) !important;
+    box-shadow: 0 3px 8px hsl(337 46% 42% / 0.13), inset 0 0 0 1px hsl(0 0% 100% / 0.5) !important;
+  }
+
+  .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-play:hover,
+  .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-skip-button:hover,
+  .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-volume-button:hover {
+    background: hsl(335 100% 92% / 0.92) !important;
+    box-shadow: 0 4px 10px hsl(337 46% 42% / 0.18), inset 0 0 0 1px hsl(0 0% 100% / 0.56) !important;
+  }
+
+  .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-header .rounded-full {
+    background: hsl(337 70% 66% / 0.72) !important;
+    box-shadow: 0 0 0 2px hsl(337 100% 94% / 0.75) !important;
   }
 
   @media (max-width: 640px) {
