@@ -1,15 +1,15 @@
 {
-  "version": "0.1.16",
-  "notes": "Corrige el scroll en distintos PCs, mejora la compatibilidad de videos del Social Hub y estabiliza trueques, slots e indicadores de boosters.",
-  "pub_date": "2026-06-21T22:35:36Z",
+  "version": "0.1.17",
+  "notes": "Agrega reinstalacion/reparacion de emuladores nativos, fuerza el core correcto de RetroArch para SNES y mejora las pistas de aceleracion por hardware del launcher.",
+  "pub_date": "2026-06-23T04:45:46Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRRXZQQXVxYjV4VXQ3SjVrb3JudWs1bUdDdEdMN0FabzErM24vaUhrOUd1c1pOOWY0UXhDNDdQRVhHY0x5QjNJTGxjUnNJNGg3YjR5dkQ5bVhEaWQ1SnhnU2IzRkpUQndJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMDgxMTk5CWZpbGU6Rk9SQklEREVOU18wLjEuMTZfeDY0LXNldHVwLmV4ZQpZRnRxN1QyT216eEVtYjMxazg0T0s0RDRtNTUwdkhkYkxyLzBUWHJwZTRrZi9FRmhUVmswZGR1SFZrcFFLYVMwS0NPakoxVlJ4VnN3RTJHRXpBV2pEUT09Cg==",
-      "url": "https://forbiddens.net/desktop/FORBIDDENS_0.1.16_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTbVdYVU9DdFN0bTNJNEp2L3N4NUEzajFZazNvbEdWSkMxQ1BEZ29hU2Fxbmo4YmVmajgrcERyRFpXTkhLWm8xNDcwQjRKa3l0KzBGb0pHZFpCSkh0ajBnQXN3MGJlRXd3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMTkwNDYzCWZpbGU6Rk9SQklEREVOU18wLjEuMTdfeDY0LXNldHVwLmV4ZQpreFNRN1hhbEMyMjR1TE5Ed0FJWExxMmMzRW5ESG92aHFRU0tYaFdoV2hhU24yOGVqaGphaHFLWHJIbXR4ZGFMT2tJSVI1U1Rua250REpPd21nZkdDUT09Cg==",
+      "url": "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.17_x64-setup.exe"
     },
     "windows-x86_64-pc-windows-msvc": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRRXZQQXVxYjV4VXQ3SjVrb3JudWs1bUdDdEdMN0FabzErM24vaUhrOUd1c1pOOWY0UXhDNDdQRVhHY0x5QjNJTGxjUnNJNGg3YjR5dkQ5bVhEaWQ1SnhnU2IzRkpUQndJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMDgxMTk5CWZpbGU6Rk9SQklEREVOU18wLjEuMTZfeDY0LXNldHVwLmV4ZQpZRnRxN1QyT216eEVtYjMxazg0T0s0RDRtNTUwdkhkYkxyLzBUWHJwZTRrZi9FRmhUVmswZGR1SFZrcFFLYVMwS0NPakoxVlJ4VnN3RTJHRXpBV2pEUT09Cg==",
-      "url": "https://forbiddens.net/desktop/FORBIDDENS_0.1.16_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTbVdYVU9DdFN0bTNJNEp2L3N4NUEzajFZazNvbEdWSkMxQ1BEZ29hU2Fxbmo4YmVmajgrcERyRFpXTkhLWm8xNDcwQjRKa3l0KzBGb0pHZFpCSkh0ajBnQXN3MGJlRXd3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMTkwNDYzCWZpbGU6Rk9SQklEREVOU18wLjEuMTdfeDY0LXNldHVwLmV4ZQpreFNRN1hhbEMyMjR1TE5Ed0FJWExxMmMzRW5ESG92aHFRU0tYaFdoV2hhU24yOGVqaGphaHFLWHJIbXR4ZGFMT2tJSVI1U1Rua250REpPd21nZkdDUT09Cg==",
+      "url": "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.17_x64-setup.exe"
     }
   }
 }
