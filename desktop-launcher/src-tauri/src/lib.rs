@@ -1601,25 +1601,7 @@ fn open_ppsspp_native(
     open_native_emulator(app, "psp".to_string(), rom_path)
 }
 
-fn enable_webview2_hardware_acceleration_hints() {
-    #[cfg(windows)]
-    {
-        const GPU_ARGS: &str = "--enable-gpu-rasterization --enable-zero-copy --ignore-gpu-blocklist";
-        let existing = env::var("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS").unwrap_or_default();
-        if existing.trim().is_empty() {
-            env::set_var("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS", GPU_ARGS);
-        } else if !existing.contains("--enable-gpu-rasterization") {
-            env::set_var(
-                "WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS",
-                format!("{} {}", existing.trim(), GPU_ARGS),
-            );
-        }
-    }
-}
-
 pub fn run() {
-    enable_webview2_hardware_acceleration_hints();
-
     tauri::Builder::default()
         .append_invoke_initialization_script(LAUNCHER_BRIDGE_SCRIPT)
         .plugin(tauri_plugin_dialog::init())

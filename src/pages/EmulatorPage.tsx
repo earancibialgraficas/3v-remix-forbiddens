@@ -366,6 +366,7 @@ export default function EmulatorPage() {
 
   const currentSystem = systems[currentIndex];
   const canUseNativeCurrent = launcherDetected && launcherSupportsNative(currentSystem.id);
+  const useLauncherSafeRendering = launcherDetected && !hasActiveGame;
 
   useEffect(() => {
     if (launcherDetected) return;
@@ -845,7 +846,13 @@ export default function EmulatorPage() {
   };
 
   return (
-    <div id="batocera-screen" className="emulator-page-screen relative w-full h-[calc(100vh-5.5rem)] min-h-[600px] flex-1 bg-black rounded-xl overflow-hidden border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.8)] animate-fade-in group selection:bg-transparent">
+    <div
+      id="batocera-screen"
+      className={cn(
+        "emulator-page-screen relative w-full h-[calc(100vh-5.5rem)] min-h-[600px] flex-1 bg-black rounded-xl overflow-hidden border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.8)] animate-fade-in group selection:bg-transparent",
+        useLauncherSafeRendering && "emulator-launcher-safe-render",
+      )}
+    >
 
       <div id="batocera-target" className={cn("absolute inset-0 z-50 pointer-events-auto", hasActiveGame ? "block" : "hidden")}></div>
 
@@ -879,8 +886,17 @@ export default function EmulatorPage() {
       {!hasActiveGame && (
         <>
           <div className="emulator-dynamic-bg absolute inset-0 transition-opacity duration-1000">
-            <img src={currentSystem.bg} alt={currentSystem.name} className="emulator-dynamic-bg-image w-full h-full object-cover opacity-40 blur-[3px] scale-105" />
-            <div className="absolute inset-0 bg-[url('https://transparenttextures.com/patterns/black-linen-2.png')] opacity-30 pointer-events-none mix-blend-overlay"></div>
+            <img
+              src={currentSystem.bg}
+              alt={currentSystem.name}
+              className={cn(
+                "emulator-dynamic-bg-image w-full h-full object-cover",
+                useLauncherSafeRendering ? "opacity-25 blur-0 scale-100" : "opacity-40 blur-[3px] scale-105",
+              )}
+            />
+            {!useLauncherSafeRendering && (
+              <div className="absolute inset-0 bg-[url('https://transparenttextures.com/patterns/black-linen-2.png')] opacity-30 pointer-events-none mix-blend-overlay"></div>
+            )}
             <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-transparent to-black/90 pointer-events-none"></div>
           </div>
 
@@ -1033,7 +1049,7 @@ export default function EmulatorPage() {
                 "relative w-full h-60 sm:h-72 md:h-80 lg:h-96 flex items-center justify-center overflow-visible touch-pan-y select-none",
                 isDragging ? "cursor-grabbing" : "cursor-grab"
               )}
-              style={{ perspective: "1100px", transformStyle: "preserve-3d" }}
+              style={useLauncherSafeRendering ? { transformStyle: "flat" } : { perspective: "1100px", transformStyle: "preserve-3d" }}
               onMouseDown={(e) => onPointerDown(e.clientX)}
               onMouseMove={(e) => isDragging && onPointerMove(e.clientX)}
               onMouseUp={onPointerUp}
@@ -1079,6 +1095,11 @@ export default function EmulatorPage() {
                   const scale = 0.38 + frontness * 0.72;
                   const opacity = 0.2 + frontness * 0.8;
                   const zIndex = Math.round(60 + frontness * 60);
+                  const safeDistance = Math.min(Math.abs(effectiveSlot), 2.4);
+                  const safeTranslatePx = effectiveSlot * SLOT_DISTANCE_PX * 0.72;
+                  const safeTranslateY = 18 + safeDistance * 18;
+                  const safeScale = Math.max(0.52, 1 - safeDistance * 0.22);
+                  const safeOpacity = Math.max(0.22, 1 - safeDistance * 0.3);
 
                   const glowAlpha = frontness;
                   const filter = glowAlpha > 0.05
@@ -1093,15 +1114,18 @@ export default function EmulatorPage() {
                     <div
                       key={sys.id}
                       className={cn(
-                        "emulator-console-carousel-item absolute flex flex-col items-center will-change-transform",
+                        "emulator-console-carousel-item absolute flex flex-col items-center",
+                        !useLauncherSafeRendering && "will-change-transform",
                         useTransition ? "transition-all duration-[350ms] ease-out" : "transition-none"
                       )}
                       style={{
-                        transform: `translate3d(${translatePx}px, ${translateY}px, ${translateZ}px) rotateY(${rotateY}deg) scale(${scale})`,
-                        transformStyle: "preserve-3d",
-                        opacity,
+                        transform: useLauncherSafeRendering
+                          ? `translate3d(${safeTranslatePx}px, ${safeTranslateY}px, 0) scale(${safeScale})`
+                          : `translate3d(${translatePx}px, ${translateY}px, ${translateZ}px) rotateY(${rotateY}deg) scale(${scale})`,
+                        transformStyle: useLauncherSafeRendering ? "flat" : "preserve-3d",
+                        opacity: useLauncherSafeRendering ? safeOpacity : opacity,
                         zIndex,
-                        filter,
+                        filter: useLauncherSafeRendering ? "none" : filter,
                       }}
                       onClick={() => { if (Math.abs(dragDelta.current) < 5) setCurrentIndex(index); }}
                     >
