@@ -366,7 +366,6 @@ export default function EmulatorPage() {
 
   const currentSystem = systems[currentIndex];
   const canUseNativeCurrent = launcherDetected && launcherSupportsNative(currentSystem.id);
-  const useLauncherSafeRendering = launcherDetected && !hasActiveGame;
 
   useEffect(() => {
     if (launcherDetected) return;
@@ -414,63 +413,9 @@ export default function EmulatorPage() {
   useEffect(() => {
     if (!launcherDetected) return;
     const bridge = getLauncherBridge();
-    if (!bridge?.nativeEngineStatus) {
-      setNativeStatusScanComplete(true);
-      return;
-    }
-
-    let cancelled = false;
-    const nativeSystems = systems.filter((system) => launcherSupportsNative(system.id));
-    const cachedResults = nativeSystems
-      .map((system) => [system.id, readCachedNativeStatus(system.id)] as const)
-      .filter((entry): entry is readonly [string, NativeEngineStatus] => Boolean(entry[1]));
-    const missingSystems = nativeSystems.filter(
-      (system) => !cachedResults.some(([consoleId]) => consoleId === system.id),
-    );
-
-    setNativeStatusScanProgress({ done: cachedResults.length, total: nativeSystems.length });
-
-    if (missingSystems.length === 0) {
-      const currentCached = cachedResults.find(([consoleId]) => consoleId === currentSystem.id)?.[1] || null;
-      setNativeStatus(currentCached);
-      setNativeStatusScanComplete(true);
-      return;
-    }
-
-    // Do not block the emulator page while native engine detection runs.
-    // Some broken/incomplete native installs can make WebView2 look like a black screen
-    // if the fullscreen scan overlay stays up too long.
+    setNativeStatusScanProgress({ done: 0, total: 0 });
     setNativeStatusScanComplete(true);
-
-    const scanInstalledEngines = async () => {
-      const scannedResults: Array<readonly [string, NativeEngineStatus | null]> = [];
-      for (const system of missingSystems) {
-        if (cancelled) return;
-        try {
-          const status = await readNativeStatusWithTimeout(system.id);
-          if (status) writeCachedNativeStatus(system.id, status);
-          scannedResults.push([system.id, status] as const);
-        } catch {
-          scannedResults.push([system.id, null] as const);
-        } finally {
-          if (!cancelled) {
-            setNativeStatusScanProgress((current) => ({ ...current, done: current.done + 1 }));
-            await new Promise((resolve) => window.setTimeout(resolve, 120));
-          }
-        }
-      }
-
-      if (cancelled) return;
-      const results = [...cachedResults, ...scannedResults];
-      const currentResult = results.find(([consoleId]) => consoleId === currentSystem.id)?.[1] || null;
-      setNativeStatus(currentResult);
-      setNativeStatusScanComplete(true);
-    };
-
-    void scanInstalledEngines();
-    return () => {
-      cancelled = true;
-    };
+    if (!bridge?.nativeEngineStatus) setNativeStatus(null);
   }, [launcherDetected]);
 
   useEffect(() => {
@@ -869,7 +814,6 @@ export default function EmulatorPage() {
       id="batocera-screen"
       className={cn(
         "emulator-page-screen relative w-full h-[calc(100vh-5.5rem)] min-h-[600px] flex-1 bg-black rounded-xl overflow-hidden border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.8)] animate-fade-in group selection:bg-transparent",
-        useLauncherSafeRendering && "emulator-launcher-safe-render",
       )}
     >
 
@@ -908,14 +852,9 @@ export default function EmulatorPage() {
             <img
               src={currentSystem.bg}
               alt={currentSystem.name}
-              className={cn(
-                "emulator-dynamic-bg-image w-full h-full object-cover",
-                useLauncherSafeRendering ? "opacity-25 blur-0 scale-100" : "opacity-40 blur-[3px] scale-105",
-              )}
+              className="emulator-dynamic-bg-image w-full h-full object-cover opacity-40 blur-[3px] scale-105"
             />
-            {!useLauncherSafeRendering && (
-              <div className="absolute inset-0 bg-[url('https://transparenttextures.com/patterns/black-linen-2.png')] opacity-30 pointer-events-none mix-blend-overlay"></div>
-            )}
+            <div className="absolute inset-0 bg-[url('https://transparenttextures.com/patterns/black-linen-2.png')] opacity-30 pointer-events-none mix-blend-overlay"></div>
             <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-transparent to-black/90 pointer-events-none"></div>
           </div>
 
@@ -1068,7 +1007,7 @@ export default function EmulatorPage() {
                 "relative w-full h-60 sm:h-72 md:h-80 lg:h-96 flex items-center justify-center overflow-visible touch-pan-y select-none",
                 isDragging ? "cursor-grabbing" : "cursor-grab"
               )}
-              style={useLauncherSafeRendering ? { transformStyle: "flat" } : { perspective: "1100px", transformStyle: "preserve-3d" }}
+              style={{ perspective: "1100px", transformStyle: "preserve-3d" }}
               onMouseDown={(e) => onPointerDown(e.clientX)}
               onMouseMove={(e) => isDragging && onPointerMove(e.clientX)}
               onMouseUp={onPointerUp}
@@ -1114,11 +1053,6 @@ export default function EmulatorPage() {
                   const scale = 0.38 + frontness * 0.72;
                   const opacity = 0.2 + frontness * 0.8;
                   const zIndex = Math.round(60 + frontness * 60);
-                  const safeDistance = Math.min(Math.abs(effectiveSlot), 2.4);
-                  const safeTranslatePx = effectiveSlot * SLOT_DISTANCE_PX * 0.72;
-                  const safeTranslateY = 18 + safeDistance * 18;
-                  const safeScale = Math.max(0.52, 1 - safeDistance * 0.22);
-                  const safeOpacity = Math.max(0.22, 1 - safeDistance * 0.3);
 
                   const glowAlpha = frontness;
                   const filter = glowAlpha > 0.05
@@ -1134,17 +1068,15 @@ export default function EmulatorPage() {
                       key={sys.id}
                       className={cn(
                         "emulator-console-carousel-item absolute flex flex-col items-center",
-                        !useLauncherSafeRendering && "will-change-transform",
+                        "will-change-transform",
                         useTransition ? "transition-all duration-[350ms] ease-out" : "transition-none"
                       )}
                       style={{
-                        transform: useLauncherSafeRendering
-                          ? `translate(${safeTranslatePx}px, ${safeTranslateY}px) scale(${safeScale})`
-                          : `translate3d(${translatePx}px, ${translateY}px, ${translateZ}px) rotateY(${rotateY}deg) scale(${scale})`,
-                        transformStyle: useLauncherSafeRendering ? "flat" : "preserve-3d",
-                        opacity: useLauncherSafeRendering ? safeOpacity : opacity,
+                        transform: `translate3d(${translatePx}px, ${translateY}px, ${translateZ}px) rotateY(${rotateY}deg) scale(${scale})`,
+                        transformStyle: "preserve-3d",
+                        opacity,
                         zIndex,
-                        filter: useLauncherSafeRendering ? "none" : filter,
+                        filter,
                       }}
                       onClick={() => { if (Math.abs(dragDelta.current) < 5) setCurrentIndex(index); }}
                     >

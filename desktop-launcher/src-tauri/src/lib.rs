@@ -798,7 +798,7 @@ fn sanitize_file_name(file_name: &str) -> String {
     }
 }
 
-fn find_nested_executable(root: &Path, executable_name: &str) -> Option<PathBuf> {
+fn find_nested_executable_with_depth(root: &Path, executable_name: &str, max_depth: usize) -> Option<PathBuf> {
     let entries = fs::read_dir(root).ok()?;
     for entry in entries.flatten() {
         let path = entry.path();
@@ -810,13 +810,17 @@ fn find_nested_executable(root: &Path, executable_name: &str) -> Option<PathBuf>
         {
             return Some(path);
         }
-        if path.is_dir() {
-            if let Some(found) = find_nested_executable(&path, executable_name) {
+        if max_depth > 0 && path.is_dir() {
+            if let Some(found) = find_nested_executable_with_depth(&path, executable_name, max_depth - 1) {
                 return Some(found);
             }
         }
     }
     None
+}
+
+fn find_nested_executable(root: &Path, executable_name: &str) -> Option<PathBuf> {
+    find_nested_executable_with_depth(root, executable_name, 4)
 }
 
 fn known_external_engine_candidates(console_id: &str) -> Vec<PathBuf> {

@@ -159,27 +159,17 @@ export default function ChillMusicPlayer() {
 
   useEffect(() => {
     let cancelled = false;
-    setPortalTarget(null);
-    const find = () => {
+    const syncTarget = () => {
       if (cancelled) return;
       const el = document.getElementById(slotId);
-      if (el) {
-        setPortalTarget(el);
-        return true;
-      }
-      return false;
+      setPortalTarget((current) => (current === el ? current : el));
     };
-    if (!find()) {
-      const interval = setInterval(() => {
-        if (find()) clearInterval(interval);
-      }, 100);
-      return () => {
-        cancelled = true;
-        clearInterval(interval);
-      };
-    }
+
+    syncTarget();
+    const interval = setInterval(syncTarget, 200);
     return () => {
       cancelled = true;
+      clearInterval(interval);
     };
   }, [slotId, activeGames.length, gameMinimized]);
   

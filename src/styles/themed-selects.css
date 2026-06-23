@@ -152,27 +152,6 @@ html:is(
   filter: none !important;
 }
 
-/* Launcher/WebView2 safety: avoid black-screen-prone GPU layer effects on the emulator landing page. */
-.emulator-page-screen.emulator-launcher-safe-render,
-.emulator-page-screen.emulator-launcher-safe-render * {
-  backface-visibility: visible !important;
-}
-
-.emulator-page-screen.emulator-launcher-safe-render .emulator-dynamic-bg,
-.emulator-page-screen.emulator-launcher-safe-render .emulator-dynamic-bg-image,
-.emulator-page-screen.emulator-launcher-safe-render .emulator-console-carousel-item,
-.emulator-page-screen.emulator-launcher-safe-render .emulator-console-carousel-item > div,
-.emulator-page-screen.emulator-launcher-safe-render .emulator-console-carousel-item img {
-  filter: none !important;
-  mix-blend-mode: normal !important;
-  will-change: auto !important;
-}
-
-.emulator-page-screen.emulator-launcher-safe-render .emulator-dynamic-bg-image {
-  opacity: 0.25 !important;
-  transform: none !important;
-}
-
 /* Mi Melodía Rosa: textos de emuladores en morado pastel para que no se pierdan sobre fondos claros. */
 html:is(
   .skin-theme-mi_melodia_rosa,

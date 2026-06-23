@@ -409,6 +409,8 @@ export default function GameBubble() {
   const emulatorFrameRef = useRef<HTMLIFrameElement>(null);
   const emulatorObjectUrlsRef = useRef<string[]>([]);
   const canvasViewportRef = useRef<HTMLDivElement>(null);
+  const snesRetroDesktopArtRef = useRef<HTMLDivElement>(null);
+  const [snesRetroDesktopSvg, setSnesRetroDesktopSvg] = useState("");
   const realSaveUploadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastRealSaveHashRef = useRef<string | null>(null);
 
@@ -512,6 +514,17 @@ export default function GameBubble() {
       ? "mobileLandscape"
       : "mobilePortrait"
     : "pc";
+  const isTheaterActive = theaterRect && !minimized && !forceFloating && !isPs2 && !usesCustomEmulatorShell;
+  const isExpanded = isTheaterActive || isFullscreen;
+
+  const setSnesRetroDesktopLayerHover = useCallback((oneBasedIndex: number, hovered: boolean) => {
+    const image = snesRetroDesktopArtRef.current?.getElementsByTagName("image")[oneBasedIndex - 1] as SVGImageElement | undefined;
+    if (!image) return;
+    image.style.transition = "filter 120ms ease, opacity 120ms ease";
+    image.style.filter = hovered
+      ? "hue-rotate(-10deg) saturate(1.22) brightness(1.08) drop-shadow(0 0 7px rgba(255, 132, 186, 0.62))"
+      : "";
+  }, []);
 
   // --- Lógica de Inactividad para el botón en Fullscreen/Teatro ---
   const [isIdle, setIsIdle] = useState(false);
@@ -646,9 +659,6 @@ export default function GameBubble() {
   }, [activeGame?.romUrl]);
 
   // 🎮 PS2: ventana emergente flotante (NO modo teatro maximizado)
-  const isTheaterActive = theaterRect && !minimized && !forceFloating && !isPs2 && !usesCustomEmulatorShell;
-  const isExpanded = isTheaterActive || isFullscreen;
-
   useEffect(() => {
     const allowLandscape = Boolean(activeGame && !minimized && isExpanded);
     document.documentElement.classList.toggle("forbiddens-game-expanded", allowLandscape);
@@ -748,6 +758,7 @@ export default function GameBubble() {
       const target = event.target as Node | null;
       if (target && volumeControlRef.current?.contains(target)) return;
       if (target && volumeSliderRef.current?.contains(target)) return;
+      if (target instanceof Element && target.closest(".snes-retro-hit-shape-volume")) return;
       if (volumeSliderHideTimerRef.current) {
         clearTimeout(volumeSliderHideTimerRef.current);
         volumeSliderHideTimerRef.current = null;
@@ -2383,6 +2394,90 @@ window.EJS_onGameStart=function(){
     closeGame(idx);
   };
 
+  const syncSnesRetroDesktopArt = useCallback(() => {
+    const root = snesRetroDesktopArtRef.current;
+    if (!root) return;
+
+    const svg = root.querySelector("svg");
+    if (svg) {
+      svg.style.setProperty("background", "transparent", "important");
+      svg.style.setProperty("background-color", "transparent", "important");
+    }
+    const images = Array.from(root.getElementsByTagName("image")) as SVGImageElement[];
+    const getLayer = (oneBasedIndex: number) => images[oneBasedIndex - 1];
+    const setLayerVisible = (oneBasedIndex: number, visible: boolean) => {
+      const image = getLayer(oneBasedIndex);
+      if (!image) return;
+      image.style.display = visible ? "" : "none";
+      if (!visible) image.style.filter = "";
+    };
+    const wireLayer = (oneBasedIndex: number, action: () => void) => {
+      const image = getLayer(oneBasedIndex);
+      if (!image) return;
+      image.setAttribute("pointer-events", "visiblePainted");
+      image.style.pointerEvents = "visiblePainted";
+      image.style.cursor = "pointer";
+      image.onpointerenter = () => setSnesRetroDesktopLayerHover(oneBasedIndex, true);
+      image.onpointerleave = () => setSnesRetroDesktopLayerHover(oneBasedIndex, false);
+      image.onpointerup = (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        action();
+      };
+      image.oncontextmenu = (event) => event.preventDefault();
+    };
+
+    setLayerVisible(13, paused);
+    setLayerVisible(14, !paused);
+    setLayerVisible(20, Boolean(isExpanded));
+    setLayerVisible(21, !isExpanded);
+    setLayerVisible(16, !showVolumeSlider);
+
+    wireLayer(13, () => { if (romLoaded) togglePause(); });
+    wireLayer(14, () => { if (romLoaded) togglePause(); });
+    wireLayer(15, toggleEmulatorMenu);
+    wireLayer(16, () => setShowVolumeSlider((value) => !value));
+    wireLayer(17, () => { if (romLoaded && !isN64) setShowSaveDialog(true); });
+    wireLayer(18, () => { if (romLoaded && !isN64 && saveSlots.length > 0) setShowLoadDialog(true); });
+    wireLayer(19, minimizeGame);
+    wireLayer(20, toggleFullscreen);
+    wireLayer(21, toggleFullscreen);
+    wireLayer(22, () => { void handleClose(); });
+  }, [
+    handleClose,
+    isExpanded,
+    isN64,
+    minimizeGame,
+    paused,
+    romLoaded,
+    saveSlots.length,
+    setSnesRetroDesktopLayerHover,
+    showVolumeSlider,
+    toggleEmulatorMenu,
+    togglePause,
+  ]);
+
+  useEffect(() => {
+    if (!usesSnesRetroDesktopShell) return;
+    syncSnesRetroDesktopArt();
+  }, [snesRetroDesktopSvg, syncSnesRetroDesktopArt, usesSnesRetroDesktopShell]);
+
+  useEffect(() => {
+    if (!usesSnesRetroDesktopShell || snesRetroDesktopSvg) return;
+    let cancelled = false;
+    void fetch("/emulator-shells/snes-retro/pc.svg")
+      .then((response) => response.text())
+      .then((svgText) => {
+        if (!cancelled) setSnesRetroDesktopSvg(svgText);
+      })
+      .catch(() => {
+        if (!cancelled) setSnesRetroDesktopSvg("");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [snesRetroDesktopSvg, usesSnesRetroDesktopShell]);
+
   const dispatchSnesRetroKey = useCallback((type: "keydown" | "keyup", keyName: SnesRetroButtonKey) => {
     const keyMap = SNES_RETRO_KEY_MAP[keyName];
     const canvas = canvasRef.current;
@@ -3057,17 +3152,29 @@ window.EJS_onGameStart=function(){
           {usesSnesRetroShell && (
             <>
               <div className="snes-retro-shell-hardware" aria-hidden="true">
-                <img
-                  src={usesSnesRetroLandscapeShell
-                    ? "/emulator-shells/snes-retro/horizontal-mobile.svg"
-                    : usesSnesRetroDesktopShell
-                      ? "/emulator-shells/snes-retro/pc.svg"
-                    : isExpanded
-                      ? "/emulator-shells/snes-retro/vertical-celular-expanded.svg"
-                      : "/emulator-shells/snes-retro/vertical-celular.svg"}
-                  alt=""
-                  draggable={false}
-                />
+                {usesSnesRetroDesktopShell ? (
+                  snesRetroDesktopSvg ? (
+                    <div
+                      ref={snesRetroDesktopArtRef}
+                      className="snes-retro-desktop-art"
+                      dangerouslySetInnerHTML={{ __html: snesRetroDesktopSvg }}
+                    />
+                  ) : (
+                    <div ref={snesRetroDesktopArtRef} className="snes-retro-desktop-art">
+                      <img src="/emulator-shells/snes-retro/pc.svg" alt="" draggable={false} />
+                    </div>
+                  )
+                ) : (
+                  <img
+                    src={usesSnesRetroLandscapeShell
+                      ? "/emulator-shells/snes-retro/horizontal-mobile.svg"
+                      : isExpanded
+                        ? "/emulator-shells/snes-retro/vertical-celular-expanded.svg"
+                        : "/emulator-shells/snes-retro/vertical-celular.svg"}
+                    alt=""
+                    draggable={false}
+                  />
+                )}
               </div>
               <div
                 className={cn(
@@ -3149,17 +3256,7 @@ window.EJS_onGameStart=function(){
                 aria-hidden="false"
               >
                 {usesSnesRetroDesktopShell ? (
-                  <>
-                    <rect role="button" tabIndex={0} aria-label="Minimizar" className="snes-retro-hit-shape snes-retro-hit-shape-window" x={1254} y={35} width={42} height={42} rx={10} onPointerUp={(event) => handleSnesRetroActionShape(event, minimizeGame)} onContextMenu={(event) => event.preventDefault()} />
-                    <rect role="button" tabIndex={0} aria-label={isExpanded ? "Restaurar" : "Maximizar"} className="snes-retro-hit-shape snes-retro-hit-shape-window" x={1310} y={35} width={42} height={42} rx={10} onPointerUp={(event) => handleSnesRetroActionShape(event, toggleFullscreen)} onContextMenu={(event) => event.preventDefault()} />
-                    <rect role="button" tabIndex={0} aria-label="Cerrar" className="snes-retro-hit-shape snes-retro-hit-shape-window" x={1365} y={35} width={42} height={42} rx={10} onPointerUp={(event) => handleSnesRetroActionShape(event, handleClose)} onContextMenu={(event) => event.preventDefault()} />
-                    <rect role="button" tabIndex={0} aria-label="Opciones" className="snes-retro-hit-shape snes-retro-hit-shape-heart" x={623} y={718} width={196} height={54} rx={27} onPointerUp={(event) => handleSnesRetroActionShape(event, () => setSnesToolsOpen((value) => !value))} onContextMenu={(event) => event.preventDefault()} />
-                    <rect role="button" tabIndex={0} aria-label="Guardar partida" className="snes-retro-hit-shape snes-retro-hit-shape-window" x={1268} y={137} width={78} height={72} rx={13} onPointerUp={(event) => handleSnesRetroActionShape(event, () => { if (romLoaded && !isN64) setShowSaveDialog(true); })} onContextMenu={(event) => event.preventDefault()} />
-                    <rect role="button" tabIndex={0} aria-label="Cargar partida" className="snes-retro-hit-shape snes-retro-hit-shape-window" x={1268} y={226} width={78} height={72} rx={13} onPointerUp={(event) => handleSnesRetroActionShape(event, () => { if (romLoaded && !isN64 && saveSlots.length > 0) setShowLoadDialog(true); })} onContextMenu={(event) => event.preventDefault()} />
-                    <rect role="button" tabIndex={0} aria-label={paused ? "Reanudar" : "Pausar"} className="snes-retro-hit-shape snes-retro-hit-shape-window" x={1268} y={315} width={78} height={72} rx={13} onPointerUp={(event) => handleSnesRetroActionShape(event, () => { if (romLoaded) togglePause(); })} onContextMenu={(event) => event.preventDefault()} />
-                    <rect role="button" tabIndex={0} aria-label="Configuracion" className="snes-retro-hit-shape snes-retro-hit-shape-window" x={1268} y={404} width={78} height={72} rx={13} onPointerUp={(event) => handleSnesRetroActionShape(event, toggleEmulatorMenu)} onContextMenu={(event) => event.preventDefault()} />
-                    <rect role="button" tabIndex={0} aria-label="Volumen" className="snes-retro-hit-shape snes-retro-hit-shape-window" x={1268} y={493} width={78} height={72} rx={13} onPointerUp={(event) => handleSnesRetroActionShape(event, () => { setSnesToolsOpen(true); setShowVolumeSlider((value) => !value); })} onContextMenu={(event) => event.preventDefault()} />
-                  </>
+                  null
                 ) : usesSnesRetroLandscapeShell ? (
                   <>
                     {renderSnesRetroKeyRect("Arriba", "up", 231, 341, 128, 132, 22, "snes-retro-hit-shape-dpad")}
@@ -3264,6 +3361,20 @@ window.EJS_onGameStart=function(){
                   className="snes-retro-desktop-music-slot"
                   aria-label="Mini reproductor de musica"
                 />
+              )}
+              {usesSnesRetroDesktopShell && showVolumeSlider && !snesToolsOpen && (
+                <div ref={volumeSliderRef} className="snes-retro-desktop-volume-slider">
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    value={volume}
+                    onChange={(event) => handleVolumeChange(parseFloat(event.target.value))}
+                    aria-label="Volumen"
+                  />
+                  <span>{Math.round(volume * 100)}%</span>
+                </div>
               )}
               {snesToolsOpen && (
                 <div
