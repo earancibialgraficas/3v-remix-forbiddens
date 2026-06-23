@@ -389,10 +389,26 @@ export default function EmulatorPage() {
       setNativeStatus(null);
       return null;
     }
-    const status = await bridge.nativeEngineStatus(currentSystem.id);
+    const status = await readNativeStatusWithTimeout(currentSystem.id);
     setNativeStatus(status);
-    writeCachedNativeStatus(currentSystem.id, status);
+    if (status) writeCachedNativeStatus(currentSystem.id, status);
     return status;
+  };
+
+  const readNativeStatusWithTimeout = async (consoleId: string, timeoutMs = 2600) => {
+    const bridge = getLauncherBridge();
+    if (!bridge?.nativeEngineStatus) return null;
+    let timeoutId: number | undefined;
+    try {
+      return await Promise.race<NativeEngineStatus | null>([
+        bridge.nativeEngineStatus(consoleId),
+        new Promise<null>((resolve) => {
+          timeoutId = window.setTimeout(() => resolve(null), timeoutMs);
+        }),
+      ]);
+    } finally {
+      if (timeoutId) window.clearTimeout(timeoutId);
+    }
   };
 
   useEffect(() => {
@@ -421,15 +437,18 @@ export default function EmulatorPage() {
       return;
     }
 
-    setNativeStatusScanComplete(false);
+    // Do not block the emulator page while native engine detection runs.
+    // Some broken/incomplete native installs can make WebView2 look like a black screen
+    // if the fullscreen scan overlay stays up too long.
+    setNativeStatusScanComplete(true);
 
     const scanInstalledEngines = async () => {
       const scannedResults: Array<readonly [string, NativeEngineStatus | null]> = [];
       for (const system of missingSystems) {
         if (cancelled) return;
         try {
-          const status = await bridge.nativeEngineStatus!(system.id);
-          writeCachedNativeStatus(system.id, status);
+          const status = await readNativeStatusWithTimeout(system.id);
+          if (status) writeCachedNativeStatus(system.id, status);
           scannedResults.push([system.id, status] as const);
         } catch {
           scannedResults.push([system.id, null] as const);
@@ -479,7 +498,7 @@ export default function EmulatorPage() {
   // Bloquear navegación del teclado (Enter/Flechas) si hay un juego activo
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (hasActiveGame || (launcherDetected && !nativeStatusScanComplete)) return;
+      if (hasActiveGame) return;
       if (e.key === "ArrowRight") setCurrentIndex((prev) => (prev + 1) % systems.length);
       else if (e.key === "ArrowLeft") setCurrentIndex((prev) => (prev - 1 + systems.length) % systems.length);
       else if (e.key === "Enter") openRomPicker();
@@ -856,17 +875,17 @@ export default function EmulatorPage() {
 
       <div id="batocera-target" className={cn("absolute inset-0 z-50 pointer-events-auto", hasActiveGame ? "block" : "hidden")}></div>
 
-      {launcherDetected && !nativeStatusScanComplete && !hasActiveGame && (
-        <div className="emulator-native-scan absolute inset-0 z-[80] grid place-items-center bg-black/90 px-6 backdrop-blur-md">
-          <div className="w-full max-w-sm text-center">
-            <Loader2 className="mx-auto h-9 w-9 animate-spin text-neon-cyan" />
-            <h2 className="mt-5 font-pixel text-[11px] uppercase tracking-widest text-white">
+      {launcherDetected && nativeStatusScanProgress.total > 0 && nativeStatusScanProgress.done < nativeStatusScanProgress.total && !hasActiveGame && (
+        <div className="emulator-native-scan pointer-events-none absolute left-1/2 top-4 z-[38] w-[min(92%,360px)] -translate-x-1/2 rounded-2xl border border-white/12 bg-black/45 px-4 py-3 shadow-[0_12px_28px_rgba(0,0,0,0.28)] backdrop-blur-md">
+          <div className="w-full text-center">
+            <Loader2 className="mx-auto h-5 w-5 animate-spin text-neon-cyan" />
+            <h2 className="mt-2 font-pixel text-[9px] uppercase tracking-widest text-white">
               Verificando emuladores
             </h2>
-            <p className="mt-2 text-xs text-white/55">
+            <p className="mt-1 text-[10px] text-white/55">
               Comprobando las instalaciones nativas del launcher...
             </p>
-            <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-white/10">
+            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
               <div
                 className="h-full rounded-full bg-neon-cyan transition-[width] duration-200"
                 style={{
@@ -876,7 +895,7 @@ export default function EmulatorPage() {
                 }}
               />
             </div>
-            <p className="mt-2 font-pixel text-[8px] text-neon-cyan/80">
+            <p className="mt-2 font-pixel text-[7px] text-neon-cyan/80">
               {nativeStatusScanProgress.done} / {nativeStatusScanProgress.total}
             </p>
           </div>

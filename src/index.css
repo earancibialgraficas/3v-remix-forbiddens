@@ -4239,33 +4239,33 @@ aside,
   }
 
   .gamebubble-shell-snes-retro.snes-retro-shell-desktop .snes-retro-game-screen {
-    left: 13.2% !important;
-    top: 14.1% !important;
-    width: 86.3% !important;
-    height: 85.9% !important;
+    left: 9.55% !important;
+    top: 13.75% !important;
+    width: 71.55% !important;
+    height: 68.65% !important;
     border-radius: clamp(20px, 2vw, 34px);
   }
 
   .gamebubble-shell-snes-retro.snes-retro-shell-desktop .snes-retro-info {
-    left: 14.6%;
-    top: calc(13.4% + 8px);
-    width: 78.4%;
-    height: 28px;
-    justify-content: flex-start;
-    gap: clamp(6px, 0.8vw, 12px);
-    padding-inline: clamp(8px, 1vw, 16px);
+    left: 32%;
+    top: 92.25%;
+    width: 30.75%;
+    height: 5%;
+    justify-content: center;
+    gap: clamp(5px, 0.55vw, 9px);
+    padding-inline: clamp(5px, 0.6vw, 10px);
     color: #7c2447;
     text-shadow: none;
-    opacity: 0.78;
+    opacity: 0.86;
   }
 
   .gamebubble-shell-snes-retro.snes-retro-shell-desktop .snes-retro-title {
     color: #8e3f65;
-    font-size: clamp(6px, 0.75vw, 10px);
+    font-size: clamp(5px, 0.55vw, 8px);
   }
 
   .gamebubble-shell-snes-retro.snes-retro-shell-desktop .snes-retro-meta {
-    font-size: clamp(5px, 0.62vw, 8px);
+    font-size: clamp(4px, 0.45vw, 7px);
   }
 
   .gamebubble-shell-snes-retro.snes-retro-shell-desktop .snes-retro-tools-bubble {
@@ -4277,19 +4277,19 @@ aside,
 
   .gamebubble-shell-snes-retro.snes-retro-shell-desktop .snes-retro-desktop-music-slot {
     position: absolute;
-    left: 88.15%;
-    top: 57.6%;
+    left: 88.05%;
+    top: 56.45%;
     z-index: 92;
-    width: 8.9%;
-    height: 31.1%;
-    min-width: 104px;
-    padding: clamp(3px, 0.42vw, 7px);
+    width: 5.25%;
+    height: 16%;
+    min-width: 0;
+    padding: clamp(2px, 0.24vw, 4px);
     pointer-events: auto;
-    overflow: visible;
+    overflow: hidden;
     display: flex;
     align-items: stretch;
     justify-content: center;
-    border-radius: clamp(11px, 1.1vw, 18px);
+    border-radius: clamp(8px, 0.65vw, 12px);
     background:
       radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.54), transparent 42%),
       linear-gradient(180deg, rgba(255, 239, 248, 0.58), rgba(255, 204, 226, 0.34)) !important;
