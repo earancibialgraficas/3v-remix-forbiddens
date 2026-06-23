@@ -27,7 +27,8 @@ npm.cmd run desktop:updater:keygen
 npm.cmd run desktop:build:installer
 ```
 
-3. Firma el instalador generado con la clave privada del updater. Para la clave actual sin contrasena, pasa `--password=` explicitamente al comando `tauri signer sign`; una variable de entorno vacia puede hacer que el CLI espere entrada interactiva.
+3. Firma el instalador generado con la clave privada que corresponde a la `pubkey` ya compilada en `src-tauri/tauri.conf.json`. No generes ni uses otra key para una version normal, porque los launchers ya instalados rechazaran el update como "no firmado". Para la clave actual sin contrasena, pasa `--password=` explicitamente al comando `tauri signer sign`; una variable de entorno vacia puede hacer que el CLI espere entrada interactiva.
+   - Comprobacion rapida: las firmas compatibles historicas empiezan, al decodificarlas, con la familia `RUQEvPAu...`; si aparece otra familia, la version fue firmada con una key equivocada.
 4. Sube el instalador como asset del release de GitHub.
 5. Publica `desktop-launcher/latest.json` en:
 
