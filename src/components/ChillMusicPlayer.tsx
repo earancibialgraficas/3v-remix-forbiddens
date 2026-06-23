@@ -159,6 +159,7 @@ export default function ChillMusicPlayer() {
 
   useEffect(() => {
     let cancelled = false;
+    setPortalTarget(null);
     const find = () => {
       if (cancelled) return;
       const el = document.getElementById(slotId);
@@ -180,7 +181,7 @@ export default function ChillMusicPlayer() {
     return () => {
       cancelled = true;
     };
-  }, [slotId]);
+  }, [slotId, activeGames.length, gameMinimized]);
   
   const [allSongs, setAllSongs] = useState<Song[]>([]);
   const [playlist, setPlaylist] = useState<Song[]>([]);

@@ -28,19 +28,19 @@
       "heightPercent": 87.3
     },
     "desktop": {
-      "leftPercent": 9.55,
-      "topPercent": 13.75,
-      "widthPercent": 71.55,
-      "heightPercent": 68.65
+      "leftPercent": 8.35,
+      "topPercent": 13.15,
+      "widthPercent": 73.75,
+      "heightPercent": 69.15
     },
     "fit": "contain"
   },
   "infoBar": {
     "desktop": {
-      "leftPercent": 32,
-      "topPercent": 92.25,
-      "widthPercent": 30.75,
-      "heightPercent": 5
+      "leftPercent": 13.7,
+      "topPercent": 5.65,
+      "widthPercent": 46.5,
+      "heightPercent": 4.7
     },
     "landscape": {
       "leftPercent": 28.6,

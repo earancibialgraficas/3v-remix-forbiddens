@@ -1139,7 +1139,7 @@ export default function EmulatorPage() {
                       )}
                       style={{
                         transform: useLauncherSafeRendering
-                          ? `translate3d(${safeTranslatePx}px, ${safeTranslateY}px, 0) scale(${safeScale})`
+                          ? `translate(${safeTranslatePx}px, ${safeTranslateY}px) scale(${safeScale})`
                           : `translate3d(${translatePx}px, ${translateY}px, ${translateZ}px) rotateY(${rotateY}deg) scale(${scale})`,
                         transformStyle: useLauncherSafeRendering ? "flat" : "preserve-3d",
                         opacity: useLauncherSafeRendering ? safeOpacity : opacity,
