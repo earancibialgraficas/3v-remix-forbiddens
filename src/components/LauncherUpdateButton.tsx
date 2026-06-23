@@ -55,6 +55,15 @@ export default function LauncherUpdateButton() {
     setChecking(true);
     try {
       const info = await bridge.launcherInfo?.().catch(() => null);
+      if (info?.version && isOlderVersion(info.version, RECOMMENDED_LAUNCHER_VERSION)) {
+        await openManualInstaller();
+        toast({
+          title: "Hay una version nueva",
+          description: `Tu launcher es ${info.version}. Abrimos el instalador ${RECOMMENDED_LAUNCHER_VERSION}.`,
+        });
+        return;
+      }
+
       const result = await bridge.checkUpdate();
       if (result.startsWith("installed:")) {
         const version = result.replace("installed:", "");
@@ -73,15 +82,6 @@ export default function LauncherUpdateButton() {
         toast({
           title: "Descarga del launcher abierta",
           description: "No se pudo aplicar el updater automatico, pero abrimos el instalador nuevo.",
-        });
-        return;
-      }
-
-      if (info?.version && isOlderVersion(info.version, RECOMMENDED_LAUNCHER_VERSION)) {
-        await openManualInstaller();
-        toast({
-          title: "Hay una version nueva",
-          description: `Tu launcher es ${info.version}. Abrimos el instalador ${RECOMMENDED_LAUNCHER_VERSION}.`,
         });
         return;
       }

@@ -535,7 +535,7 @@ export default function EmulatorPage() {
     } catch (error: any) {
       toast({
         title: "No se pudo instalar",
-        description: formatLauncherBridgeError(error, "Revisa que el paquete exista en forbiddens.net/desktop/engines."),
+        description: formatLauncherBridgeError(error, "Revisa que el paquete exista en el release de GitHub emulators-v1."),
         variant: "destructive",
       });
     } finally {
