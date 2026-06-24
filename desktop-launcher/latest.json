@@ -1,15 +1,15 @@
 {
-    "version":  "0.1.28",
-    "notes":  "FORBIDDENS Launcher 0.1.28",
-    "pub_date":  "2026-06-24T18:36:39Z",
+    "version":  "0.1.29",
+    "notes":  "FORBIDDENS Launcher 0.1.29",
+    "pub_date":  "2026-06-24T19:07:46Z",
     "platforms":  {
                       "windows-x86_64":  {
-                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRRXZQQXVxYjV4VXR0eXYydm5ybytFQ2pqdk1xNGNBS2M5Z0hPaTBwOWRWWlBaZWtSb3FRMWExdFRncFdxUHFmYjQxWTJXZE5aRG9YQVMzMVY1aVlIR2YvVTlDYmJEcEF3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMzI2MTg3CWZpbGU6Rk9SQklEREVOU18wLjEuMjhfeDY0LXNldHVwLmV4ZQp0OUllSDZaRFAxSk9iRnBRL3B5MnpkRzcrclhpWnorZzY5bHE4dDVoNS93REQ5cUN6amNseW9qcmViaDZhd3VsYzJPYnFUZjhZQ3Y3ZXZGamQyQlhDZz09Cg==",
-                                             "url":  "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.28_x64-setup.exe"
+                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRRXZQQXVxYjV4VXJENXBHSXFNWG43UUlYV2hnVllqd3hvMWpYTUp1OWJLTzdIUEZISXZnRFcwVThqSFNUdzY0Njc3b2xPeVlwY1MvUTVTajY1U21SMGx6ZmN1WXhScmdrPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMzI4MDU2CWZpbGU6Rk9SQklEREVOU18wLjEuMjlfeDY0LXNldHVwLmV4ZQpnbUdmajI2SzU1ZTZJR2VVWWRuelN4bFpId2NIbWFNY3ZPU0VIa2RwUVlRazNKNG1hS3BZcEFvemZucDFwLzhScStseVNBN2VWZ2J3Z1hiWlNTL01DQT09Cg==",
+                                             "url":  "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.29_x64-setup.exe"
                                          },
                       "windows-x86_64-pc-windows-msvc":  {
-                                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRRXZQQXVxYjV4VXR0eXYydm5ybytFQ2pqdk1xNGNBS2M5Z0hPaTBwOWRWWlBaZWtSb3FRMWExdFRncFdxUHFmYjQxWTJXZE5aRG9YQVMzMVY1aVlIR2YvVTlDYmJEcEF3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMzI2MTg3CWZpbGU6Rk9SQklEREVOU18wLjEuMjhfeDY0LXNldHVwLmV4ZQp0OUllSDZaRFAxSk9iRnBRL3B5MnpkRzcrclhpWnorZzY5bHE4dDVoNS93REQ5cUN6amNseW9qcmViaDZhd3VsYzJPYnFUZjhZQ3Y3ZXZGamQyQlhDZz09Cg==",
-                                                             "url":  "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.28_x64-setup.exe"
+                                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRRXZQQXVxYjV4VXJENXBHSXFNWG43UUlYV2hnVllqd3hvMWpYTUp1OWJLTzdIUEZISXZnRFcwVThqSFNUdzY0Njc3b2xPeVlwY1MvUTVTajY1U21SMGx6ZmN1WXhScmdrPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMzI4MDU2CWZpbGU6Rk9SQklEREVOU18wLjEuMjlfeDY0LXNldHVwLmV4ZQpnbUdmajI2SzU1ZTZJR2VVWWRuelN4bFpId2NIbWFNY3ZPU0VIa2RwUVlRazNKNG1hS3BZcEFvemZucDFwLzhScStseVNBN2VWZ2J3Z1hiWlNTL01DQT09Cg==",
+                                                             "url":  "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.29_x64-setup.exe"
                                                          }
                   }
 }
