@@ -413,10 +413,42 @@ export default function EmulatorPage() {
   useEffect(() => {
     if (!launcherDetected) return;
     const bridge = getLauncherBridge();
-    setNativeStatusScanProgress({ done: 0, total: 0 });
-    setNativeStatusScanComplete(true);
-    if (!bridge?.nativeEngineStatus) setNativeStatus(null);
-  }, [launcherDetected]);
+    if (!bridge?.nativeEngineStatus) {
+      setNativeStatus(null);
+      setNativeStatusScanProgress({ done: 0, total: 0 });
+      setNativeStatusScanComplete(true);
+      return;
+    }
+    if (nativeStatusScanComplete) return;
+
+    let cancelled = false;
+    const scan = async () => {
+      const nativeSystems = systems.filter((system) => launcherSupportsNative(system.id));
+      setNativeStatusScanProgress({ done: 0, total: nativeSystems.length });
+
+      for (let index = 0; index < nativeSystems.length; index += 1) {
+        const system = nativeSystems[index];
+        const cached = readCachedNativeStatus(system.id);
+        if (!cached) {
+          const status = await readNativeStatusWithTimeout(system.id, 3200).catch(() => null);
+          if (status) writeCachedNativeStatus(system.id, status);
+          if (!cancelled && system.id === currentSystem.id) setNativeStatus(status);
+        } else if (!cancelled && system.id === currentSystem.id) {
+          setNativeStatus(cached);
+        }
+
+        if (cancelled) return;
+        setNativeStatusScanProgress({ done: index + 1, total: nativeSystems.length });
+      }
+
+      if (!cancelled) setNativeStatusScanComplete(true);
+    };
+
+    void scan();
+    return () => {
+      cancelled = true;
+    };
+  }, [launcherDetected, nativeStatusScanComplete, currentSystem.id]);
 
   useEffect(() => {
     if (!canUseNativeCurrent) {

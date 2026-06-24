@@ -85,8 +85,8 @@ struct NativeEmulatorWindowStateEvent {
     state: String,
 }
 
-const WEBSITE_URL: &str = "https://forbiddens.net/?launcher_version=0.1.23";
-const LAUNCHER_DOWNLOAD_URL: &str = "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.23_x64-setup.exe";
+const WEBSITE_URL: &str = "https://forbiddens.net/?launcher_version=0.1.24";
+const LAUNCHER_DOWNLOAD_URL: &str = "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.24_x64-setup.exe";
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 const LAUNCHER_BRIDGE_SCRIPT: &str = r#"
 (function () {
@@ -904,6 +904,14 @@ fn retroarch_core_file_name(console_id: &str) -> Option<&'static str> {
     }
 }
 
+fn retroarch_core_download_url(console_id: &str) -> Option<String> {
+    let core_name = retroarch_core_file_name(console_id)?;
+    Some(format!(
+        "https://buildbot.libretro.com/nightly/windows/x86_64/latest/{}.zip",
+        core_name
+    ))
+}
+
 fn find_retroarch_core(engine_path: &Path, console_id: &str) -> Option<PathBuf> {
     let core_name = retroarch_core_file_name(console_id)?;
     let retroarch_dir = engine_path.parent()?;
@@ -918,6 +926,59 @@ fn find_retroarch_core(engine_path: &Path, console_id: &str) -> Option<PathBuf> 
         .map(|base| base.join("cores").join(core_name))
         .find(|path| path.exists())
         .or_else(|| find_nested_executable(retroarch_dir, core_name))
+}
+
+fn ensure_retroarch_core(engine_path: &Path, console_id: &str) -> Result<(), String> {
+    let Some(core_name) = retroarch_core_file_name(console_id) else {
+        return Ok(());
+    };
+    if find_retroarch_core(engine_path, console_id).is_some() {
+        return Ok(());
+    }
+
+    let Some(retroarch_dir) = engine_path.parent() else {
+        return Err("No se pudo ubicar la carpeta de RetroArch.".to_string());
+    };
+    let cores_dir = retroarch_dir.join("cores");
+    fs::create_dir_all(&cores_dir).map_err(|error| {
+        format!(
+            "No se pudo crear la carpeta de cores de RetroArch: {}",
+            error
+        )
+    })?;
+
+    let Some(core_url) = retroarch_core_download_url(console_id) else {
+        return Ok(());
+    };
+    let core_archive = cores_dir.join(format!("{}.zip", core_name));
+    download_file(&core_url, &core_archive).map_err(|error| {
+        format!(
+            "No se pudo descargar el core {} desde Libretro: {}",
+            core_name, error
+        )
+    })?;
+    extract_archive(&core_archive, &cores_dir).map_err(|error| {
+        format!(
+            "No se pudo extraer el core {} de RetroArch: {}",
+            core_name, error
+        )
+    })?;
+    let _ = fs::remove_file(&core_archive);
+
+    if find_retroarch_core(engine_path, console_id).is_some() {
+        Ok(())
+    } else {
+        Err(format!(
+            "Se descargo el core {}, pero no se encontro el DLL extraido.",
+            core_name
+        ))
+    }
+}
+
+fn native_engine_ready(config: &NativeEngineConfig, engine_path: &Path) -> bool {
+    retroarch_core_file_name(config.console_id)
+        .map(|_| find_retroarch_core(engine_path, config.console_id).is_some())
+        .unwrap_or(true)
 }
 
 fn run_hidden(mut command: Command) -> Result<(), String> {
@@ -1274,12 +1335,16 @@ fn native_engine_status(console_id: String) -> NativeEngineStatus {
     };
 
     let executable_path = find_native_engine(&config);
+    let installed = executable_path
+        .as_ref()
+        .map(|path| native_engine_ready(&config, path))
+        .unwrap_or(false);
     NativeEngineStatus {
         console_id: config.console_id.to_string(),
         engine_name: config.engine_name.to_string(),
         native_supported: true,
         install_supported: !config.package_urls.is_empty(),
-        installed: executable_path.is_some(),
+        installed,
         executable_path: executable_path.map(|path| path.to_string_lossy().to_string()),
         install_dir: engine_install_dir(&config).to_string_lossy().to_string(),
         package_url: config
@@ -1299,8 +1364,14 @@ fn install_native_engine(console_id: String) -> Result<NativeEngineStatus, Strin
         return Err("Esta consola aun no tiene motor nativo configurado.".to_string());
     };
 
-    if find_native_engine(&config).is_some() {
-        return Ok(native_engine_status(normalized));
+    if let Some(engine_path) = find_native_engine(&config) {
+        if native_engine_ready(&config, &engine_path) {
+            return Ok(native_engine_status(normalized));
+        }
+        if ensure_retroarch_core(&engine_path, &normalized).is_ok() {
+            return Ok(native_engine_status(normalized));
+        }
+
     }
 
     let root = engine_install_dir(&config);
@@ -1333,6 +1404,10 @@ fn install_native_engine(console_id: String) -> Result<NativeEngineStatus, Strin
     let _ = fs::remove_file(&archive);
     for part in downloaded_parts {
         let _ = fs::remove_file(part);
+    }
+
+    if let Some(engine_path) = find_native_engine(&config) {
+        ensure_retroarch_core(&engine_path, &normalized)?;
     }
 
     let status = native_engine_status(normalized);
@@ -1405,6 +1480,9 @@ fn open_native_emulator(
         command.arg("-portable");
     }
     if let Some(core_name) = retroarch_core_file_name(&normalized) {
+        if find_retroarch_core(&engine_path, &normalized).is_none() {
+            ensure_retroarch_core(&engine_path, &normalized)?;
+        }
         let Some(core_path) = find_retroarch_core(&engine_path, &normalized) else {
             return Err(format!(
                 "RetroArch esta instalado, pero falta el core {}. Reinstala el emulador desde FORBIDDENS Launcher.",
