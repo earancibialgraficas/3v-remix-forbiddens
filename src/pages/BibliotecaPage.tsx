@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import VaultHint from "@/components/VaultHint";
-import { Gamepad2, Trophy, Play, User, Lightbulb, Send, Search, Cloud, Lock, Loader2, RefreshCw, Pencil, Cpu } from "lucide-react";
+import { Gamepad2, Trophy, Play, User, Lightbulb, Send, Search, Cloud, Lock, Loader2, RefreshCw, Pencil, Cpu, Download, Check } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -97,6 +97,65 @@ const baseConsoles = [
   { id: "n64", label: "Nintendo 64", color: "text-[#ffff00]" },
 ];
 
+const DRIVE_SYNC_OAUTH_STATE_KEY = "drive_sync_oauth_external_state";
+const DRIVE_SYNC_OAUTH_RETURN_KEY = "drive_sync_oauth_return_path";
+
+const getCachedDriveToken = () => {
+  const cachedToken = localStorage.getItem("drive_access_token") || sessionStorage.getItem("drive_access_token");
+  const tokenExpiry = Number(localStorage.getItem("drive_token_expiry") || sessionStorage.getItem("drive_token_expiry") || 0);
+  if (cachedToken && tokenExpiry && Date.now() < tokenExpiry) return cachedToken;
+  return null;
+};
+
+const encodeDriveOAuthState = (returnPath: string) => {
+  const payload = JSON.stringify({
+    v: 1,
+    nonce: crypto.randomUUID?.() || `${Date.now()}-${Math.random()}`,
+    returnPath,
+  });
+  return btoa(payload).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+};
+
+const waitForGoogleIdentity = () =>
+  new Promise<any>((resolve, reject) => {
+    const existing = (window as any).google;
+    if (existing?.accounts?.oauth2) {
+      resolve(existing);
+      return;
+    }
+
+    let settled = false;
+    const finish = () => {
+      const google = (window as any).google;
+      if (google?.accounts?.oauth2) {
+        settled = true;
+        resolve(google);
+      }
+    };
+
+    const existingScript = document.querySelector<HTMLScriptElement>('script[src="https://accounts.google.com/gsi/client"]');
+    const script = existingScript || document.createElement("script");
+    const timeout = window.setTimeout(() => {
+      if (!settled) reject(new Error("Google Identity no termino de cargar."));
+    }, 12_000);
+
+    script.onload = () => {
+      window.clearTimeout(timeout);
+      finish();
+      if (!settled) reject(new Error("Google Identity no entrego OAuth."));
+    };
+    script.onerror = () => {
+      window.clearTimeout(timeout);
+      reject(new Error("No se pudo cargar Google Identity."));
+    };
+
+    if (!existingScript) {
+      script.src = "https://accounts.google.com/gsi/client";
+      script.async = true;
+      document.body.appendChild(script);
+    }
+  });
+
 interface LeaderboardScore {
   id: string;
   display_name: string;
@@ -157,6 +216,35 @@ export default function BibliotecaPage() {
   const [selectedConsole, setSelectedConsole] = useState<string>(initialConsoleParam);
   const [dropdownValue, setDropdownValue] = useState<string>(savedTab === "bet" ? "bet" : savedTab === "multi" ? "multi" : `console:${initialConsoleParam}`);
   const [preferNativeEmulator, setPreferNativeEmulator] = useState(true);
+  const [nativeDownloadMode, setNativeDownloadMode] = useState(false);
+  const [selectedDriveRomIds, setSelectedDriveRomIds] = useState<Set<string>>(() => new Set());
+  const [downloadedDriveRomIds, setDownloadedDriveRomIds] = useState<Set<string>>(() => new Set());
+  const [downloadingDriveRomIds, setDownloadingDriveRomIds] = useState<Set<string>>(() => new Set());
+
+  const downloadedDriveRomsKey = `biblioteca:nativeDownloaded:${user?.id || "anonymous"}`;
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const saved = JSON.parse(localStorage.getItem(downloadedDriveRomsKey) || "[]");
+      setDownloadedDriveRomIds(new Set(Array.isArray(saved) ? saved : []));
+    } catch {
+      setDownloadedDriveRomIds(new Set());
+    }
+    setSelectedDriveRomIds(new Set());
+    setNativeDownloadMode(false);
+  }, [downloadedDriveRomsKey]);
+
+  const markDriveRomDownloaded = (fileId: string) => {
+    setDownloadedDriveRomIds(prev => {
+      const next = new Set(prev);
+      next.add(fileId);
+      if (typeof window !== "undefined") {
+        localStorage.setItem(downloadedDriveRomsKey, JSON.stringify(Array.from(next)));
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -166,6 +254,10 @@ export default function BibliotecaPage() {
 
   const setNativeModePreference = (checked: boolean) => {
     setPreferNativeEmulator(checked);
+    if (!checked) {
+      setNativeDownloadMode(false);
+      setSelectedDriveRomIds(new Set());
+    }
     if (typeof window !== "undefined") {
       localStorage.setItem(`biblioteca:nativeMode:${selectedConsole}`, checked ? "native" : "web");
     }
@@ -294,7 +386,7 @@ export default function BibliotecaPage() {
     try {
       if (rescan) {
         try {
-          const token = await requestGoogleToken();
+          const token = await requestGoogleTokenForDrive();
           const folderQuery = "mimeType = 'application/vnd.google-apps.folder' and name = 'RetroRoms' and trashed = false";
           const folderRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(folderQuery)}&fields=files(id,name)`, {
             headers: { Authorization: `Bearer ${token}` }
@@ -470,6 +562,57 @@ export default function BibliotecaPage() {
     });
   };
 
+  const requestGoogleTokenForDrive = async (): Promise<string> => {
+    const cachedToken = getCachedDriveToken();
+    if (cachedToken) return cachedToken;
+
+    const launcher = getLauncherBridge();
+    if (launcher?.openExternal) {
+      const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+      if (!clientId) throw new Error("Google Drive no esta configurado.");
+
+      const returnPath = `${window.location.pathname}${window.location.search}` || "/arcade/biblioteca";
+      const state = encodeDriveOAuthState(returnPath);
+      localStorage.setItem(DRIVE_SYNC_OAUTH_STATE_KEY, state);
+      localStorage.setItem(DRIVE_SYNC_OAUTH_RETURN_KEY, returnPath);
+
+      const connectionUrl = new URL("/launcher/drive-sync", "https://forbiddens.net");
+      connectionUrl.searchParams.set("start", "1");
+      connectionUrl.searchParams.set("state", state);
+      connectionUrl.searchParams.set("return", returnPath);
+      await launcher.openExternal(connectionUrl.toString());
+
+      throw new Error("Autoriza Google Drive en el navegador y vuelve a intentar abrir el juego.");
+    }
+
+    const google = await waitForGoogleIdentity();
+    if (!google?.accounts?.oauth2) throw new Error("Google Identity no entrego OAuth.");
+
+    return new Promise((resolve, reject) => {
+      const client = google.accounts.oauth2.initTokenClient({
+        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+        scope: "https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file",
+        prompt: "",
+        callback: (response: any) => {
+          if (response.error) {
+            reject(response);
+            return;
+          }
+
+          const ttlMs = (response.expires_in ? response.expires_in * 1000 : 55 * 60 * 1000) - 60_000;
+          localStorage.setItem("drive_access_token", response.access_token);
+          localStorage.setItem("drive_token_expiry", (Date.now() + ttlMs).toString());
+          localStorage.setItem("drive_linked_until", (Date.now() + 24 * 60 * 60 * 1000).toString());
+          sessionStorage.setItem("drive_access_token", response.access_token);
+          sessionStorage.setItem("drive_token_expiry", (Date.now() + ttlMs).toString());
+          resolve(response.access_token);
+        },
+        error_callback: (error: any) => reject(error),
+      });
+      client.requestAccessToken();
+    });
+  };
+
 const handlePlayCloudGame = async (game: any) => {
     // Si ya hay un juego abriéndose, no hacemos nada
     if (launchingGameId) return;
@@ -500,9 +643,8 @@ const handlePlayCloudGame = async (game: any) => {
         }
       }
 
-      const accessToken = await requestGoogleToken();
-
       if (isPspCloudGame) {
+        const accessToken = await requestGoogleTokenForDrive();
         const pspFileName = game.fileName || game.originalName || game.name;
         sessionStorage.setItem(`psp_launch_${game.id}`, JSON.stringify({ name: pspFileName }));
         const pspUrl = `/psp-standalone.html?file=${encodeURIComponent(game.id)}&name=${encodeURIComponent(pspFileName)}&direct=1&speed=max`;
@@ -517,17 +659,21 @@ const handlePlayCloudGame = async (game: any) => {
         return;
       }
 
-      const response = await fetch(`https://www.googleapis.com/drive/v3/files/${game.id}?alt=media`, {
-        headers: { Authorization: `Bearer ${accessToken}` }
-      });
-      
-      if (!response.ok) throw new Error();
-      
-      const blob = await response.blob();
-      const file = new File([blob], game.name, { type: blob.type });
-      
       if (!(window as any).__localRoms) (window as any).__localRoms = {};
-      (window as any).__localRoms[game.id] = file;
+      (window as any).__localRoms[game.id] = (async () => {
+        const accessToken = await requestGoogleTokenForDrive();
+        const response = await fetch(`https://www.googleapis.com/drive/v3/files/${game.id}?alt=media`, {
+          headers: { Authorization: `Bearer ${accessToken}` }
+        });
+
+        if (!response.ok) throw new Error("No se pudo descargar la ROM desde Drive.");
+
+        const blob = await response.blob();
+        const fileName = game.fileName || game.originalName || game.name;
+        const file = new File([blob], fileName, { type: blob.type });
+        (window as any).__localRoms[game.id] = file;
+        return file;
+      })();
 
       launchGame({
         romUrl: `local:${game.id}`,
@@ -544,14 +690,21 @@ const handlePlayCloudGame = async (game: any) => {
       toast({ title: "Acceso denegado", description: "Hubo un error al leer la ROM desde tu Drive.", variant: "destructive" });
     } finally {
       // Cuando termina de cargar, limpiamos la ID
-      window.setTimeout(() => setLaunchingGameId(null), isPspCloudGame ? 900 : 0);
+      window.setTimeout(() => setLaunchingGameId(null), isPspCloudGame ? 900 : 350);
     }
   };
 
   const handlePlayCloudGameNative = async (game: any, event?: React.MouseEvent) => {
     event?.stopPropagation();
     const bridge = getLauncherBridge();
-    if (!bridge?.nativeEngineStatus || !bridge?.openDriveRomNative) return;
+    if (!bridge?.nativeEngineStatus || !bridge?.openDriveRomNative) {
+      toast({
+        title: "Launcher desactualizado",
+        description: "Actualiza FORBIDDENS Launcher para abrir ROMs de Drive en nativo.",
+        variant: "destructive",
+      });
+      return;
+    }
     if (nativeBusyGameId || launchingGameId) return;
 
     setNativeBusyGameId(game.id);
@@ -565,7 +718,12 @@ const handlePlayCloudGame = async (game: any) => {
         status = await bridge.installNativeEngine(game.console);
       }
 
-      const accessToken = await requestGoogleToken();
+      if (!downloadedDriveRomIds.has(game.id)) {
+        const wantsDownload = window.confirm(`Esta ROM aun no esta descargada para modo nativo. ¿Descargar "${game.name}" y abrirla ahora?`);
+        if (!wantsDownload) return;
+      }
+
+      const accessToken = await requestGoogleTokenForDrive();
       toast({ title: "Descargando desde Drive", description: "Guardando una copia local para el emulador nativo." });
       const launchResult: any = await bridge.openDriveRomNative({
         consoleId: game.console,
@@ -581,12 +739,70 @@ const handlePlayCloudGame = async (game: any) => {
         romPath,
         processId: typeof launchResult === "object" ? Number(launchResult?.process_id || 0) || null : null,
       });
+      markDriveRomDownloaded(game.id);
       toast({ title: "Abriendo emulador nativo", description: `${status.engine_name} iniciando con ${game.name}.` });
     } catch (error: any) {
       console.error(error);
       toast({
         title: "No se pudo abrir en nativo",
         description: formatLauncherBridgeError(error, "Hubo un error descargando desde Drive o abriendo el emulador."),
+        variant: "destructive",
+      });
+    } finally {
+      setNativeBusyGameId(null);
+    }
+  };
+
+  const handlePlayLibraryGameNative = async (game: any, event?: React.MouseEvent) => {
+    event?.stopPropagation();
+    const bridge = getLauncherBridge();
+    if (!bridge?.nativeEngineStatus || !bridge?.pickNativeRom || !bridge?.openNativeEmulator) {
+      toast({
+        title: "Launcher desactualizado",
+        description: "Actualiza FORBIDDENS Launcher para abrir juegos en emulador nativo.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (nativeBusyGameId || launchingGameId) return;
+    if (!user) {
+      toast({ title: "Acceso denegado", description: "Debes iniciar sesion para emular tus juegos.", variant: "destructive" });
+      return;
+    }
+
+    setNativeBusyGameId(game.id);
+    try {
+      let status = await bridge.nativeEngineStatus(game.console);
+      if (!status.installed) {
+        const wantsInstall = window.confirm(`Para jugar en nativo hay que instalar ${status.engine_name} en este PC. ¿Instalar ahora?`);
+        if (!wantsInstall) return;
+        if (!bridge.installNativeEngine) throw new Error("El launcher no tiene instalador nativo disponible.");
+        toast({ title: "Instalando motor nativo", description: `Preparando ${status.engine_name} para ${game.console.toUpperCase()}.` });
+        status = await bridge.installNativeEngine(game.console);
+        if (game.console === selectedConsole) setSelectedNativeStatus(status);
+      }
+
+      toast({
+        title: "Selecciona tu ROM",
+        description: `${status.engine_name} abrira el archivo local que elijas para ${game.console.toUpperCase()}.`,
+      });
+      const romPath = await bridge.pickNativeRom(game.console);
+      if (!romPath) return;
+
+      const launchResult: any = await bridge.openNativeEmulator(game.console, romPath);
+      launchNativeSession({
+        consoleName: game.console,
+        gameName: romPath.split(/[\\/]/).pop()?.replace(/\.[^.]+$/, "") || game.name,
+        engineName: status.engine_name || "Emulador nativo",
+        romPath,
+        processId: typeof launchResult === "object" ? Number(launchResult?.process_id || 0) || null : null,
+      });
+      toast({ title: "Abriendo emulador nativo", description: `${status.engine_name} iniciando desde FORBIDDENS Launcher.` });
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        title: "No se pudo abrir en nativo",
+        description: formatLauncherBridgeError(error, "Hubo un error abriendo el emulador nativo."),
         variant: "destructive",
       });
     } finally {
@@ -633,11 +849,83 @@ const handlePlayCloudGame = async (game: any) => {
     return [...official, ...cloud];
   }, [searchQuery, selectedConsole, driveGames]);
 
-  const hasCloudGames = currentGames.some((game: any) => game.isCloud);
   const canUseWebCloudMode = selectedConsole !== "psp";
+  const selectedConsoleHasNativeOption = ["psp", "ps2", "ps1", "ds", "nes", "snes", "gba", "gbc", "sega", "n64", "arcade"].includes(selectedConsole);
   const canOfferNativeMode = launcherDetected && launcherSupportsNative(selectedConsole);
   const forceNativeMode = canOfferNativeMode && !canUseWebCloudMode;
   const playCloudGamesNative = canOfferNativeMode && (forceNativeMode || preferNativeEmulator);
+  const visibleDriveRoms = currentGames.filter((game: any) => game.isCloud);
+  const canManageNativeDriveRoms = selectedConsoleHasNativeOption;
+  const selectedDriveRoms = visibleDriveRoms.filter((game: any) => selectedDriveRomIds.has(game.id));
+  const isBatchDownloadingDriveRoms = downloadingDriveRomIds.size > 0;
+
+  const toggleDriveRomSelection = (fileId: string) => {
+    setSelectedDriveRomIds(prev => {
+      const next = new Set(prev);
+      if (next.has(fileId)) next.delete(fileId);
+      else next.add(fileId);
+      return next;
+    });
+  };
+
+  const downloadSelectedDriveRomsForNative = async () => {
+    const bridge = getLauncherBridge();
+    if (!bridge?.downloadDriveRomForNative) {
+      toast({
+        title: "Launcher desactualizado",
+        description: "Actualiza FORBIDDENS Launcher para descargar ROMs nativas en lote.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (selectedDriveRoms.length === 0) {
+      toast({ title: "Selecciona ROMs", description: "Marca una o mas ROMs de Drive para descargarlas." });
+      return;
+    }
+
+    try {
+      const accessToken = await requestGoogleTokenForDrive();
+      let completed = 0;
+      for (const game of selectedDriveRoms) {
+        setDownloadingDriveRomIds(prev => new Set(prev).add(game.id));
+        try {
+          await bridge.downloadDriveRomForNative({
+            consoleId: game.console,
+            fileId: game.id,
+            fileName: game.fileName || game.originalName || game.name,
+            accessToken,
+          });
+          markDriveRomDownloaded(game.id);
+          setSelectedDriveRomIds(prev => {
+            const next = new Set(prev);
+            next.delete(game.id);
+            return next;
+          });
+          completed += 1;
+        } finally {
+          setDownloadingDriveRomIds(prev => {
+            const next = new Set(prev);
+            next.delete(game.id);
+            return next;
+          });
+        }
+      }
+
+      toast({
+        title: "ROMs listas para nativo",
+        description: `${completed} ROM${completed === 1 ? "" : "s"} guardada${completed === 1 ? "" : "s"} en el cache del launcher.`,
+      });
+      if (completed > 0) setNativeDownloadMode(false);
+    } catch (error: any) {
+      toast({
+        title: "No se pudieron descargar",
+        description: formatLauncherBridgeError(error, "Hubo un error descargando las ROMs seleccionadas."),
+        variant: "destructive",
+      });
+    } finally {
+      setDownloadingDriveRomIds(new Set());
+    }
+  };
 
   const leaderboardConsole = dropdownValue === "multi" ? "multiplayer" : dropdownValue === "bet" ? "bet" : selectedConsole;
 
@@ -992,99 +1280,172 @@ const handlePlayCloudGame = async (game: any) => {
             </div>
           ) : (
             <>
-              {canOfferNativeMode && (
-                <div className="mb-3 rounded-lg border border-neon-cyan/25 bg-black/35 p-3 shadow-[0_0_24px_rgba(34,211,238,0.06)] backdrop-blur-sm">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="min-w-0">
-                      <p className="font-pixel text-[9px] uppercase tracking-widest text-neon-cyan">
-                        Modo de emulacion
-                      </p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {forceNativeMode
-                          ? `${consoleInfo?.label} usa emulador nativo desde el launcher.`
-                          : !hasCloudGames
-                            ? "Elige como se abriran las ROMs de Drive cuando existan juegos de esta consola."
-                            : playCloudGamesNative
-                            ? `Tus ROMs de Drive se abriran con ${selectedNativeStatus?.engine_name || "emulador nativo"}.`
-                            : "Tus ROMs de Drive se abriran con el emulador web."}
-                      </p>
+              {selectedConsoleHasNativeOption && (
+                <div className="mb-3 rounded-lg border border-neon-cyan/25 bg-black/35 px-3 py-2 shadow-[0_0_24px_rgba(34,211,238,0.06)] backdrop-blur-sm">
+                  <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex min-w-0 flex-1 items-center gap-2">
+                      <span className={cn(
+                        "grid h-8 w-8 shrink-0 place-items-center rounded border",
+                        !launcherDetected
+                          ? "border-destructive/45 bg-destructive/10 text-destructive"
+                          : selectedNativeStatus?.installed
+                            ? "border-neon-green/45 bg-neon-green/10 text-neon-green"
+                            : "border-neon-cyan/45 bg-neon-cyan/10 text-neon-cyan"
+                      )}>
+                        {selectedNativeBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Cpu className="h-4 w-4" />}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate font-pixel text-[9px] uppercase tracking-widest text-neon-cyan">
+                          {selectedNativeStatus?.engine_name || "Emulador nativo"}
+                        </p>
+                        <p className="truncate text-[11px] text-muted-foreground">
+                          {!launcherDetected
+                            ? "Launcher no detectado"
+                            : !canOfferNativeMode
+                              ? "Puente nativo no disponible"
+                              : selectedNativeStatus?.installed
+                                ? "Instalado"
+                                : "Pendiente de instalar"}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex shrink-0 items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2">
-                      <span className={cn("font-pixel text-[8px] uppercase tracking-widest", !playCloudGamesNative ? "text-neon-cyan" : "text-muted-foreground")}>
-                        Web
-                      </span>
-                      <Switch
-                        checked={playCloudGamesNative}
-                        disabled={forceNativeMode}
-                        onCheckedChange={setNativeModePreference}
-                        className="data-[state=checked]:bg-neon-green data-[state=unchecked]:bg-neon-cyan/45"
-                        aria-label="Alternar entre emulador web y emulador nativo"
-                      />
-                      <span className={cn("font-pixel text-[8px] uppercase tracking-widest", playCloudGamesNative ? "text-neon-green" : "text-muted-foreground")}>
-                        Nativo
-                      </span>
+                    <div className="flex shrink-0 flex-wrap items-center gap-2 lg:justify-end">
+                      <div className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2">
+                        <span className={cn("font-pixel text-[8px] uppercase tracking-widest", !playCloudGamesNative ? "text-neon-cyan" : "text-muted-foreground")}>
+                          Web
+                        </span>
+                        <Switch
+                          checked={playCloudGamesNative}
+                          disabled={!canOfferNativeMode || forceNativeMode}
+                          onCheckedChange={setNativeModePreference}
+                          className="data-[state=checked]:bg-neon-green data-[state=unchecked]:bg-neon-cyan/45"
+                          aria-label="Alternar entre emulador web y emulador nativo"
+                        />
+                        <span className={cn("font-pixel text-[8px] uppercase tracking-widest", playCloudGamesNative ? "text-neon-green" : "text-muted-foreground")}>
+                          Nativo
+                        </span>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          const bridge = getLauncherBridge();
+                          if (!bridge) {
+                            toast({
+                              title: "Launcher no detectado",
+                              description: "Recarga FORBIDDENS Launcher. Si estas en navegador normal, este boton solo prepara descargas dentro del launcher.",
+                              variant: "destructive",
+                            });
+                            return;
+                          }
+                          if (!bridge.downloadDriveRomForNative) {
+                            toast({
+                              title: "Launcher desactualizado",
+                              description: "Actualiza FORBIDDENS Launcher para descargar ROMs nativas desde Biblioteca.",
+                              variant: "destructive",
+                            });
+                            return;
+                          }
+                          if (!playCloudGamesNative) setNativeModePreference(true);
+                          if (visibleDriveRoms.length === 0) {
+                            toast({
+                              title: "Sin ROMs de Drive",
+                              description: `No hay ROMs de Drive visibles para ${consoleInfo?.label}. Sincroniza Drive o limpia la busqueda para seleccionarlas.`,
+                            });
+                            return;
+                          }
+                          setNativeDownloadMode(prev => !prev);
+                          setSelectedDriveRomIds(new Set());
+                        }}
+                        className={cn(
+                          "h-8 border-neon-green/35 bg-neon-green/10 font-pixel text-[8px] uppercase tracking-widest text-neon-green hover:bg-neon-green/20",
+                          nativeDownloadMode && "border-neon-yellow/45 bg-neon-yellow/10 text-neon-yellow hover:bg-neon-yellow/20"
+                        )}
+                      >
+                        <Download className="mr-2 h-3.5 w-3.5" />
+                        {nativeDownloadMode ? "Cancelar" : "ROMs"}
+                      </Button>
+                      {playCloudGamesNative && selectedNativeStatus && !selectedNativeStatus.installed && (
+                        <Button
+                          size="sm"
+                          onClick={installSelectedNativeEngine}
+                          disabled={selectedNativeBusy}
+                          className="h-8 shrink-0 border border-neon-cyan/40 bg-neon-cyan/15 font-pixel text-[8px] uppercase tracking-widest text-neon-cyan hover:bg-neon-cyan/25"
+                        >
+                          {selectedNativeBusy ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Cpu className="mr-2 h-3.5 w-3.5" />}
+                          Instalar
+                        </Button>
+                      )}
+                      {playCloudGamesNative && selectedNativeStatus?.installed && (
+                        <Button
+                          size="sm"
+                          onClick={reinstallSelectedNativeEngine}
+                          disabled={selectedNativeBusy || !getLauncherBridge()?.reinstallNativeEngine}
+                          className="h-8 shrink-0 border border-neon-yellow/40 bg-neon-yellow/10 font-pixel text-[8px] uppercase tracking-widest text-neon-yellow hover:bg-neon-yellow/20"
+                        >
+                          {selectedNativeBusy ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="mr-2 h-3.5 w-3.5" />}
+                          Reinstalar
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </div>
               )}
-              {playCloudGamesNative && hasCloudGames && selectedNativeStatus && !selectedNativeStatus.installed && (
-                <div className="mb-3 rounded-lg border border-neon-cyan/30 bg-black/45 p-3 shadow-[0_0_24px_rgba(34,211,238,0.08)] backdrop-blur-sm">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="min-w-0">
-                      <p className="font-pixel text-[9px] uppercase tracking-widest text-neon-cyan">
-                        {selectedNativeStatus.engine_name} requerido
-                      </p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Instala el emulador una sola vez para desbloquear tus juegos de {consoleInfo?.label}.
-                      </p>
-                    </div>
-                    <Button
-                      size="sm"
-                      onClick={installSelectedNativeEngine}
-                      disabled={selectedNativeBusy}
-                      className="shrink-0 border border-neon-cyan/40 bg-neon-cyan/15 font-pixel text-[8px] uppercase tracking-widest text-neon-cyan hover:bg-neon-cyan/25"
-                    >
-                      {selectedNativeBusy ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Cpu className="mr-2 h-3.5 w-3.5" />}
-                      {selectedNativeBusy ? "Instalando..." : `Instalar ${selectedNativeStatus.engine_name}`}
-                    </Button>
-                  </div>
-                </div>
-              )}
-              {playCloudGamesNative && hasCloudGames && selectedNativeStatus?.installed && (
-                <div className="mb-3 rounded-lg border border-neon-yellow/25 bg-black/35 p-3 shadow-[0_0_24px_rgba(250,204,21,0.06)] backdrop-blur-sm">
+              {nativeDownloadMode && canManageNativeDriveRoms && (
+                <div className="mb-3 rounded-lg border border-neon-green/25 bg-neon-green/10 p-3">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
                       <p className="font-pixel text-[9px] uppercase tracking-widest text-neon-green">
-                        {selectedNativeStatus.engine_name} instalado
+                        Selecciona ROMs de Drive
                       </p>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        Si un juego queda en negro o el emulador se instalo a medias, reinstalalo desde aqui.
+                        Marcadas: {selectedDriveRomIds.size}. Ya descargadas: {visibleDriveRoms.filter((game: any) => downloadedDriveRomIds.has(game.id)).length}.
                       </p>
                     </div>
-                    <Button
-                      size="sm"
-                      onClick={reinstallSelectedNativeEngine}
-                      disabled={selectedNativeBusy || !getLauncherBridge()?.reinstallNativeEngine}
-                      className="shrink-0 border border-neon-yellow/40 bg-neon-yellow/10 font-pixel text-[8px] uppercase tracking-widest text-neon-yellow hover:bg-neon-yellow/20"
-                    >
-                      {selectedNativeBusy ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="mr-2 h-3.5 w-3.5" />}
-                      {selectedNativeBusy ? "Reinstalando..." : `Reinstalar ${selectedNativeStatus.engine_name}`}
-                    </Button>
+                    <div className="flex shrink-0 flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setSelectedDriveRomIds(new Set(visibleDriveRoms.map((game: any) => game.id)))}
+                        disabled={isBatchDownloadingDriveRoms}
+                        className="h-8 border-white/15 bg-white/5 font-pixel text-[8px] uppercase tracking-widest"
+                      >
+                        Seleccionar todo
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={downloadSelectedDriveRomsForNative}
+                        disabled={isBatchDownloadingDriveRoms || selectedDriveRomIds.size === 0}
+                        className="h-8 border border-neon-green/45 bg-neon-green/20 font-pixel text-[8px] uppercase tracking-widest text-neon-green hover:bg-neon-green/30"
+                      >
+                        {isBatchDownloadingDriveRoms ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Download className="mr-2 h-3.5 w-3.5" />}
+                        Descargar
+                      </Button>
+                    </div>
                   </div>
                 </div>
               )}
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
               {currentGames.map((game: any) => {
                 const needsNativeInstall = Boolean(
-                  game.isCloud &&
                   playCloudGamesNative &&
                   selectedNativeStatus &&
                   !selectedNativeStatus.installed
                 );
+                const isDriveRomSelected = game.isCloud && selectedDriveRomIds.has(game.id);
+                const isDriveRomDownloaded = game.isCloud && downloadedDriveRomIds.has(game.id);
+                const isDriveRomDownloading = game.isCloud && downloadingDriveRomIds.has(game.id);
                 return (
                 <div
                   key={game.id}
                   onClick={(event) => {
+                    if (nativeDownloadMode) {
+                      if (game.isCloud) toggleDriveRomSelection(game.id);
+                      return;
+                    }
                     if (needsNativeInstall) {
                       void installSelectedNativeEngine(event);
                       return;
@@ -1097,9 +1458,20 @@ const handlePlayCloudGame = async (game: any) => {
                       }
                       return;
                     }
+                    if (playCloudGamesNative) {
+                      void handlePlayLibraryGameNative(game, event);
+                      return;
+                    }
                     launchGame({ romUrl: game.romUrl, consoleName: selectedConsole, gameName: game.name, consoleCore: getCoreForConsole(selectedConsole), score: 0, playTime: 0 });
                   }}
-                  className="group bg-card border border-border rounded-lg overflow-hidden hover:border-primary/50 hover:shadow-lg transition-all duration-300 cursor-pointer relative"
+                  className={cn(
+                    "group bg-card border border-border rounded-lg overflow-hidden hover:border-primary/50 hover:shadow-lg transition-all duration-300 cursor-pointer relative",
+                    nativeDownloadMode && "hover:border-neon-green/50",
+                    nativeDownloadMode && game.isCloud && "grayscale opacity-70",
+                    nativeDownloadMode && !game.isCloud && "cursor-not-allowed opacity-35 grayscale",
+                    isDriveRomSelected && "border-neon-green/70 opacity-100 grayscale-0 shadow-[0_0_20px_rgba(57,255,20,0.18)]",
+                    isDriveRomDownloaded && nativeDownloadMode && "border-neon-cyan/50"
+                  )}
                 >
                   {game.isCloud && (
                     <>
@@ -1147,15 +1519,35 @@ const handlePlayCloudGame = async (game: any) => {
                         </span>
                       </div>
                     )}
+                    {nativeDownloadMode && game.isCloud && (
+                      <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-2 bg-black/52 px-3 text-center backdrop-blur-[1px]">
+                        <span className={cn(
+                          "grid h-8 w-8 place-items-center rounded-full border",
+                          isDriveRomSelected
+                            ? "border-neon-green/70 bg-neon-green/25 text-neon-green"
+                            : isDriveRomDownloaded
+                              ? "border-neon-cyan/60 bg-neon-cyan/20 text-neon-cyan"
+                              : "border-white/35 bg-white/10 text-white/70"
+                        )}>
+                          {isDriveRomDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : isDriveRomSelected || isDriveRomDownloaded ? <Check className="h-4 w-4" /> : <Download className="h-4 w-4" />}
+                        </span>
+                        <span className={cn(
+                          "font-pixel text-[8px] uppercase tracking-widest",
+                          isDriveRomSelected ? "text-neon-green" : isDriveRomDownloaded ? "text-neon-cyan" : "text-white/75"
+                        )}>
+                          {isDriveRomDownloading ? "Descargando" : isDriveRomSelected ? "Seleccionada" : isDriveRomDownloaded ? "Lista" : "Marcar"}
+                        </span>
+                      </div>
+                    )}
                   </div>
                   <div className="p-1.5 flex items-center gap-1">
-                    {game.isCloud && playCloudGamesNative ? (
+                    {playCloudGamesNative ? (
                       <Cpu className="w-2.5 h-2.5 text-neon-green transition-colors shrink-0" />
                     ) : (
                       <Play className="w-2.5 h-2.5 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
                     )}
                     <p className="text-[10px] font-body text-foreground truncate">{game.name}</p>
-                    {game.isCloud && canOfferNativeMode && (
+                    {canOfferNativeMode && (
                       <span className={cn(
                         "ml-auto shrink-0 rounded border px-1 py-0.5 font-pixel text-[7px] uppercase tracking-wider",
                         playCloudGamesNative

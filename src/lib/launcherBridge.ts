@@ -56,6 +56,12 @@ type LauncherBridge = {
     fileName: string;
     accessToken: string;
   }) => Promise<NativeEmulatorLaunchResult | string>;
+  downloadDriveRomForNative?: (args: {
+    consoleId: string;
+    fileId: string;
+    fileName: string;
+    accessToken: string;
+  }) => Promise<string>;
 };
 
 const buildBridgeFromTauri = (): LauncherBridge | null => {
@@ -86,6 +92,7 @@ const buildBridgeFromTauri = (): LauncherBridge | null => {
     closeNativeEmulator: (processId: number) => invoke("close_native_emulator", { processId }),
     setNativeEmulatorState: (processId: number, action: "minimize" | "restore" | "show" | "maximize") => invoke("set_native_emulator_state", { processId, action }),
     openDriveRomNative: (args) => invoke("open_drive_rom_native", args || {}),
+    downloadDriveRomForNative: (args) => invoke("download_drive_rom_for_native", args || {}),
   };
 
   (window as any).forbiddensLauncher = bridge;

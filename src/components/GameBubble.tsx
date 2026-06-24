@@ -1154,7 +1154,26 @@ export default function GameBubble() {
         // 🔥 CONVERSIÓN DE FILE LOCAL A UINT8ARRAY (Evita desincronización de Blob) 🔥
         if (typeof romSrc === "string" && romSrc.startsWith("local:")) {
           const fileId = romSrc.replace("local:", "");
-          const localFile = (window as any).__localRoms?.[fileId];
+          let localFile = (window as any).__localRoms?.[fileId];
+
+          if (localFile && typeof localFile.then === "function") {
+            toast({
+              title: "Descargando desde Drive",
+              description: "Preparando la ROM para el emulador web.",
+            });
+            try {
+              localFile = await localFile;
+              if ((window as any).__localRoms) (window as any).__localRoms[fileId] = localFile;
+            } catch (error: any) {
+              if ((window as any).__localRoms) delete (window as any).__localRoms[fileId];
+              toast({
+                title: "No se pudo cargar la ROM",
+                description: error?.message || "Drive no entrego el archivo para el emulador.",
+                variant: "destructive",
+              });
+              return;
+            }
+          }
 
           if (localFile instanceof File) {
             console.log("🎮 CARGANDO ROM LOCAL:", localFile.name, "TAMAÑO:", localFile.size);
