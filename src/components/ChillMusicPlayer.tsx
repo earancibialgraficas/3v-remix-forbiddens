@@ -682,6 +682,18 @@ export default function ChillMusicPlayer() {
       setIsPlaying((playing) => !playing);
       return;
     }
+    if (command === "volumeUp") {
+      setVolume((value) => Math.min(100, value + 10));
+      return;
+    }
+    if (command === "volumeDown") {
+      setVolume((value) => Math.max(0, value - 10));
+      return;
+    }
+    if (command === "mute") {
+      setVolume((value) => (value > 0 ? 0 : getStoredVolume() || 80));
+      return;
+    }
     if (command === "next") {
       next();
       return;

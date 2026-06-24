@@ -58,7 +58,7 @@ type LauncherBridge = {
   openNativeEmulator?: (consoleId: string, romPath?: string | null) => Promise<NativeEmulatorLaunchResult | string>;
   closeNativeEmulator?: (processId: number) => Promise<void>;
   setNativeEmulatorState?: (processId: number, action: "minimize" | "restore" | "show" | "maximize") => Promise<void>;
-  nativeEmulatorAction?: (processId: number, action: "menu" | "save_state" | "load_state") => Promise<void>;
+  nativeEmulatorAction?: (processId: number, action: "menu" | "save_state" | "load_state" | "pause_toggle") => Promise<void>;
   readNativeSaveFile?: (args: {
     consoleId: string;
     romPath: string;
@@ -130,7 +130,7 @@ const buildBridgeFromTauri = (): LauncherBridge | null => {
     openNativeEmulator: (consoleId: string, romPath?: string | null) => invoke("open_native_emulator", { consoleId, romPath: romPath || null }),
     closeNativeEmulator: (processId: number) => invoke("close_native_emulator", { processId }),
     setNativeEmulatorState: (processId: number, action: "minimize" | "restore" | "show" | "maximize") => invoke("set_native_emulator_state", { processId, action }),
-    nativeEmulatorAction: (processId: number, action: "menu" | "save_state" | "load_state") => invoke("native_emulator_action", { processId, action }),
+    nativeEmulatorAction: (processId: number, action: "menu" | "save_state" | "load_state" | "pause_toggle") => invoke("native_emulator_action", { processId, action }),
     readNativeSaveFile: (args) => invoke("read_native_save_file", args || {}),
     writeNativeSaveFile: (args) => invoke("write_native_save_file", args || {}),
     exportNativeLocalSave: (args) => invoke("export_native_local_save", args || {}),

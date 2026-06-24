@@ -95,8 +95,8 @@ struct NativeSaveFilePayload {
     size: u64,
 }
 
-const WEBSITE_URL: &str = "https://forbiddens.net/?launcher_version=0.1.26";
-const LAUNCHER_DOWNLOAD_URL: &str = "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.26_x64-setup.exe";
+const WEBSITE_URL: &str = "https://forbiddens.net/?launcher_version=0.1.27";
+const LAUNCHER_DOWNLOAD_URL: &str = "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.27_x64-setup.exe";
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 const LAUNCHER_BRIDGE_SCRIPT: &str = r#"
 (function () {
@@ -1668,18 +1668,23 @@ fn native_emulator_action(process_id: u32, action: String) -> Result<(), String>
         "menu" | "settings" | "config" => "{F1}",
         "save_state" | "savestate" => "{F2}",
         "load_state" => "{F4}",
+        "pause" | "pause_toggle" | "play_pause" => "p",
         _ => return Err("Accion del emulador no soportada.".to_string()),
     };
 
-    let script = "$ErrorActionPreference='Stop'; \
+    let script = "$ErrorActionPreference='SilentlyContinue'; \
       Add-Type 'using System; using System.Runtime.InteropServices; public class ForbiddensEmuInput { [DllImport(\"user32.dll\")] public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow); [DllImport(\"user32.dll\")] public static extern bool SetForegroundWindow(IntPtr hWnd); }'; \
       $processId = [int]$env:FORBIDDENS_EMU_PID; \
-      $p = Get-Process -Id $processId -ErrorAction Stop; \
-      if ($p.MainWindowHandle -eq 0) { throw 'No se encontro la ventana del emulador.' } \
-      [ForbiddensEmuInput]::ShowWindowAsync($p.MainWindowHandle, 9) | Out-Null; \
-      [ForbiddensEmuInput]::SetForegroundWindow($p.MainWindowHandle) | Out-Null; \
+      $p = Get-Process -Id $processId -ErrorAction SilentlyContinue; \
+      if (-not $p) { exit 0 } \
+      if ($p.MainWindowHandle -ne 0) { \
+        [ForbiddensEmuInput]::ShowWindowAsync($p.MainWindowHandle, 9) | Out-Null; \
+        [ForbiddensEmuInput]::SetForegroundWindow($p.MainWindowHandle) | Out-Null; \
+      } \
       Start-Sleep -Milliseconds 160; \
       $shell = New-Object -ComObject WScript.Shell; \
+      $shell.AppActivate($processId) | Out-Null; \
+      Start-Sleep -Milliseconds 80; \
       $shell.SendKeys($env:FORBIDDENS_EMU_KEYS)";
     let mut command = powershell_command(script);
     command.env("FORBIDDENS_EMU_PID", process_id.to_string());

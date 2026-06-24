@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Cpu, Download, Minus, Move, Pause, Play, Settings, Square, Trophy, Upload, X } from "lucide-react";
+import { CloudDownload, CloudUpload, Cpu, Download, Minus, Move, Pause, Play, Settings, SkipBack, SkipForward, Square, Trophy, Upload, Volume2, VolumeX, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useNativeSession } from "@/contexts/NativeSessionContext";
 import { getLauncherBridge } from "@/lib/launcherBridge";
-import { syncNativeCloudSave } from "@/lib/nativeCloudSaves";
+import { getNativeCloudSaveKind, isNativeCloudSaveSupported, restoreNativeCloudSave, syncNativeCloudSave } from "@/lib/nativeCloudSaves";
 
 const POINTS_INTERVAL_MS = 10_000;
 const POINTS_PER_INTERVAL = 10;
@@ -31,6 +31,11 @@ export default function NativeGameBubble() {
   const [paused, setPaused] = useState(false);
   const [position, setPosition] = useState(initialPosition);
   const [dragging, setDragging] = useState(false);
+  const [emulatorPaused, setEmulatorPaused] = useState(false);
+  const [musicTitle, setMusicTitle] = useState("FORBIDDENS Player");
+  const [musicVolume, setMusicVolume] = useState(80);
+  const [musicPlaying, setMusicPlaying] = useState(false);
+  const launcherPanelMode = Boolean(getLauncherBridge());
   const latestSessionRef = useRef(session);
   const bubbleRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef({ startX: 0, startY: 0, startPosX: 0, startPosY: 0 });
@@ -41,7 +46,27 @@ export default function NativeGameBubble() {
 
   useEffect(() => {
     setPaused(false);
+    setEmulatorPaused(false);
   }, [session?.id]);
+
+  useEffect(() => {
+    const syncMusicState = () => {
+      try {
+        const sessionText = localStorage.getItem("forbiddens_music_session_v2");
+        const session = sessionText ? JSON.parse(sessionText) : null;
+        setMusicTitle(localStorage.getItem("forbiddens_music_current_title") || session?.title || "FORBIDDENS Player");
+        setMusicVolume(Number(localStorage.getItem("forbiddens_music_volume") || session?.volume || 80));
+        setMusicPlaying(localStorage.getItem("forbiddens_music_playing") === "true" || Boolean(session?.playing));
+      } catch {}
+    };
+    syncMusicState();
+    const timer = window.setInterval(syncMusicState, 700);
+    window.addEventListener("storage", syncMusicState);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("storage", syncMusicState);
+    };
+  }, []);
 
   useEffect(() => {
     if (!session || paused) return;
@@ -68,6 +93,11 @@ export default function NativeGameBubble() {
     return consoleName === "psp" || consoleName === "ps2";
   }, [session?.consoleName]);
 
+  const supportsCloudSaveControls = useMemo(() => {
+    const consoleName = session?.consoleName?.toLowerCase();
+    return Boolean(consoleName && isNativeCloudSaveSupported(consoleName));
+  }, [session?.consoleName]);
+
   const clampPosition = useCallback((x: number, y: number) => {
     if (typeof window === "undefined") return { x, y };
     const rect = bubbleRef.current?.getBoundingClientRect();
@@ -80,6 +110,7 @@ export default function NativeGameBubble() {
   }, []);
 
   const startDrag = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (launcherPanelMode) return;
     const target = event.target as HTMLElement;
     if (target.closest("[data-native-action]")) return;
     event.currentTarget.setPointerCapture?.(event.pointerId);
@@ -208,6 +239,93 @@ export default function NativeGameBubble() {
       return false;
     });
   }, []);
+
+  const saveNativeCloudNow = async () => {
+    const current = latestSessionRef.current;
+    if (!current) return;
+    try {
+      const synced = await syncCurrentNativeSave();
+      toast({
+        title: synced ? "Partida guardada" : "Sin save detectable",
+        description: synced
+          ? "Se sincronizo el save nativo con tu nube."
+          : "Aun no se encontro un archivo de guardado para subir.",
+        variant: synced ? undefined : "destructive",
+      });
+    } catch (error: any) {
+      toast({
+        title: "No se pudo guardar",
+        description: error?.message || "El save nativo no se pudo sincronizar.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const loadNativeCloudNow = async () => {
+    const current = latestSessionRef.current;
+    if (!current?.romPath) return;
+    try {
+      const restored = await restoreNativeCloudSave({
+        consoleId: current.consoleName,
+        gameName: current.gameName,
+        romPath: current.romPath,
+      });
+      if (!restored) {
+        toast({
+          title: "No hay save en la nube",
+          description: "Todavia no existe una partida nativa guardada para este juego.",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (getNativeCloudSaveKind(current.consoleName) === "savestate" && current.processId) {
+        await getLauncherBridge()?.nativeEmulatorAction?.(current.processId, "load_state").catch(() => {});
+        toast({ title: "Partida cargada", description: "Se cargo el savestate nativo desde la nube." });
+        return;
+      }
+      toast({
+        title: "Save preparado",
+        description: "Reinicia el juego nativo para que el emulador lea el save restaurado.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "No se pudo cargar",
+        description: error?.message || "El save nativo no se pudo restaurar.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const sendMusicCommand = (command: "prev" | "playPause" | "next" | "volumeUp" | "volumeDown" | "mute") => {
+    try {
+      const payload = { type: "forbiddens-music-command", command, source: "native-panel", at: Date.now() };
+      if (typeof BroadcastChannel !== "undefined") {
+        const channel = new BroadcastChannel("forbiddens_music_player");
+        channel.postMessage(payload);
+        channel.close();
+      }
+      localStorage.setItem("forbiddens_music_command", JSON.stringify(payload));
+      window.dispatchEvent(new StorageEvent("storage", { key: "forbiddens_music_command", newValue: JSON.stringify(payload) }));
+    } catch {}
+  };
+
+  const toggleEmulatorPause = async () => {
+    const current = latestSessionRef.current;
+    if (!current?.processId) return;
+    const bridge = getLauncherBridge();
+    try {
+      await bridge?.nativeEmulatorAction?.(current.processId, "pause_toggle");
+      setEmulatorPaused((value) => !value);
+      setPaused((value) => !value);
+      maximizeNativeSession();
+    } catch (error: any) {
+      toast({
+        title: "No se pudo pausar",
+        description: error?.message || "No se pudo enviar la pausa al emulador.",
+        variant: "destructive",
+      });
+    }
+  };
 
   useEffect(() => {
     const listen = (window as any).__TAURI__?.event?.listen;
@@ -420,13 +538,15 @@ export default function NativeGameBubble() {
     <div
       ref={bubbleRef}
       className={cn(
-        "fixed z-[80] w-[min(94vw,330px)] overflow-hidden rounded-lg border border-neon-cyan/30 bg-[#080a10]/92 shadow-[0_0_40px_rgba(34,211,238,0.22)] backdrop-blur-xl",
+        launcherPanelMode
+          ? "fixed bottom-2 left-2 right-2 top-12 z-[80] flex flex-col overflow-hidden rounded-lg border border-neon-cyan/30 bg-[#080a10]/92 shadow-[0_0_40px_rgba(34,211,238,0.22)] backdrop-blur-xl"
+          : "fixed z-[80] w-[min(94vw,330px)] overflow-hidden rounded-lg border border-neon-cyan/30 bg-[#080a10]/92 shadow-[0_0_40px_rgba(34,211,238,0.22)] backdrop-blur-xl",
         dragging && "select-none",
       )}
-      style={{ left: position.x, top: position.y }}
+      style={launcherPanelMode ? undefined : { left: position.x, top: position.y }}
     >
       <div
-        className="flex cursor-move items-center justify-between gap-2 border-b border-white/10 bg-white/[0.03] px-2.5 py-1.5"
+        className={cn("flex items-center justify-between gap-2 border-b border-white/10 bg-white/[0.03] px-2.5 py-1.5", !launcherPanelMode && "cursor-move")}
         onPointerDown={startDrag}
       >
         <div className="flex min-w-0 items-center gap-2">
@@ -439,7 +559,7 @@ export default function NativeGameBubble() {
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1">
-          <Move className="h-3.5 w-3.5 text-white/35" />
+          {!launcherPanelMode && <Move className="h-3.5 w-3.5 text-white/35" />}
           <Button data-native-action size="icon" variant="ghost" className="h-6 w-6" onClick={openEmulatorSettings} aria-label="Configuracion del emulador">
             <Settings className="h-3.5 w-3.5" />
           </Button>
@@ -452,7 +572,7 @@ export default function NativeGameBubble() {
         </div>
       </div>
 
-      <div className="p-2.5">
+      <div className={cn("p-2.5", launcherPanelMode && "flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto")}>
         <div className="rounded border border-white/10 bg-black/45 p-2.5">
           <p className="truncate text-xs font-semibold text-white">{session.gameName}</p>
           <p className="mt-1 truncate text-[10px] text-white/45">{session.romPath || "ROM local"}</p>
@@ -471,6 +591,74 @@ export default function NativeGameBubble() {
           </div>
         </div>
 
+        <div className="rounded border border-neon-magenta/20 bg-neon-magenta/10 p-2">
+          <div className="flex items-center justify-between gap-2">
+            <p className="font-pixel text-[8px] uppercase text-neon-magenta">Mini reproductor</p>
+            <span className="flex items-center gap-1 text-[9px] text-neon-cyan">
+              {musicVolume <= 0 ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
+              {musicVolume}%
+            </span>
+          </div>
+          <p className="mt-1 truncate rounded border border-white/10 bg-black/35 px-2 py-1 text-[10px] text-white/75">{musicTitle}</p>
+          <div className="mt-2 grid grid-cols-3 gap-2">
+            <Button size="sm" variant="outline" onClick={() => sendMusicCommand("prev")} className="h-9 border-white/10 bg-white/5" title="Anterior" aria-label="Anterior">
+              <SkipBack className="h-4 w-4" />
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => sendMusicCommand("playPause")} className="h-9 border-neon-magenta/30 bg-neon-magenta/15 text-neon-magenta" title={musicPlaying ? "Pausar musica" : "Reproducir musica"} aria-label={musicPlaying ? "Pausar musica" : "Reproducir musica"}>
+              {musicPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => sendMusicCommand("next")} className="h-9 border-white/10 bg-white/5" title="Siguiente" aria-label="Siguiente">
+              <SkipForward className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="mt-2 grid grid-cols-3 gap-2">
+            <Button size="sm" variant="outline" onClick={() => sendMusicCommand("volumeDown")} className="h-8 border-white/10 bg-white/5 text-[12px]" title="Bajar volumen" aria-label="Bajar volumen">-</Button>
+            <Button size="sm" variant="outline" onClick={() => sendMusicCommand("mute")} className="h-8 border-white/10 bg-white/5" title="Mutear volumen" aria-label="Mutear volumen">
+              {musicVolume <= 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => sendMusicCommand("volumeUp")} className="h-8 border-white/10 bg-white/5 text-[12px]" title="Subir volumen" aria-label="Subir volumen">+</Button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={toggleEmulatorPause}
+            className={cn("h-9 border-white/10 bg-white/5 text-[10px]", emulatorPaused && "border-neon-yellow/40 text-neon-yellow")}
+          >
+            {emulatorPaused ? <Play className="mr-2 h-3.5 w-3.5" /> : <Pause className="mr-2 h-3.5 w-3.5" />}
+            {emulatorPaused ? "Play" : "Pausa"}
+          </Button>
+          <Button size="sm" variant="outline" onClick={openEmulatorSettings} className="h-9 border-white/10 bg-white/5 text-[10px]">
+            <Settings className="mr-2 h-3.5 w-3.5" />
+            Config
+          </Button>
+        </div>
+
+        {supportsCloudSaveControls && (
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={saveNativeCloudNow}
+              className="h-9 border-neon-green/25 bg-neon-green/10 text-[10px] text-neon-green"
+            >
+              <CloudUpload className="mr-2 h-3.5 w-3.5" />
+              Guardar
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={loadNativeCloudNow}
+              className="h-9 border-neon-cyan/25 bg-neon-cyan/10 text-[10px] text-neon-cyan"
+            >
+              <CloudDownload className="mr-2 h-3.5 w-3.5" />
+              Cargar
+            </Button>
+          </div>
+        )}
+
         <div className="mt-2 flex items-center gap-2">
           <Button
             size="sm"
@@ -479,7 +667,7 @@ export default function NativeGameBubble() {
             className={cn("h-8 flex-1 border-white/10 bg-white/5 text-[10px]", paused && "border-neon-yellow/40 text-neon-yellow")}
           >
             {paused ? <Play className="mr-2 h-3.5 w-3.5" /> : <Pause className="mr-2 h-3.5 w-3.5" />}
-            {paused ? "Reanudar STATS" : "Pausar STATS"}
+            {paused ? "STATS on" : "STATS off"}
           </Button>
           <Button size="sm" onClick={finishSession} className="h-8 flex-1 bg-neon-cyan/20 text-[10px] text-neon-cyan hover:bg-neon-cyan/30">
             <Square className="mr-2 h-3.5 w-3.5" />

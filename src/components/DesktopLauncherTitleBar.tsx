@@ -61,6 +61,7 @@ export default function DesktopLauncherTitleBar() {
   const activeStatBoost = useActiveStatBoost(user?.id);
 
   const activeSession = sessions[currentSessionIndex];
+  const hasNativeSession = sessions.length > 0;
 
   useEffect(() => {
     if (visible) return;
@@ -246,15 +247,17 @@ export default function DesktopLauncherTitleBar() {
         >
           <Minus className="h-4 w-4" />
         </button>
-        <button
-          type="button"
-          onClick={() => windowAction("toggle_maximize")}
-          className="grid h-full w-11 place-items-center text-white/70 transition-all duration-150 hover:bg-neon-green/10 hover:text-neon-green hover:shadow-[inset_0_-2px_0_rgba(57,255,20,0.65)] active:bg-neon-green/15"
-          aria-label={maximized ? "Restaurar" : "Maximizar"}
-          title={maximized ? "Restaurar" : "Maximizar"}
-        >
-          {maximized ? <Copy className="h-3.5 w-3.5" /> : <Square className="h-3.5 w-3.5" />}
-        </button>
+        {!hasNativeSession && (
+          <button
+            type="button"
+            onClick={() => windowAction("toggle_maximize")}
+            className="grid h-full w-11 place-items-center text-white/70 transition-all duration-150 hover:bg-neon-green/10 hover:text-neon-green hover:shadow-[inset_0_-2px_0_rgba(57,255,20,0.65)] active:bg-neon-green/15"
+            aria-label={maximized ? "Restaurar" : "Maximizar"}
+            title={maximized ? "Restaurar" : "Maximizar"}
+          >
+            {maximized ? <Copy className="h-3.5 w-3.5" /> : <Square className="h-3.5 w-3.5" />}
+          </button>
+        )}
         <button
           type="button"
           onClick={() => windowAction("close")}
