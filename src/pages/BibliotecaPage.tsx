@@ -635,7 +635,7 @@ const handlePlayCloudGame = async (game: any) => {
 
   const hasCloudGames = currentGames.some((game: any) => game.isCloud);
   const canUseWebCloudMode = selectedConsole !== "psp";
-  const canOfferNativeMode = launcherDetected && launcherSupportsNative(selectedConsole) && hasCloudGames;
+  const canOfferNativeMode = launcherDetected && launcherSupportsNative(selectedConsole);
   const forceNativeMode = canOfferNativeMode && !canUseWebCloudMode;
   const playCloudGamesNative = canOfferNativeMode && (forceNativeMode || preferNativeEmulator);
 
@@ -1002,7 +1002,9 @@ const handlePlayCloudGame = async (game: any) => {
                       <p className="mt-1 text-xs text-muted-foreground">
                         {forceNativeMode
                           ? `${consoleInfo?.label} usa emulador nativo desde el launcher.`
-                          : playCloudGamesNative
+                          : !hasCloudGames
+                            ? "Elige como se abriran las ROMs de Drive cuando existan juegos de esta consola."
+                            : playCloudGamesNative
                             ? `Tus ROMs de Drive se abriran con ${selectedNativeStatus?.engine_name || "emulador nativo"}.`
                             : "Tus ROMs de Drive se abriran con el emulador web."}
                       </p>
@@ -1025,7 +1027,7 @@ const handlePlayCloudGame = async (game: any) => {
                   </div>
                 </div>
               )}
-              {playCloudGamesNative && selectedNativeStatus && !selectedNativeStatus.installed && (
+              {playCloudGamesNative && hasCloudGames && selectedNativeStatus && !selectedNativeStatus.installed && (
                 <div className="mb-3 rounded-lg border border-neon-cyan/30 bg-black/45 p-3 shadow-[0_0_24px_rgba(34,211,238,0.08)] backdrop-blur-sm">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
@@ -1048,7 +1050,7 @@ const handlePlayCloudGame = async (game: any) => {
                   </div>
                 </div>
               )}
-              {playCloudGamesNative && selectedNativeStatus?.installed && (
+              {playCloudGamesNative && hasCloudGames && selectedNativeStatus?.installed && (
                 <div className="mb-3 rounded-lg border border-neon-yellow/25 bg-black/35 p-3 shadow-[0_0_24px_rgba(250,204,21,0.06)] backdrop-blur-sm">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
