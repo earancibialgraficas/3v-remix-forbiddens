@@ -1,9 +1,10 @@
 use std::{
-    env, fs, io,
+    env, fs,
+    io::{self, BufRead, BufReader},
     path::{Path, PathBuf},
     process::{Command, Stdio},
     thread,
-    time::Duration,
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
 use base64::{engine::general_purpose, Engine as _};
@@ -95,6 +96,30 @@ struct NativeSaveFilePayload {
     size: u64,
 }
 
+#[derive(Serialize, Clone)]
+struct NativeDownloadJob {
+    job_id: String,
+    console_id: String,
+    game_id: String,
+    file_name: String,
+    rom_path: String,
+    cached: bool,
+}
+
+#[derive(Serialize, Clone)]
+struct NativeDownloadProgressEvent {
+    job_id: String,
+    console_id: String,
+    game_id: String,
+    file_name: String,
+    rom_path: String,
+    status: String,
+    progress: f64,
+    downloaded: u64,
+    total: u64,
+    error: Option<String>,
+}
+
 const WEBSITE_URL: &str = "https://forbiddens.net/?launcher_version=0.1.27";
 const LAUNCHER_DOWNLOAD_URL: &str = "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.27_x64-setup.exe";
 const CREATE_NO_WINDOW: u32 = 0x08000000;
@@ -177,6 +202,8 @@ const LAUNCHER_BRIDGE_SCRIPT: &str = r#"
     writeNativeSaveFile: function (args) { return invoke("write_native_save_file", args || {}); },
     exportNativeLocalSave: function (args) { return invoke("export_native_local_save", args || {}); },
     importNativeLocalSave: function (args) { return invoke("import_native_local_save", args || {}); },
+    startDriveRomDownloadForNative: function (args) { return invoke("start_drive_rom_download_for_native", args || {}); },
+    startRemoteRomDownloadForNative: function (args) { return invoke("start_remote_rom_download_for_native", args || {}); },
     downloadRemoteRomForNative: function (args) { return invoke("download_remote_rom_for_native", args || {}); },
     downloadDriveRomForNative: function (args) { return invoke("download_drive_rom_for_native", args || {}); },
     openDriveRomNative: function (args) { return invoke("open_drive_rom_native", args || {}); },
@@ -1093,6 +1120,167 @@ fn download_file(url: &str, destination: &Path) -> Result<(), String> {
     run_hidden(command)
 }
 
+fn native_download_job_id(prefix: &str, game_id: &str) -> String {
+    let millis = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_millis())
+        .unwrap_or(0);
+    format!("{}-{}-{}", prefix, sanitize_file_name(game_id), millis)
+}
+
+fn emit_native_download_progress(
+    app: &AppHandle,
+    job: &NativeDownloadJob,
+    status: &str,
+    progress: f64,
+    downloaded: u64,
+    total: u64,
+    error: Option<String>,
+) {
+    let _ = app.emit(
+        "forbiddens-native-download-progress",
+        NativeDownloadProgressEvent {
+            job_id: job.job_id.clone(),
+            console_id: job.console_id.clone(),
+            game_id: job.game_id.clone(),
+            file_name: job.file_name.clone(),
+            rom_path: job.rom_path.clone(),
+            status: status.to_string(),
+            progress,
+            downloaded,
+            total,
+            error,
+        },
+    );
+}
+
+fn download_url_with_progress(
+    app: AppHandle,
+    job: NativeDownloadJob,
+    url: String,
+    auth_header: Option<String>,
+    temp_target: PathBuf,
+    target: PathBuf,
+) {
+    thread::spawn(move || {
+        emit_native_download_progress(&app, &job, "downloading", 0.0, 0, 0, None);
+
+        let Some(parent) = temp_target.parent() else {
+            emit_native_download_progress(&app, &job, "error", 0.0, 0, 0, Some("No se pudo preparar la carpeta de descarga.".to_string()));
+            return;
+        };
+        if let Err(error) = fs::create_dir_all(parent) {
+            emit_native_download_progress(&app, &job, "error", 0.0, 0, 0, Some(error.to_string()));
+            return;
+        }
+        let _ = fs::remove_file(&temp_target);
+
+        let script = "$ErrorActionPreference='Stop'; \
+          $ProgressPreference='SilentlyContinue'; \
+          $uri = [Environment]::GetEnvironmentVariable('FORBIDDENS_DOWNLOAD_URL'); \
+          $tmp = [Environment]::GetEnvironmentVariable('FORBIDDENS_DOWNLOAD_TEMP'); \
+          $auth = [Environment]::GetEnvironmentVariable('FORBIDDENS_DOWNLOAD_AUTH'); \
+          $request = [System.Net.HttpWebRequest]::Create($uri); \
+          $request.AllowAutoRedirect = $true; \
+          if ($auth) { $request.Headers.Add('Authorization', $auth) } \
+          $response = $request.GetResponse(); \
+          $total = [int64]$response.ContentLength; \
+          $input = $response.GetResponseStream(); \
+          $output = [System.IO.File]::Open($tmp, [System.IO.FileMode]::Create, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None); \
+          $buffer = New-Object byte[] 262144; \
+          $readTotal = [int64]0; \
+          try { \
+            while (($read = $input.Read($buffer, 0, $buffer.Length)) -gt 0) { \
+              $output.Write($buffer, 0, $read); \
+              $readTotal += $read; \
+              $percent = 0; \
+              if ($total -gt 0) { $percent = [math]::Min(99, [math]::Floor(($readTotal * 100) / $total)) } \
+              Write-Output \"PROGRESS:$($percent):$($readTotal):$($total)\"; \
+            } \
+          } finally { \
+            $output.Close(); \
+            if ($input) { $input.Close() } \
+            if ($response) { $response.Close() } \
+          } \
+          if (-not (Test-Path -LiteralPath $tmp -PathType Leaf)) { throw 'No se pudo crear el archivo temporal.' } \
+          if ((Get-Item -LiteralPath $tmp).Length -le 0) { throw 'La descarga quedo vacia.' } \
+          Write-Output \"PROGRESS:100:$($readTotal):$($total)\"";
+
+        let mut command = powershell_command(script);
+        command.env("FORBIDDENS_DOWNLOAD_URL", url);
+        command.env("FORBIDDENS_DOWNLOAD_TEMP", temp_target.to_string_lossy().to_string());
+        command.env("FORBIDDENS_DOWNLOAD_AUTH", auth_header.unwrap_or_default());
+        command.stdout(Stdio::piped());
+        command.stderr(Stdio::piped());
+
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            command.creation_flags(CREATE_NO_WINDOW);
+        }
+
+        let mut child = match command.spawn() {
+            Ok(child) => child,
+            Err(error) => {
+                emit_native_download_progress(&app, &job, "error", 0.0, 0, 0, Some(error.to_string()));
+                return;
+            }
+        };
+
+        if let Some(stdout) = child.stdout.take() {
+            let reader = BufReader::new(stdout);
+            for line in reader.lines().flatten() {
+                if let Some(rest) = line.strip_prefix("PROGRESS:") {
+                    let parts: Vec<&str> = rest.split(':').collect();
+                    if parts.len() >= 3 {
+                        let progress = parts[0].parse::<f64>().unwrap_or(0.0);
+                        let downloaded = parts[1].parse::<u64>().unwrap_or(0);
+                        let total = parts[2].parse::<u64>().unwrap_or(0);
+                        emit_native_download_progress(&app, &job, "downloading", progress, downloaded, total, None);
+                    }
+                }
+            }
+        }
+
+        let output = match child.wait_with_output() {
+            Ok(output) => output,
+            Err(error) => {
+                emit_native_download_progress(&app, &job, "error", 0.0, 0, 0, Some(error.to_string()));
+                return;
+            }
+        };
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+            let detail = if stderr.is_empty() {
+                "No se pudo completar la descarga.".to_string()
+            } else {
+                stderr
+            };
+            let _ = fs::remove_file(&temp_target);
+            emit_native_download_progress(&app, &job, "error", 0.0, 0, 0, Some(detail));
+            return;
+        }
+
+        if !temp_target.exists() || temp_target.metadata().map(|meta| meta.len()).unwrap_or(0) == 0 {
+            let _ = fs::remove_file(&temp_target);
+            emit_native_download_progress(&app, &job, "error", 0.0, 0, 0, Some("No se pudo guardar la ROM descargada.".to_string()));
+            return;
+        }
+        if target.exists() {
+            let _ = fs::remove_file(&target);
+        }
+        if let Err(error) = fs::rename(&temp_target, &target) {
+            let _ = fs::remove_file(&temp_target);
+            emit_native_download_progress(&app, &job, "error", 0.0, 0, 0, Some(error.to_string()));
+            return;
+        }
+
+        let size = target.metadata().map(|meta| meta.len()).unwrap_or(0);
+        emit_native_download_progress(&app, &job, "completed", 100.0, size, size, None);
+    });
+}
+
 fn powershell_single_quoted(value: &str) -> String {
     format!("'{}'", value.replace('\'', "''"))
 }
@@ -2001,6 +2189,47 @@ fn download_drive_rom_for_native(
 }
 
 #[tauri::command]
+fn start_drive_rom_download_for_native(
+    app: AppHandle,
+    console_id: String,
+    file_id: String,
+    file_name: String,
+    access_token: String,
+) -> Result<NativeDownloadJob, String> {
+    let normalized = console_id.trim().to_lowercase();
+    if get_engine_config(&normalized).is_none() {
+        return Err("Esta consola aun no tiene motor nativo configurado.".to_string());
+    }
+
+    let safe_name = sanitize_file_name(&file_name);
+    let safe_id = sanitize_file_name(&file_id);
+    let cache_dir = local_app_data_dir().join("roms").join(&normalized);
+    fs::create_dir_all(&cache_dir).map_err(|error| error.to_string())?;
+    let target = cache_dir.join(format!("{}_{}", safe_id, safe_name));
+    let temp_target = cache_dir.join(format!("{}.download", safe_id));
+    let cached = target.exists() && target.metadata().map(|meta| meta.len()).unwrap_or(0) > 0;
+    let job = NativeDownloadJob {
+        job_id: native_download_job_id("drive", &file_id),
+        console_id: normalized.clone(),
+        game_id: file_id.trim().to_string(),
+        file_name: safe_name,
+        rom_path: target.to_string_lossy().to_string(),
+        cached,
+    };
+    if cached {
+        return Ok(job);
+    }
+
+    let url = format!(
+        "https://www.googleapis.com/drive/v3/files/{}?alt=media",
+        file_id.trim()
+    );
+    let auth_header = format!("Bearer {}", access_token.trim());
+    download_url_with_progress(app, job.clone(), url, Some(auth_header), temp_target, target);
+    Ok(job)
+}
+
+#[tauri::command]
 fn download_remote_rom_for_native(
     console_id: String,
     game_id: String,
@@ -2049,6 +2278,47 @@ fn download_remote_rom_for_native(
     fs::rename(&temp_target, &target).map_err(|error| error.to_string())?;
 
     Ok(target.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+fn start_remote_rom_download_for_native(
+    app: AppHandle,
+    console_id: String,
+    game_id: String,
+    file_name: String,
+    rom_url: String,
+) -> Result<NativeDownloadJob, String> {
+    let normalized = console_id.trim().to_lowercase();
+    if get_engine_config(&normalized).is_none() {
+        return Err("Esta consola aun no tiene motor nativo configurado.".to_string());
+    }
+
+    let trimmed_url = rom_url.trim();
+    if !(trimmed_url.starts_with("https://") || trimmed_url.starts_with("http://")) {
+        return Err("La ROM publica no tiene una URL valida.".to_string());
+    }
+
+    let safe_name = sanitize_file_name(&file_name);
+    let safe_id = sanitize_file_name(&game_id);
+    let cache_dir = local_app_data_dir().join("roms").join("public").join(&normalized);
+    fs::create_dir_all(&cache_dir).map_err(|error| error.to_string())?;
+    let target = cache_dir.join(format!("{}_{}", safe_id, safe_name));
+    let temp_target = cache_dir.join(format!("{}.download", safe_id));
+    let cached = target.exists() && target.metadata().map(|meta| meta.len()).unwrap_or(0) > 0;
+    let job = NativeDownloadJob {
+        job_id: native_download_job_id("remote", &game_id),
+        console_id: normalized,
+        game_id: game_id.trim().to_string(),
+        file_name: safe_name,
+        rom_path: target.to_string_lossy().to_string(),
+        cached,
+    };
+    if cached {
+        return Ok(job);
+    }
+
+    download_url_with_progress(app, job.clone(), trimmed_url.to_string(), None, temp_target, target);
+    Ok(job)
 }
 
 #[tauri::command]
@@ -2150,6 +2420,8 @@ pub fn run() {
             write_native_save_file,
             export_native_local_save,
             import_native_local_save,
+            start_drive_rom_download_for_native,
+            start_remote_rom_download_for_native,
             download_drive_rom_for_native,
             open_drive_rom_native,
             download_remote_rom_for_native,

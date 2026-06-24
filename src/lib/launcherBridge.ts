@@ -40,6 +40,28 @@ export interface NativeSaveFilePayload {
   size: number;
 }
 
+export interface NativeDownloadJob {
+  job_id: string;
+  console_id: string;
+  game_id: string;
+  file_name: string;
+  rom_path: string;
+  cached: boolean;
+}
+
+export interface NativeDownloadProgressEvent {
+  job_id: string;
+  console_id: string;
+  game_id: string;
+  file_name: string;
+  rom_path: string;
+  status: "downloading" | "completed" | "error";
+  progress: number;
+  downloaded: number;
+  total: number;
+  error?: string | null;
+}
+
 type LauncherBridge = {
   launcherInfo?: () => Promise<{ version: string; website_url: string }>;
   openExternal?: (url: string) => Promise<boolean>;
@@ -77,6 +99,18 @@ type LauncherBridge = {
   importNativeLocalSave?: (args: {
     consoleId: string;
   }) => Promise<string | null>;
+  startDriveRomDownloadForNative?: (args: {
+    consoleId: string;
+    fileId: string;
+    fileName: string;
+    accessToken: string;
+  }) => Promise<NativeDownloadJob>;
+  startRemoteRomDownloadForNative?: (args: {
+    consoleId: string;
+    gameId: string;
+    fileName: string;
+    romUrl: string;
+  }) => Promise<NativeDownloadJob>;
   downloadRemoteRomForNative?: (args: {
     consoleId: string;
     gameId: string;
@@ -135,6 +169,8 @@ const buildBridgeFromTauri = (): LauncherBridge | null => {
     writeNativeSaveFile: (args) => invoke("write_native_save_file", args || {}),
     exportNativeLocalSave: (args) => invoke("export_native_local_save", args || {}),
     importNativeLocalSave: (args) => invoke("import_native_local_save", args || {}),
+    startDriveRomDownloadForNative: (args) => invoke("start_drive_rom_download_for_native", args || {}),
+    startRemoteRomDownloadForNative: (args) => invoke("start_remote_rom_download_for_native", args || {}),
     downloadRemoteRomForNative: (args) => invoke("download_remote_rom_for_native", args || {}),
     openDriveRomNative: (args) => invoke("open_drive_rom_native", args || {}),
     openRemoteRomNative: (args) => invoke("open_remote_rom_native", args || {}),

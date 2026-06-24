@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import VaultHint from "@/components/VaultHint";
-import { Gamepad2, Trophy, Play, User, Lightbulb, Send, Search, Cloud, Lock, Loader2, RefreshCw, Pencil, Cpu, Download, Check } from "lucide-react";
+import { Gamepad2, Trophy, Play, User, Lightbulb, Send, Search, Cloud, Lock, Loader2, RefreshCw, Pencil, Cpu, Download, Check, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +19,7 @@ import VaultPasswordModal from "@/components/VaultPasswordModal";
 import MultiplayerGameBubble from "@/components/MultiplayerGameBubble";
 import { consoleTypeToId, dedupeDriveRomCandidates, getConsoleType, listDriveRomFiles, ROM_FILE_REGEX } from "@/lib/driveRomUtils";
 import { buildCoverBackupMap, getCoverBackup, loadLocalCoverBackups, saveLocalCoverBackups } from "@/lib/driveCoverBackup";
-import { formatLauncherBridgeError, getLauncherBridge, launcherSupportsNative, type NativeEngineStatus } from "@/lib/launcherBridge";
+import { formatLauncherBridgeError, getLauncherBridge, launcherSupportsNative, type NativeDownloadProgressEvent, type NativeEngineStatus } from "@/lib/launcherBridge";
 import { useNativeSession } from "@/contexts/NativeSessionContext";
 import { getDriveOAuthChannelName, storeDriveAccessToken } from "@/lib/driveOAuthBridge";
 import { getNativeCloudSaveKind, restoreNativeCloudSave } from "@/lib/nativeCloudSaves";
@@ -91,6 +91,27 @@ const GameCover = ({ gameName, consoleId, isCloud, defaultCover, customCover }: 
   );
 };
 // ---------------------------------------------------
+
+type NativeDownloadUiJob = {
+  jobId: string;
+  gameId: string;
+  gameName: string;
+  consoleId: string;
+  engineName: string;
+  romPath: string;
+  source: "drive" | "public";
+  autoOpen: boolean;
+  progress: number;
+  downloaded: number;
+  total: number;
+  status: "downloading" | "completed" | "error";
+  error?: string | null;
+};
+
+const formatDownloadBytes = (bytes: number) => {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0 MB";
+  return `${(bytes / 1024 / 1024).toFixed(bytes >= 100 * 1024 * 1024 ? 0 : 1)} MB`;
+};
 
 const baseConsoles = [
   { id: "nes", label: "NES", color: "text-neon-green" },
@@ -222,6 +243,8 @@ export default function BibliotecaPage() {
   const [selectedDriveRomIds, setSelectedDriveRomIds] = useState<Set<string>>(() => new Set());
   const [downloadedDriveRomIds, setDownloadedDriveRomIds] = useState<Set<string>>(() => new Set());
   const [downloadingDriveRomIds, setDownloadingDriveRomIds] = useState<Set<string>>(() => new Set());
+  const [nativeDownloadJobs, setNativeDownloadJobs] = useState<NativeDownloadUiJob[]>([]);
+  const nativeDownloadJobsRef = useRef<NativeDownloadUiJob[]>([]);
 
   const downloadedDriveRomsKey = `biblioteca:nativeDownloaded:${user?.id || "anonymous"}`;
 
@@ -247,6 +270,109 @@ export default function BibliotecaPage() {
       return next;
     });
   };
+
+  const upsertNativeDownloadJob = useCallback((job: NativeDownloadUiJob) => {
+    setNativeDownloadJobs((prev) => {
+      const next = [job, ...prev.filter((item) => item.jobId !== job.jobId)].slice(0, 4);
+      nativeDownloadJobsRef.current = next;
+      return next;
+    });
+  }, []);
+
+  const patchNativeDownloadJob = useCallback((jobId: string, patch: Partial<NativeDownloadUiJob>) => {
+    setNativeDownloadJobs((prev) => {
+      const next = prev.map((item) => (item.jobId === jobId ? { ...item, ...patch } : item));
+      nativeDownloadJobsRef.current = next;
+      return next;
+    });
+  }, []);
+
+  const openDownloadedNativeGame = useCallback(async (job: NativeDownloadUiJob) => {
+    const bridge = getLauncherBridge();
+    if (!bridge?.openNativeEmulator) return;
+    try {
+      const restoredNativeSave = await restoreNativeCloudSave({
+        consoleId: job.consoleId,
+        gameName: job.gameName,
+        romPath: job.romPath,
+      }).catch((error) => {
+        console.warn("Native cloud save restore skipped:", error);
+        return false;
+      });
+      const launchResult: any = await bridge.openNativeEmulator(job.consoleId, job.romPath);
+      const processId = typeof launchResult === "object" ? Number(launchResult?.process_id || 0) || null : null;
+      if (restoredNativeSave && getNativeCloudSaveKind(job.consoleId) === "savestate" && processId) {
+        window.setTimeout(() => {
+          bridge.nativeEmulatorAction?.(processId, "load_state").catch(() => {});
+        }, 1800);
+      }
+      launchNativeSession({
+        consoleName: job.consoleId,
+        gameName: job.gameName,
+        engineName: job.engineName || "Emulador nativo",
+        romPath: job.romPath,
+        processId,
+      });
+      if (job.source === "drive") markDriveRomDownloaded(job.gameId);
+      patchNativeDownloadJob(job.jobId, { status: "completed", progress: 100 });
+      toast({ title: "Abriendo emulador nativo", description: `${job.engineName} iniciando con ${job.gameName}.` });
+    } catch (error: any) {
+      patchNativeDownloadJob(job.jobId, {
+        status: "error",
+        error: formatLauncherBridgeError(error, "La ROM se descargo, pero no se pudo abrir el emulador."),
+      });
+    }
+  }, [launchNativeSession, patchNativeDownloadJob, toast]);
+
+  useEffect(() => {
+    const listen = (window as any).__TAURI__?.event?.listen;
+    if (typeof listen !== "function") return;
+
+    let unlisten: (() => void) | null = null;
+    listen("forbiddens-native-download-progress", (event: any) => {
+      const payload = event?.payload as NativeDownloadProgressEvent | undefined;
+      if (!payload?.job_id) return;
+      const currentJob = nativeDownloadJobsRef.current.find((job) => job.jobId === payload.job_id);
+      if (!currentJob) return;
+
+      patchNativeDownloadJob(payload.job_id, {
+        status: payload.status,
+        progress: Math.max(0, Math.min(100, Number(payload.progress || 0))),
+        downloaded: Number(payload.downloaded || 0),
+        total: Number(payload.total || 0),
+        error: payload.error || null,
+      });
+
+      if (payload.status === "completed") {
+        const completedJob = {
+          ...currentJob,
+          romPath: payload.rom_path || currentJob.romPath,
+          status: "completed" as const,
+          progress: 100,
+        };
+        if (completedJob.source === "drive") markDriveRomDownloaded(completedJob.gameId);
+        setDownloadingDriveRomIds((prev) => {
+          const next = new Set(prev);
+          next.delete(completedJob.gameId);
+          return next;
+        });
+        setSelectedDriveRomIds((prev) => {
+          const next = new Set(prev);
+          next.delete(completedJob.gameId);
+          return next;
+        });
+        if (completedJob.autoOpen) {
+          void openDownloadedNativeGame(completedJob);
+        }
+      }
+    }).then((cleanup: () => void) => {
+      unlisten = cleanup;
+    }).catch(() => {});
+
+    return () => {
+      unlisten?.();
+    };
+  }, [openDownloadedNativeGame, patchNativeDownloadJob]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -744,7 +870,7 @@ const handlePlayCloudGame = async (game: any) => {
   const handlePlayCloudGameNative = async (game: any, event?: React.MouseEvent) => {
     event?.stopPropagation();
     const bridge = getLauncherBridge();
-    if (!bridge?.nativeEngineStatus || !bridge?.downloadDriveRomForNative || !bridge?.openNativeEmulator) {
+    if (!bridge?.nativeEngineStatus || ((!bridge?.startDriveRomDownloadForNative && !bridge?.downloadDriveRomForNative) || !bridge?.openNativeEmulator)) {
       toast({
         title: "Launcher desactualizado",
         description: "Actualiza FORBIDDENS Launcher para abrir ROMs de Drive en nativo.",
@@ -771,6 +897,36 @@ const handlePlayCloudGame = async (game: any) => {
       }
 
       const accessToken = await requestGoogleTokenForDrive();
+      if (bridge.startDriveRomDownloadForNative) {
+        const job = await bridge.startDriveRomDownloadForNative({
+          consoleId: game.console,
+          fileId: game.id,
+          fileName: game.fileName || game.originalName || game.name,
+          accessToken,
+        });
+        const uiJob: NativeDownloadUiJob = {
+          jobId: job.job_id,
+          gameId: game.id,
+          gameName: game.name,
+          consoleId: game.console,
+          engineName: status.engine_name || "Emulador nativo",
+          romPath: job.rom_path,
+          source: "drive",
+          autoOpen: true,
+          progress: job.cached ? 100 : 0,
+          downloaded: 0,
+          total: 0,
+          status: job.cached ? "completed" : "downloading",
+        };
+        upsertNativeDownloadJob(uiJob);
+        if (job.cached) {
+          await openDownloadedNativeGame(uiJob);
+        } else {
+          toast({ title: "Descarga en segundo plano", description: `Puedes seguir usando el launcher mientras baja ${game.name}.` });
+        }
+        return;
+      }
+
       toast({ title: "Descargando desde Drive", description: "Guardando una copia local para el emulador nativo." });
       const romPath = await bridge.downloadDriveRomForNative({
         consoleId: game.console,
@@ -817,7 +973,7 @@ const handlePlayCloudGame = async (game: any) => {
   const handlePlayLibraryGameNative = async (game: any, event?: React.MouseEvent) => {
     event?.stopPropagation();
     const bridge = getLauncherBridge();
-    if (!bridge?.nativeEngineStatus || ((!bridge?.downloadRemoteRomForNative || !bridge?.openNativeEmulator) && !bridge?.openRemoteRomNative && (!bridge?.pickNativeRom || !bridge?.openNativeEmulator))) {
+    if (!bridge?.nativeEngineStatus || (((!bridge?.startRemoteRomDownloadForNative && !bridge?.downloadRemoteRomForNative) || !bridge?.openNativeEmulator) && !bridge?.openRemoteRomNative && (!bridge?.pickNativeRom || !bridge?.openNativeEmulator))) {
       toast({
         title: "Launcher desactualizado",
         description: "Actualiza FORBIDDENS Launcher para abrir juegos en emulador nativo.",
@@ -847,7 +1003,37 @@ const handlePlayCloudGame = async (game: any) => {
       let romPath: string | null = null;
       let restoredNativeSave = false;
 
-      if (bridge.downloadRemoteRomForNative && bridge.openNativeEmulator && game.romUrl) {
+      if (bridge.startRemoteRomDownloadForNative && bridge.openNativeEmulator && game.romUrl) {
+        const romUrl = new URL(game.romUrl, window.location.origin).href;
+        const fileName = decodeURIComponent(romUrl.split("/").pop() || `${game.id}.rom`);
+        const job = await bridge.startRemoteRomDownloadForNative({
+          consoleId: game.console,
+          gameId: game.id,
+          fileName,
+          romUrl,
+        });
+        const uiJob: NativeDownloadUiJob = {
+          jobId: job.job_id,
+          gameId: game.id,
+          gameName: game.name,
+          consoleId: game.console,
+          engineName: status.engine_name || "Emulador nativo",
+          romPath: job.rom_path,
+          source: "public",
+          autoOpen: true,
+          progress: job.cached ? 100 : 0,
+          downloaded: 0,
+          total: 0,
+          status: job.cached ? "completed" : "downloading",
+        };
+        upsertNativeDownloadJob(uiJob);
+        if (job.cached) {
+          await openDownloadedNativeGame(uiJob);
+        } else {
+          toast({ title: "Descarga en segundo plano", description: `Puedes seguir usando el launcher mientras baja ${game.name}.` });
+        }
+        return;
+      } else if (bridge.downloadRemoteRomForNative && bridge.openNativeEmulator && game.romUrl) {
         const romUrl = new URL(game.romUrl, window.location.origin).href;
         const fileName = decodeURIComponent(romUrl.split("/").pop() || `${game.id}.rom`);
         toast({
@@ -1010,7 +1196,7 @@ const handlePlayCloudGame = async (game: any) => {
 
   const downloadSelectedDriveRomsForNative = async () => {
     const bridge = getLauncherBridge();
-    if (!bridge?.downloadDriveRomForNative) {
+    if (!bridge?.startDriveRomDownloadForNative && !bridge?.downloadDriveRomForNative) {
       toast({
         title: "Launcher desactualizado",
         description: "Actualiza FORBIDDENS Launcher para descargar ROMs nativas en lote.",
@@ -1030,33 +1216,75 @@ const handlePlayCloudGame = async (game: any) => {
         setDownloadingDriveRomIds(prev => new Set(prev).add(game.id));
         try {
           await ensureDriveRomIsAccessible(game, accessToken);
-          await bridge.downloadDriveRomForNative({
-            consoleId: game.console,
-            fileId: game.id,
-            fileName: game.fileName || game.originalName || game.name,
-            accessToken,
-          });
-          markDriveRomDownloaded(game.id);
-          setSelectedDriveRomIds(prev => {
-            const next = new Set(prev);
-            next.delete(game.id);
-            return next;
-          });
-          completed += 1;
+          if (bridge.startDriveRomDownloadForNative) {
+            const job = await bridge.startDriveRomDownloadForNative({
+              consoleId: game.console,
+              fileId: game.id,
+              fileName: game.fileName || game.originalName || game.name,
+              accessToken,
+            });
+            const uiJob: NativeDownloadUiJob = {
+              jobId: job.job_id,
+              gameId: game.id,
+              gameName: game.name,
+              consoleId: game.console,
+              engineName: selectedNativeStatus?.engine_name || "Emulador nativo",
+              romPath: job.rom_path,
+              source: "drive",
+              autoOpen: false,
+              progress: job.cached ? 100 : 0,
+              downloaded: 0,
+              total: 0,
+              status: job.cached ? "completed" : "downloading",
+            };
+            upsertNativeDownloadJob(uiJob);
+            if (job.cached) {
+              markDriveRomDownloaded(game.id);
+              setDownloadingDriveRomIds(prev => {
+                const next = new Set(prev);
+                next.delete(game.id);
+                return next;
+              });
+              setSelectedDriveRomIds(prev => {
+                const next = new Set(prev);
+                next.delete(game.id);
+                return next;
+              });
+            }
+            completed += 1;
+          } else {
+            await bridge.downloadDriveRomForNative?.({
+              consoleId: game.console,
+              fileId: game.id,
+              fileName: game.fileName || game.originalName || game.name,
+              accessToken,
+            });
+            markDriveRomDownloaded(game.id);
+            setSelectedDriveRomIds(prev => {
+              const next = new Set(prev);
+              next.delete(game.id);
+              return next;
+            });
+            completed += 1;
+          }
         } finally {
-          setDownloadingDriveRomIds(prev => {
-            const next = new Set(prev);
-            next.delete(game.id);
-            return next;
-          });
+          if (!bridge.startDriveRomDownloadForNative) {
+            setDownloadingDriveRomIds(prev => {
+              const next = new Set(prev);
+              next.delete(game.id);
+              return next;
+            });
+          }
         }
       }
 
       toast({
-        title: "ROMs listas para nativo",
-        description: `${completed} ROM${completed === 1 ? "" : "s"} guardada${completed === 1 ? "" : "s"} en el cache del launcher.`,
+        title: bridge.startDriveRomDownloadForNative ? "Descargas iniciadas" : "ROMs listas para nativo",
+        description: bridge.startDriveRomDownloadForNative
+          ? `${completed} descarga${completed === 1 ? "" : "s"} corriendo en segundo plano.`
+          : `${completed} ROM${completed === 1 ? "" : "s"} guardada${completed === 1 ? "" : "s"} en el cache del launcher.`,
       });
-      if (completed > 0) setNativeDownloadMode(false);
+      if (completed > 0 && !bridge.startDriveRomDownloadForNative) setNativeDownloadMode(false);
     } catch (error: any) {
       const message = formatLauncherBridgeError(error, "Hubo un error descargando las ROMs seleccionadas.");
       if (/sincronizacion vieja|no encontro|cuenta correcta|misma cuenta|permiso/i.test(message)) {
@@ -1485,7 +1713,7 @@ const handlePlayCloudGame = async (game: any) => {
                             });
                             return;
                           }
-                          if (!bridge.downloadDriveRomForNative) {
+                          if (!bridge.startDriveRomDownloadForNative && !bridge.downloadDriveRomForNative) {
                             toast({
                               title: "Launcher desactualizado",
                               description: "Actualiza FORBIDDENS Launcher para descargar ROMs nativas desde Biblioteca.",
@@ -1868,6 +2096,54 @@ const handlePlayCloudGame = async (game: any) => {
       </Dialog>
 
       <MultiplayerGameBubble game={selectedMultiGame} onClose={() => setSelectedMultiGame(null)} />
+
+      {nativeDownloadJobs.length > 0 && (
+        <div className="fixed bottom-3 left-1/2 z-[260] w-[min(560px,calc(100vw-24px))] -translate-x-1/2 space-y-2">
+          {nativeDownloadJobs.map((job) => (
+            <div key={job.jobId} className="rounded-lg border border-neon-cyan/30 bg-black/88 p-3 shadow-[0_12px_34px_rgba(0,0,0,0.55),0_0_24px_rgba(34,211,238,0.18)] backdrop-blur-xl">
+              <div className="flex items-start gap-2">
+                <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded border border-neon-cyan/35 bg-neon-cyan/10 text-neon-cyan">
+                  {job.status === "downloading" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : job.status === "completed" ? <Check className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="truncate font-pixel text-[8px] uppercase tracking-widest text-neon-cyan">
+                      {job.status === "downloading" ? "Descargando ROM nativa" : job.status === "completed" ? "ROM lista" : "Error de descarga"}
+                    </p>
+                    <span className="shrink-0 font-pixel text-[8px] text-white/65">{Math.round(job.progress || 0)}%</span>
+                  </div>
+                  <p className="mt-0.5 truncate text-[11px] text-white/80">{job.gameName}</p>
+                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
+                    <div
+                      className={cn("h-full rounded-full transition-all duration-300", job.status === "error" ? "bg-neon-red" : "bg-neon-cyan")}
+                      style={{ width: `${Math.max(4, Math.min(100, job.progress || 0))}%` }}
+                    />
+                  </div>
+                  <div className="mt-1 flex items-center justify-between gap-2 text-[9px] text-white/45">
+                    <span>{job.total > 0 ? `${formatDownloadBytes(job.downloaded)} / ${formatDownloadBytes(job.total)}` : "Preparando descarga..."}</span>
+                    <span className="truncate">{job.error || (job.status === "completed" ? "Abriendo emulador..." : "Puedes seguir usando el launcher")}</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNativeDownloadJobs((prev) => {
+                      const next = prev.filter((item) => item.jobId !== job.jobId);
+                      nativeDownloadJobsRef.current = next;
+                      return next;
+                    });
+                  }}
+                  className="grid h-6 w-6 shrink-0 place-items-center rounded text-white/45 transition-colors hover:bg-white/10 hover:text-white"
+                  aria-label="Ocultar descarga"
+                  title="Ocultar"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
     </div>
   );
