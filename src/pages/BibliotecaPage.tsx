@@ -21,6 +21,7 @@ import { consoleTypeToId, dedupeDriveRomCandidates, getConsoleType, listDriveRom
 import { buildCoverBackupMap, getCoverBackup, loadLocalCoverBackups, saveLocalCoverBackups } from "@/lib/driveCoverBackup";
 import { formatLauncherBridgeError, getLauncherBridge, launcherSupportsNative, type NativeEngineStatus } from "@/lib/launcherBridge";
 import { useNativeSession } from "@/contexts/NativeSessionContext";
+import { getDriveOAuthChannelName, storeDriveAccessToken } from "@/lib/driveOAuthBridge";
 
 // --- MINI COMPONENTE PARA PORTADAS INTELIGENTES ---
 const GameCover = ({ gameName, consoleId, isCloud, defaultCover, customCover }: { gameName: string, consoleId: string, isCloud: boolean, defaultCover?: string, customCover?: string | null }) => {
@@ -580,9 +581,59 @@ export default function BibliotecaPage() {
       connectionUrl.searchParams.set("start", "1");
       connectionUrl.searchParams.set("state", state);
       connectionUrl.searchParams.set("return", returnPath);
-      await launcher.openExternal(connectionUrl.toString());
 
-      throw new Error("Autoriza Google Drive en el navegador y vuelve a intentar abrir el juego.");
+      const channelName = getDriveOAuthChannelName(state);
+      if (!channelName) throw new Error("No se pudo crear el canal de autorizacion de Drive.");
+
+      toast({
+        title: "Autoriza Google Drive",
+        description: "Se abrira tu navegador. Al aceptar, el launcher continuara automaticamente.",
+      });
+
+      return new Promise((resolve, reject) => {
+        const channel = supabase.channel(channelName);
+        let settled = false;
+        let opened = false;
+        let timeout: number;
+
+        const cleanup = async () => {
+          window.clearTimeout(timeout);
+          localStorage.removeItem(DRIVE_SYNC_OAUTH_STATE_KEY);
+          localStorage.removeItem(DRIVE_SYNC_OAUTH_RETURN_KEY);
+          await supabase.removeChannel(channel);
+        };
+
+        const finish = (handler: () => void) => {
+          if (settled) return;
+          settled = true;
+          void cleanup();
+          handler();
+        };
+
+        timeout = window.setTimeout(() => {
+          finish(() => reject(new Error("No se recibio la autorizacion de Google Drive. Vuelve a intentarlo desde el launcher.")));
+        }, 180_000);
+
+        channel.on("broadcast", { event: "drive-token" }, ({ payload }: any) => {
+          if (!payload || payload.state !== state || !payload.accessToken) return;
+          storeDriveAccessToken(payload.accessToken, payload.expiresIn);
+          finish(() => resolve(payload.accessToken));
+        });
+
+        channel.subscribe(async status => {
+          if (settled) return;
+          if (status === "SUBSCRIBED" && !opened) {
+            opened = true;
+            const ok = await launcher.openExternal?.(connectionUrl.toString());
+            if (!ok) {
+              finish(() => reject(new Error("No se pudo abrir el navegador para autorizar Google Drive.")));
+            }
+          }
+          if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+            finish(() => reject(new Error("No se pudo preparar la verificacion con el launcher. Intenta de nuevo.")));
+          }
+        });
+      });
     }
 
     const google = await waitForGoogleIdentity();
@@ -599,12 +650,7 @@ export default function BibliotecaPage() {
             return;
           }
 
-          const ttlMs = (response.expires_in ? response.expires_in * 1000 : 55 * 60 * 1000) - 60_000;
-          localStorage.setItem("drive_access_token", response.access_token);
-          localStorage.setItem("drive_token_expiry", (Date.now() + ttlMs).toString());
-          localStorage.setItem("drive_linked_until", (Date.now() + 24 * 60 * 60 * 1000).toString());
-          sessionStorage.setItem("drive_access_token", response.access_token);
-          sessionStorage.setItem("drive_token_expiry", (Date.now() + ttlMs).toString());
+          storeDriveAccessToken(response.access_token, response.expires_in);
           resolve(response.access_token);
         },
         error_callback: (error: any) => reject(error),

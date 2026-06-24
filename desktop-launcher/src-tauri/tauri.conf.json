@@ -1,12 +1,12 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "FORBIDDENS",
-  "version": "0.1.18",
+  "version": "0.1.20",
   "identifier": "app.forbiddens.launcher",
   "build": {
     "beforeDevCommand": "",
     "beforeBuildCommand": "",
-    "devUrl": "https://forbiddens.net/?launcher_version=0.1.18",
+    "devUrl": "https://forbiddens.net/?launcher_version=0.1.20",
     "frontendDist": "../launcher-fallback"
   },
   "app": {
@@ -15,7 +15,7 @@
       {
         "label": "main",
         "title": "FORBIDDENS",
-        "url": "https://forbiddens.net/?launcher_version=0.1.18",
+        "url": "https://forbiddens.net/?launcher_version=0.1.20",
         "width": 1280,
         "height": 820,
         "minWidth": 1024,

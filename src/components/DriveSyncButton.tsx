@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { dedupeDriveRomCandidates, getConsoleType, listDriveRomFiles, ROM_FILE_REGEX } from '@/lib/driveRomUtils';
 import { buildCoverBackupMap, getCoverBackup, loadLocalCoverBackups, saveLocalCoverBackups } from '@/lib/driveCoverBackup';
 import { getLauncherBridge } from '@/lib/launcherBridge';
+import { getDriveOAuthChannelName, storeDriveAccessToken } from '@/lib/driveOAuthBridge';
 
 const DRIVE_SYNC_RESUME_KEY = 'drive_sync_resume_after_reload';
 const DRIVE_SYNC_RELOAD_KEY = 'drive_sync_oauth_reload_attempted';
@@ -152,7 +153,70 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
       connectionUrl.searchParams.set('start', '1');
       connectionUrl.searchParams.set('state', state);
       connectionUrl.searchParams.set('return', returnPath);
-      void launcher.openExternal(connectionUrl.toString());
+      const channelName = getDriveOAuthChannelName(state);
+      if (!channelName) {
+        toast({ title: 'Error', description: 'No se pudo preparar la verificacion con el launcher.', variant: 'destructive' });
+        return;
+      }
+
+      setIsSyncing(true);
+      const channel = supabase.channel(channelName);
+      let settled = false;
+      let opened = false;
+      let timeout: number;
+
+      const cleanup = async () => {
+        window.clearTimeout(timeout);
+        localStorage.removeItem(DRIVE_SYNC_OAUTH_STATE_KEY);
+        localStorage.removeItem(DRIVE_SYNC_OAUTH_RETURN_KEY);
+        await supabase.removeChannel(channel);
+      };
+
+      const finish = (handler: () => void) => {
+        if (settled) return;
+        settled = true;
+        void cleanup();
+        handler();
+      };
+
+      timeout = window.setTimeout(() => {
+        finish(() => {
+          setIsSyncing(false);
+          toast({
+            title: 'Tiempo agotado',
+            description: 'No se recibio la autorizacion de Google Drive. Intenta de nuevo desde el launcher.',
+            variant: 'destructive',
+          });
+        });
+      }, 180_000);
+
+      channel.on('broadcast', { event: 'drive-token' }, ({ payload }: any) => {
+        if (!payload || payload.state !== state || !payload.accessToken) return;
+        storeDriveAccessToken(payload.accessToken, payload.expiresIn);
+        finish(() => {
+          void fetchAndSaveRoms(payload.accessToken);
+        });
+      });
+
+      channel.subscribe(async status => {
+        if (settled) return;
+        if (status === 'SUBSCRIBED' && !opened) {
+          opened = true;
+          const ok = await launcher.openExternal?.(connectionUrl.toString());
+          if (!ok) {
+            finish(() => {
+              setIsSyncing(false);
+              toast({ title: 'No se pudo abrir Google', description: 'El launcher no pudo abrir el navegador externo.', variant: 'destructive' });
+            });
+          }
+        }
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          finish(() => {
+            setIsSyncing(false);
+            toast({ title: 'Error', description: 'No se pudo preparar la verificacion con el launcher.', variant: 'destructive' });
+          });
+        }
+      });
       toast({
         title: 'Autoriza Google en tu navegador',
         description: 'Se abrió Google fuera del launcher. Al volver a FORBIDDENS se sincronizará tu Drive.',
@@ -207,12 +271,7 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
             return;
           }
 
-          const ttlMs = (tokenResponse.expires_in ? tokenResponse.expires_in * 1000 : 55 * 60 * 1000) - 60_000;
-          localStorage.setItem('drive_access_token', tokenResponse.access_token);
-          localStorage.setItem('drive_token_expiry', (Date.now() + ttlMs).toString());
-          localStorage.setItem('drive_linked_until', (Date.now() + 24 * 60 * 60 * 1000).toString());
-          sessionStorage.setItem('drive_access_token', tokenResponse.access_token);
-          sessionStorage.setItem('drive_token_expiry', (Date.now() + ttlMs).toString());
+          storeDriveAccessToken(tokenResponse.access_token, tokenResponse.expires_in);
 
           await fetchAndSaveRoms(tokenResponse.access_token);
         },
@@ -374,13 +433,7 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
 
     localStorage.removeItem(DRIVE_SYNC_OAUTH_STATE_KEY);
     window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
-    const expiresIn = Number(params.get("expires_in") || 3300);
-    const ttlMs = Math.max(60_000, expiresIn * 1000 - 60_000);
-    localStorage.setItem("drive_access_token", token);
-    localStorage.setItem("drive_token_expiry", (Date.now() + ttlMs).toString());
-    localStorage.setItem("drive_linked_until", (Date.now() + 24 * 60 * 60 * 1000).toString());
-    sessionStorage.setItem("drive_access_token", token);
-    sessionStorage.setItem("drive_token_expiry", (Date.now() + ttlMs).toString());
+    storeDriveAccessToken(token, params.get("expires_in"));
     setIsSyncing(true);
     void fetchAndSaveRoms(token);
   }, [user, isSyncing]);

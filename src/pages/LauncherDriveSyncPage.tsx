@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, Cloud, Loader2, TriangleAlert } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { getDriveOAuthChannelName, storeDriveAccessToken } from "@/lib/driveOAuthBridge";
 
 const DRIVE_SYNC_RESUME_KEY = "drive_sync_resume_after_reload";
 
@@ -44,6 +46,7 @@ export default function LauncherDriveSyncPage() {
     const params = new URLSearchParams(hash);
     const error = params.get("error");
     const token = params.get("access_token");
+    const state = params.get("state") || localStorage.getItem("drive_sync_oauth_external_state") || "";
 
     if (error) {
       setStatus("error");
@@ -57,16 +60,48 @@ export default function LauncherDriveSyncPage() {
     }
 
     const expiresIn = Number(params.get("expires_in") || 3300);
-    const ttlMs = Math.max(60_000, expiresIn * 1000 - 60_000);
-    localStorage.setItem("drive_access_token", token);
-    localStorage.setItem("drive_token_expiry", (Date.now() + ttlMs).toString());
-    localStorage.setItem("drive_linked_until", (Date.now() + 24 * 60 * 60 * 1000).toString());
-    sessionStorage.setItem("drive_access_token", token);
-    sessionStorage.setItem("drive_token_expiry", (Date.now() + ttlMs).toString());
+    storeDriveAccessToken(token, expiresIn);
     sessionStorage.setItem(DRIVE_SYNC_RESUME_KEY, "1");
     window.history.replaceState(null, "", window.location.pathname);
     setStatus("ready");
-    setMessage("Google Drive quedo autorizado. Ya puedes continuar hacia tu almacenamiento.");
+    setMessage("Google Drive quedo autorizado. Enviando verificacion al launcher...");
+
+    const channelName = getDriveOAuthChannelName(state);
+    if (!channelName) {
+      setMessage("Google Drive quedo autorizado. Vuelve al launcher para continuar.");
+      return;
+    }
+
+    const channel = supabase.channel(channelName);
+    let finished = false;
+    const finish = async (message: string) => {
+      if (finished) return;
+      finished = true;
+      setMessage(message);
+      localStorage.removeItem("drive_sync_oauth_external_state");
+      localStorage.removeItem("drive_sync_oauth_return_path");
+      await supabase.removeChannel(channel);
+    };
+
+    const sendToken = async () => {
+      const payload = { state, accessToken: token, expiresIn };
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        const result = await channel.send({ type: "broadcast", event: "drive-token", payload });
+        if (result === "ok") {
+          await finish("Google Drive quedo autorizado. Ya puedes volver al launcher.");
+          return;
+        }
+        await new Promise(resolve => window.setTimeout(resolve, 350));
+      }
+      await finish("Google Drive quedo autorizado, pero el launcher no confirmo la recepcion. Vuelve al launcher e intenta una vez mas.");
+    };
+
+    channel.subscribe(status => {
+      if (status === "SUBSCRIBED") void sendToken();
+      if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+        void finish("Google Drive quedo autorizado, pero no se pudo avisar al launcher. Vuelve al launcher e intenta una vez mas.");
+      }
+    });
   }, [isStartPage]);
 
   const beginAuthorization = () => {

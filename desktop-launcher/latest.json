@@ -1,15 +1,15 @@
-{
-  "version": "0.1.18",
-  "notes": "Corrige el pantallazo negro de la pagina de emuladores, agrega recuperacion ante errores de render y fuerza carga fresca del website en el launcher.",
-  "pub_date": "2026-06-24T01:58:52Z",
-  "platforms": {
-    "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRRXZQQXVxYjV4VWhraVgvV2pxem1HaGZ3UG1IMFd0MHBnY2ErV1BuWjZOZW8yS2treUUxT05VWVhXYWpHWHZNb1BRa0dMTVJTSmFYWXFJUlIxbUt1MFBjSUpMeDE2NFF3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMjY2MzMyCWZpbGU6Rk9SQklEREVOU18wLjEuMThfeDY0LXNldHVwLmV4ZQp6czFUK3dqbThiZk1OblNQMnBZUFBJRDJ0K2JVOFdQK0plK1Z3c3g3LzJCNTFlU3RXc3hwbEluWUpIcXZYM2ZnRkxwWDNYaDRzTTFRY1BjVCtXM3NEdz09Cg==",
-      "url": "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.18_x64-setup.exe"
-    },
-    "windows-x86_64-pc-windows-msvc": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRRXZQQXVxYjV4VWhraVgvV2pxem1HaGZ3UG1IMFd0MHBnY2ErV1BuWjZOZW8yS2treUUxT05VWVhXYWpHWHZNb1BRa0dMTVJTSmFYWXFJUlIxbUt1MFBjSUpMeDE2NFF3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMjY2MzMyCWZpbGU6Rk9SQklEREVOU18wLjEuMThfeDY0LXNldHVwLmV4ZQp6czFUK3dqbThiZk1OblNQMnBZUFBJRDJ0K2JVOFdQK0plK1Z3c3g3LzJCNTFlU3RXc3hwbEluWUpIcXZYM2ZnRkxwWDNYaDRzTTFRY1BjVCtXM3NEdz09Cg==",
-      "url": "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.18_x64-setup.exe"
-    }
-  }
+﻿{
+    "version":  "0.1.20",
+    "notes":  "Corrige el flujo de Google Drive en el launcher para que la autorizacion externa vuelva al launcher sin quedar en bucle.",
+    "pub_date":  "2026-06-24T05:39:44Z",
+    "platforms":  {
+                      "windows-x86_64":  {
+                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRRXZQQXVxYjV4VWxvaDNjRXJFV1dtSC9lRUV4cTZPWkxjbjVTWE1HTklnZ1FUdFBQbXlHcmlYSk1ZUitBc3pxazFXckVMdVdNSENHRHhqK3BJMjlNY3R2L0xibkgwaFE0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMjc5NTcyCWZpbGU6Rk9SQklEREVOU18wLjEuMjBfeDY0LXNldHVwLmV4ZQpYdjAzZ2I0NTJSYWtXOURocW1JWlRKNmI3N3lnS3BVL3dhcXVwZk5lZ1RzMzEyUXpESWdCK1RCb281Z3U2SWhWWFNIblprL1drOFZ6cEFlTlE4QlZEZz09Cg==",
+                                             "url":  "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.20_x64-setup.exe"
+                                         },
+                      "windows-x86_64-pc-windows-msvc":  {
+                                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRRXZQQXVxYjV4VWxvaDNjRXJFV1dtSC9lRUV4cTZPWkxjbjVTWE1HTklnZ1FUdFBQbXlHcmlYSk1ZUitBc3pxazFXckVMdVdNSENHRHhqK3BJMjlNY3R2L0xibkgwaFE0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMjc5NTcyCWZpbGU6Rk9SQklEREVOU18wLjEuMjBfeDY0LXNldHVwLmV4ZQpYdjAzZ2I0NTJSYWtXOURocW1JWlRKNmI3N3lnS3BVL3dhcXVwZk5lZ1RzMzEyUXpESWdCK1RCb281Z3U2SWhWWFNIblprL1drOFZ6cEFlTlE4QlZEZz09Cg==",
+                                                             "url":  "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.20_x64-setup.exe"
+                                                         }
+                  }
 }

@@ -3,7 +3,7 @@ import { RefreshCw } from "lucide-react";
 import { getLauncherBridge } from "@/lib/launcherBridge";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { LAUNCHER_DOWNLOAD_URL, RECOMMENDED_LAUNCHER_VERSION } from "@/lib/launcherDownload";
+import { RECOMMENDED_LAUNCHER_VERSION, resolveLatestLauncherDownloadUrl } from "@/lib/launcherDownload";
 
 const isOlderVersion = (current: string, target: string) => {
   const currentParts = current.split(".").map((part) => Number(part) || 0);
@@ -45,11 +45,12 @@ export default function LauncherUpdateButton() {
     const bridge = getLauncherBridge();
     if (!bridge?.checkUpdate) return;
     const openManualInstaller = async () => {
+      const launcherDownloadUrl = await resolveLatestLauncherDownloadUrl();
       if (bridge.openExternal) {
-        await bridge.openExternal(LAUNCHER_DOWNLOAD_URL);
+        await bridge.openExternal(launcherDownloadUrl);
         return;
       }
-      window.open(LAUNCHER_DOWNLOAD_URL, "_blank", "noopener,noreferrer");
+      window.open(launcherDownloadUrl, "_blank", "noopener,noreferrer");
     };
 
     setChecking(true);

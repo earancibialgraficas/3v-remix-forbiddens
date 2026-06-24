@@ -7,12 +7,13 @@ import logo from "@/assets/forbiddens_logo.svg";
 import { useAuth } from "@/hooks/useAuth";
 import InstallAppButton from "@/components/InstallAppButton";
 import VaultHint from "@/components/VaultHint";
-import { LAUNCHER_DOWNLOAD_URL } from "@/lib/launcherDownload";
+import { LAUNCHER_DOWNLOAD_URL, resolveLatestLauncherDownloadUrl } from "@/lib/launcherDownload";
 
 export default function HeroSection() {
   const { user } = useAuth();
   const [phase, setPhase] = useState<"logo" | "transition" | "text">("logo");
   const [showLauncherDownload, setShowLauncherDownload] = useState(false);
+  const [launcherDownloadUrl, setLauncherDownloadUrl] = useState(LAUNCHER_DOWNLOAD_URL);
 
   useEffect(() => {
     // 3s logo, then a soft 1.4s crossfade to the text
@@ -28,6 +29,17 @@ export default function HeroSection() {
     const isDesktopSized = window.matchMedia("(min-width: 900px)").matches;
     setShowLauncherDownload(!bridge && !isMobileLike && isDesktopSized);
   }, []);
+
+  useEffect(() => {
+    if (!showLauncherDownload) return;
+    let cancelled = false;
+    resolveLatestLauncherDownloadUrl().then((url) => {
+      if (!cancelled) setLauncherDownloadUrl(url);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [showLauncherDownload]);
 
   return (
     <section className="home-hero melodia-home-hero relative w-full h-[70vh] min-h-[400px] overflow-hidden rounded transition-all duration-300" data-melodia-surface="home-hero">
@@ -74,7 +86,7 @@ export default function HeroSection() {
         <div className="flex flex-wrap justify-center gap-3 mt-2">
           {showLauncherDownload && (
             <Button asChild size="sm" className="launcher-download-button bg-neon-cyan text-black hover:bg-neon-cyan/85 font-pixel text-[10px] px-5 py-2.5 shadow-[0_0_18px_rgba(34,211,238,0.35)] transition-all duration-200">
-              <a href={LAUNCHER_DOWNLOAD_URL} download>
+              <a href={launcherDownloadUrl} download>
                 <Download className="mr-1.5 h-3.5 w-3.5" />
                 DESCARGAR LAUNCHER
               </a>
