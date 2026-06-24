@@ -69,19 +69,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchProfile = async (userId: string) => {
     try {
-      const { data } = await supabase.from("profiles").select("*").eq("user_id", userId).single();
-      if (data) setProfile(data as unknown as Profile);
+      const { data, error } = await supabase.from("profiles").select("*").eq("user_id", userId).single();
+      if (error || !data) {
+        setProfile(null);
+        return null;
+      }
+      const nextProfile = data as unknown as Profile;
+      setProfile(nextProfile);
+      return nextProfile;
     } catch (e) {
       console.error("Error fetching profile:", e);
+      setProfile(null);
+      return null;
     }
   };
 
   const fetchRoles = async (userId: string) => {
     try {
-      const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
-      if (data) setRoles(data.map((r: any) => r.role));
+      const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+      if (error || !data) {
+        setRoles([]);
+        return [];
+      }
+      const nextRoles = data.map((r: any) => r.role);
+      setRoles(nextRoles);
+      return nextRoles;
     } catch (e) {
       console.error("Error fetching roles:", e);
+      setRoles([]);
+      return [];
     }
   };
 
@@ -106,27 +122,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
       // FIX: Evitar que la música se detenga al cambiar de sesión
       // No hacemos window.location.reload() nunca.
-      
+      setLoading(true);
+      setIsReady(false);
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
       
       if (currentSession?.user) {
-        fetchProfile(currentSession.user.id);
-        fetchRoles(currentSession.user.id);
+        setProfile(null);
+        setRoles([]);
+        Promise.all([
+          fetchProfile(currentSession.user.id),
+          fetchRoles(currentSession.user.id),
+        ]).finally(markReady);
       } else {
         setProfile(null);
         setRoles([]);
+        markReady();
       }
-      markReady();
     });
 
     // 3. Carga inicial
     supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
       if (initialSession) {
+        setLoading(true);
+        setIsReady(false);
         setSession(initialSession);
         setUser(initialSession.user);
-        fetchProfile(initialSession.user.id);
-        fetchRoles(initialSession.user.id);
+        setProfile(null);
+        setRoles([]);
+        Promise.all([
+          fetchProfile(initialSession.user.id),
+          fetchRoles(initialSession.user.id),
+        ]).finally(markReady);
+        return;
       }
       markReady();
     });

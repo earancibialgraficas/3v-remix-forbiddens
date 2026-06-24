@@ -1,15 +1,15 @@
 {
-    "version":  "0.1.24",
-    "notes":  "Repara automaticamente cores faltantes de RetroArch, incluyendo mupen64plus_next para N64, y restaura el escaneo visual de instalaciones nativas en la pagina de emuladores.",
-    "pub_date":  "2026-06-24T06:56:30Z",
+    "version":  "0.1.26",
+    "notes":  "FORBIDDENS Launcher 0.1.26",
+    "pub_date":  "2026-06-24T07:58:27Z",
     "platforms":  {
                       "windows-x86_64":  {
-                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRRXZQQXVxYjV4VWdmdDBWb3BJeUV2T0dQT3FqZitBaEYyNER5Rjdubkc2S0ZkbGJtWHZUQTJhUWo3c21sZHdZem5rRjlYZjRjS1hPcHZSUEx1YVlTNE50NDBDSzZ1REE4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMjg0MTc0CWZpbGU6Rk9SQklEREVOU18wLjEuMjRfeDY0LXNldHVwLmV4ZQovUTFLOTl4WGJwZUJkZG1lK3RFQTJvMTNCUmRVeis5S1pINFNRT0dDRi9WUUdwaVpJMWlGZTBrcmpmVGszRXVYaFdIeXlOemduTk5SaFpoOHNnQXVBQT09Cg==",
-                                             "url":  "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.24_x64-setup.exe"
+                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRRXZQQXVxYjV4VWp2N1FJTnhRZUl3SzVJY29aVEdodTl6L0tubTFlcEpuWEFRa0c2UVdjeGd6YVoxRDlsNVpOejlrdjFNb1dRZlo0R1JwZWk5TENtNzZKK1QydGtiaEFBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMjg3ODk4CWZpbGU6Rk9SQklEREVOU18wLjEuMjZfeDY0LXNldHVwLmV4ZQpESW5VZmhGZ2xuM0Z3Q2RPazBkN3ZuZVM3WXl1dFRjMXVMam5JbytablJ0ZEFlc0pZT3p3dllqUXB6MzFmL1JiUGRlQjRlM0NiY2NyUDlCYnJxdEFEZz09Cg==",
+                                             "url":  "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.26_x64-setup.exe"
                                          },
-                      "windows-x86_64-pc-windows-msvc":  {
-                                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRRXZQQXVxYjV4VWdmdDBWb3BJeUV2T0dQT3FqZitBaEYyNER5Rjdubkc2S0ZkbGJtWHZUQTJhUWo3c21sZHdZem5rRjlYZjRjS1hPcHZSUEx1YVlTNE50NDBDSzZ1REE4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMjg0MTc0CWZpbGU6Rk9SQklEREVOU18wLjEuMjRfeDY0LXNldHVwLmV4ZQovUTFLOTl4WGJwZUJkZG1lK3RFQTJvMTNCUmRVeis5S1pINFNRT0dDRi9WUUdwaVpJMWlGZTBrcmpmVGszRXVYaFdIeXlOemduTk5SaFpoOHNnQXVBQT09Cg==",
-                                                             "url":  "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.24_x64-setup.exe"
-                                                         }
+                      "windows-x86_64-msvc":  {
+                                                  "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRRXZQQXVxYjV4VWp2N1FJTnhRZUl3SzVJY29aVEdodTl6L0tubTFlcEpuWEFRa0c2UVdjeGd6YVoxRDlsNVpOejlrdjFNb1dRZlo0R1JwZWk5TENtNzZKK1QydGtiaEFBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMjg3ODk4CWZpbGU6Rk9SQklEREVOU18wLjEuMjZfeDY0LXNldHVwLmV4ZQpESW5VZmhGZ2xuM0Z3Q2RPazBkN3ZuZVM3WXl1dFRjMXVMam5JbytablJ0ZEFlc0pZT3p3dllqUXB6MzFmL1JiUGRlQjRlM0NiY2NyUDlCYnJxdEFEZz09Cg==",
+                                                  "url":  "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.26_x64-setup.exe"
+                                              }
                   }
 }

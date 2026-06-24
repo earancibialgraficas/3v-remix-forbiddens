@@ -32,6 +32,14 @@ export interface NativeBiosStatus {
   }>;
 }
 
+export interface NativeSaveFilePayload {
+  console_id: string;
+  kind: "savestate" | "real_save";
+  path: string;
+  data: string;
+  size: number;
+}
+
 type LauncherBridge = {
   launcherInfo?: () => Promise<{ version: string; website_url: string }>;
   openExternal?: (url: string) => Promise<boolean>;
@@ -50,11 +58,42 @@ type LauncherBridge = {
   openNativeEmulator?: (consoleId: string, romPath?: string | null) => Promise<NativeEmulatorLaunchResult | string>;
   closeNativeEmulator?: (processId: number) => Promise<void>;
   setNativeEmulatorState?: (processId: number, action: "minimize" | "restore" | "show" | "maximize") => Promise<void>;
+  nativeEmulatorAction?: (processId: number, action: "menu" | "save_state" | "load_state") => Promise<void>;
+  readNativeSaveFile?: (args: {
+    consoleId: string;
+    romPath: string;
+    kind?: "savestate" | "real_save" | null;
+  }) => Promise<NativeSaveFilePayload | null>;
+  writeNativeSaveFile?: (args: {
+    consoleId: string;
+    romPath: string;
+    kind?: "savestate" | "real_save" | null;
+    data: string;
+  }) => Promise<string | null>;
+  exportNativeLocalSave?: (args: {
+    consoleId: string;
+    gameName: string;
+  }) => Promise<string | null>;
+  importNativeLocalSave?: (args: {
+    consoleId: string;
+  }) => Promise<string | null>;
+  downloadRemoteRomForNative?: (args: {
+    consoleId: string;
+    gameId: string;
+    fileName: string;
+    romUrl: string;
+  }) => Promise<string>;
   openDriveRomNative?: (args: {
     consoleId: string;
     fileId: string;
     fileName: string;
     accessToken: string;
+  }) => Promise<NativeEmulatorLaunchResult | string>;
+  openRemoteRomNative?: (args: {
+    consoleId: string;
+    gameId: string;
+    fileName: string;
+    romUrl: string;
   }) => Promise<NativeEmulatorLaunchResult | string>;
   downloadDriveRomForNative?: (args: {
     consoleId: string;
@@ -91,7 +130,14 @@ const buildBridgeFromTauri = (): LauncherBridge | null => {
     openNativeEmulator: (consoleId: string, romPath?: string | null) => invoke("open_native_emulator", { consoleId, romPath: romPath || null }),
     closeNativeEmulator: (processId: number) => invoke("close_native_emulator", { processId }),
     setNativeEmulatorState: (processId: number, action: "minimize" | "restore" | "show" | "maximize") => invoke("set_native_emulator_state", { processId, action }),
+    nativeEmulatorAction: (processId: number, action: "menu" | "save_state" | "load_state") => invoke("native_emulator_action", { processId, action }),
+    readNativeSaveFile: (args) => invoke("read_native_save_file", args || {}),
+    writeNativeSaveFile: (args) => invoke("write_native_save_file", args || {}),
+    exportNativeLocalSave: (args) => invoke("export_native_local_save", args || {}),
+    importNativeLocalSave: (args) => invoke("import_native_local_save", args || {}),
+    downloadRemoteRomForNative: (args) => invoke("download_remote_rom_for_native", args || {}),
     openDriveRomNative: (args) => invoke("open_drive_rom_native", args || {}),
+    openRemoteRomNative: (args) => invoke("open_remote_rom_native", args || {}),
     downloadDriveRomForNative: (args) => invoke("download_drive_rom_for_native", args || {}),
   };
 

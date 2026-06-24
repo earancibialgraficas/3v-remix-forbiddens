@@ -22,6 +22,7 @@ import { buildCoverBackupMap, getCoverBackup, loadLocalCoverBackups, saveLocalCo
 import { formatLauncherBridgeError, getLauncherBridge, launcherSupportsNative, type NativeEngineStatus } from "@/lib/launcherBridge";
 import { useNativeSession } from "@/contexts/NativeSessionContext";
 import { getDriveOAuthChannelName, storeDriveAccessToken } from "@/lib/driveOAuthBridge";
+import { getNativeCloudSaveKind, restoreNativeCloudSave } from "@/lib/nativeCloudSaves";
 
 // --- MINI COMPONENTE PARA PORTADAS INTELIGENTES ---
 const GameCover = ({ gameName, consoleId, isCloud, defaultCover, customCover }: { gameName: string, consoleId: string, isCloud: boolean, defaultCover?: string, customCover?: string | null }) => {
@@ -743,7 +744,7 @@ const handlePlayCloudGame = async (game: any) => {
   const handlePlayCloudGameNative = async (game: any, event?: React.MouseEvent) => {
     event?.stopPropagation();
     const bridge = getLauncherBridge();
-    if (!bridge?.nativeEngineStatus || !bridge?.openDriveRomNative) {
+    if (!bridge?.nativeEngineStatus || !bridge?.downloadDriveRomForNative || !bridge?.openNativeEmulator) {
       toast({
         title: "Launcher desactualizado",
         description: "Actualiza FORBIDDENS Launcher para abrir ROMs de Drive en nativo.",
@@ -771,19 +772,33 @@ const handlePlayCloudGame = async (game: any) => {
 
       const accessToken = await requestGoogleTokenForDrive();
       toast({ title: "Descargando desde Drive", description: "Guardando una copia local para el emulador nativo." });
-      const launchResult: any = await bridge.openDriveRomNative({
+      const romPath = await bridge.downloadDriveRomForNative({
         consoleId: game.console,
         fileId: game.id,
         fileName: game.fileName || game.originalName || game.name,
         accessToken,
       });
-      const romPath = typeof launchResult === "string" ? launchResult : (launchResult?.rom_path || null);
+      const restoredNativeSave = await restoreNativeCloudSave({
+        consoleId: game.console,
+        gameName: game.name,
+        romPath,
+      }).catch((error) => {
+        console.warn("Native cloud save restore skipped:", error);
+        return false;
+      });
+      const launchResult: any = await bridge.openNativeEmulator(game.console, romPath);
+      const processId = typeof launchResult === "object" ? Number(launchResult?.process_id || 0) || null : null;
+      if (restoredNativeSave && getNativeCloudSaveKind(game.console) === "savestate" && processId) {
+        window.setTimeout(() => {
+          bridge.nativeEmulatorAction?.(processId, "load_state").catch(() => {});
+        }, 1800);
+      }
       launchNativeSession({
         consoleName: game.console,
         gameName: game.name,
         engineName: status.engine_name || "Emulador nativo",
         romPath,
-        processId: typeof launchResult === "object" ? Number(launchResult?.process_id || 0) || null : null,
+        processId,
       });
       markDriveRomDownloaded(game.id);
       toast({ title: "Abriendo emulador nativo", description: `${status.engine_name} iniciando con ${game.name}.` });
@@ -802,7 +817,7 @@ const handlePlayCloudGame = async (game: any) => {
   const handlePlayLibraryGameNative = async (game: any, event?: React.MouseEvent) => {
     event?.stopPropagation();
     const bridge = getLauncherBridge();
-    if (!bridge?.nativeEngineStatus || !bridge?.pickNativeRom || !bridge?.openNativeEmulator) {
+    if (!bridge?.nativeEngineStatus || ((!bridge?.downloadRemoteRomForNative || !bridge?.openNativeEmulator) && !bridge?.openRemoteRomNative && (!bridge?.pickNativeRom || !bridge?.openNativeEmulator))) {
       toast({
         title: "Launcher desactualizado",
         description: "Actualiza FORBIDDENS Launcher para abrir juegos en emulador nativo.",
@@ -828,20 +843,77 @@ const handlePlayCloudGame = async (game: any) => {
         if (game.console === selectedConsole) setSelectedNativeStatus(status);
       }
 
-      toast({
-        title: "Selecciona tu ROM",
-        description: `${status.engine_name} abrira el archivo local que elijas para ${game.console.toUpperCase()}.`,
-      });
-      const romPath = await bridge.pickNativeRom(game.console);
-      if (!romPath) return;
+      let launchResult: any;
+      let romPath: string | null = null;
+      let restoredNativeSave = false;
 
-      const launchResult: any = await bridge.openNativeEmulator(game.console, romPath);
+      if (bridge.downloadRemoteRomForNative && bridge.openNativeEmulator && game.romUrl) {
+        const romUrl = new URL(game.romUrl, window.location.origin).href;
+        const fileName = decodeURIComponent(romUrl.split("/").pop() || `${game.id}.rom`);
+        toast({
+          title: "Preparando ROM nativa",
+          description: "Descargando una copia local para abrirla mas rapido la proxima vez.",
+        });
+        romPath = await bridge.downloadRemoteRomForNative({
+          consoleId: game.console,
+          gameId: game.id,
+          fileName,
+          romUrl,
+        });
+        restoredNativeSave = await restoreNativeCloudSave({
+          consoleId: game.console,
+          gameName: game.name,
+          romPath,
+        }).catch((error) => {
+          console.warn("Native cloud save restore skipped:", error);
+          return false;
+        });
+        launchResult = await bridge.openNativeEmulator(game.console, romPath);
+      } else if (bridge.openRemoteRomNative && game.romUrl) {
+        const romUrl = new URL(game.romUrl, window.location.origin).href;
+        const fileName = decodeURIComponent(romUrl.split("/").pop() || `${game.id}.rom`);
+        toast({
+          title: "Preparando ROM nativa",
+          description: "Descargando una copia local para abrirla mas rapido la proxima vez.",
+        });
+        launchResult = await bridge.openRemoteRomNative({
+          consoleId: game.console,
+          gameId: game.id,
+          fileName,
+          romUrl,
+        });
+        romPath = typeof launchResult === "string" ? launchResult : (launchResult?.rom_path || null);
+      } else {
+        toast({
+          title: "Selecciona tu ROM",
+          description: `${status.engine_name} abrira el archivo local que elijas para ${game.console.toUpperCase()}.`,
+        });
+        const pickedRomPath = await bridge.pickNativeRom?.(game.console);
+        if (!pickedRomPath) return;
+        romPath = pickedRomPath;
+        restoredNativeSave = await restoreNativeCloudSave({
+          consoleId: game.console,
+          gameName: game.name,
+          romPath,
+        }).catch((error) => {
+          console.warn("Native cloud save restore skipped:", error);
+          return false;
+        });
+        launchResult = await bridge.openNativeEmulator?.(game.console, pickedRomPath);
+      }
+
+      const processId = typeof launchResult === "object" ? Number(launchResult?.process_id || 0) || null : null;
+      if (restoredNativeSave && getNativeCloudSaveKind(game.console) === "savestate" && processId) {
+        window.setTimeout(() => {
+          bridge.nativeEmulatorAction?.(processId, "load_state").catch(() => {});
+        }, 1800);
+      }
       launchNativeSession({
         consoleName: game.console,
-        gameName: romPath.split(/[\\/]/).pop()?.replace(/\.[^.]+$/, "") || game.name,
+        gameName: game.name,
         engineName: status.engine_name || "Emulador nativo",
         romPath,
-        processId: typeof launchResult === "object" ? Number(launchResult?.process_id || 0) || null : null,
+        processId,
       });
       toast({ title: "Abriendo emulador nativo", description: `${status.engine_name} iniciando desde FORBIDDENS Launcher.` });
     } catch (error: any) {

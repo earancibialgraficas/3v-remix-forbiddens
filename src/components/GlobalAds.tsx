@@ -38,7 +38,12 @@ export default function GlobalAds() {
 
     if (isPremium) {
       purgeAds();
-      return;
+      const cleanupInterval = window.setInterval(purgeAds, 500);
+      const stopCleanup = window.setTimeout(() => window.clearInterval(cleanupInterval), 5000);
+      return () => {
+        window.clearInterval(cleanupInterval);
+        window.clearTimeout(stopCleanup);
+      };
     }
 
     if (document.getElementById("adsterra-global-script")) return;

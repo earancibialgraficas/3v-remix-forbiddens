@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Cpu, Minus, Move, Pause, Play, Square, Trophy, X } from "lucide-react";
+import { Cpu, Download, Minus, Move, Pause, Play, Settings, Square, Trophy, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useNativeSession } from "@/contexts/NativeSessionContext";
 import { getLauncherBridge } from "@/lib/launcherBridge";
+import { syncNativeCloudSave } from "@/lib/nativeCloudSaves";
 
 const POINTS_INTERVAL_MS = 10_000;
 const POINTS_PER_INTERVAL = 10;
@@ -61,6 +62,11 @@ export default function NativeGameBubble() {
     const seconds = Math.floor(total % 60);
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   }, [session?.playTime]);
+
+  const supportsLocalSaveFiles = useMemo(() => {
+    const consoleName = session?.consoleName?.toLowerCase();
+    return consoleName === "psp" || consoleName === "ps2";
+  }, [session?.consoleName]);
 
   const clampPosition = useCallback((x: number, y: number) => {
     if (typeof window === "undefined") return { x, y };
@@ -189,6 +195,20 @@ export default function NativeGameBubble() {
     });
   }, [toast]);
 
+  const syncCurrentNativeSave = useCallback(async () => {
+    const current = latestSessionRef.current;
+    if (!current?.romPath) return false;
+    return syncNativeCloudSave({
+      consoleId: current.consoleName,
+      gameName: current.gameName,
+      romPath: current.romPath,
+      processId: current.processId,
+    }).catch((error) => {
+      console.warn("Native cloud save sync skipped:", error);
+      return false;
+    });
+  }, []);
+
   useEffect(() => {
     const listen = (window as any).__TAURI__?.event?.listen;
     if (typeof listen !== "function") return;
@@ -203,6 +223,7 @@ export default function NativeGameBubble() {
       const sameConsole = payload.console_id && String(payload.console_id).toLowerCase() === current.consoleName.toLowerCase();
       if (!sameProcess && !sameRom && !sameConsole) return;
 
+      await syncCurrentNativeSave();
       const result = await saveScore();
       closeNativeSession(current.id);
       toastSessionResult(current.gameName, result);
@@ -215,7 +236,7 @@ export default function NativeGameBubble() {
     return () => {
       unlisten?.();
     };
-  }, [closeNativeSession, saveScore, toastSessionResult]);
+  }, [closeNativeSession, saveScore, syncCurrentNativeSave, toastSessionResult]);
 
   useEffect(() => {
     const listen = (window as any).__TAURI__?.event?.listen;
@@ -264,6 +285,7 @@ export default function NativeGameBubble() {
   const finishSession = async () => {
     const current = latestSessionRef.current;
     if (!current) return;
+    await syncCurrentNativeSave();
     const result = await saveScore();
     if (current.processId) {
       await getLauncherBridge()?.closeNativeEmulator?.(current.processId).catch(() => {});
@@ -286,6 +308,93 @@ export default function NativeGameBubble() {
       await getLauncherBridge()?.setNativeEmulatorState?.(current.processId, "restore").catch(() => {});
     }
     maximizeNativeSession(index);
+  };
+
+  const openEmulatorSettings = async () => {
+    const current = latestSessionRef.current;
+    if (!current?.processId) return;
+    const bridge = getLauncherBridge();
+    try {
+      if (bridge?.nativeEmulatorAction) {
+        await bridge.nativeEmulatorAction(current.processId, "menu");
+      } else {
+        await bridge?.setNativeEmulatorState?.(current.processId, "restore");
+        toast({
+          title: "Actualiza el launcher",
+          description: "Esta version puede enfocar el emulador, pero el boton de configuracion necesita el launcher nuevo.",
+        });
+      }
+      maximizeNativeSession();
+    } catch (error: any) {
+      toast({
+        title: "No se pudo abrir configuracion",
+        description: error?.message || "Vuelve a enfocar el emulador e intenta otra vez.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const exportLocalSave = async () => {
+    const current = latestSessionRef.current;
+    if (!current) return;
+    const bridge = getLauncherBridge();
+    if (!bridge?.exportNativeLocalSave) {
+      toast({
+        title: "Actualiza el launcher",
+        description: "La exportacion de saves locales necesita el launcher nuevo.",
+        variant: "destructive",
+      });
+      return;
+    }
+    try {
+      const exportedPath = await bridge.exportNativeLocalSave({
+        consoleId: current.consoleName,
+        gameName: current.gameName,
+      });
+      if (!exportedPath) return;
+      toast({
+        title: "Save exportado",
+        description: current.consoleName.toLowerCase() === "psp"
+          ? "Se guardo un ZIP con tus saves de PPSSPP."
+          : "Se guardo la memory card de PCSX2.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "No se pudo exportar",
+        description: error?.message || "Aun no hay save local para esta consola.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const importLocalSave = async () => {
+    const current = latestSessionRef.current;
+    if (!current) return;
+    const bridge = getLauncherBridge();
+    if (!bridge?.importNativeLocalSave) {
+      toast({
+        title: "Actualiza el launcher",
+        description: "La carga de saves locales necesita el launcher nuevo.",
+        variant: "destructive",
+      });
+      return;
+    }
+    try {
+      const importedPath = await bridge.importNativeLocalSave({
+        consoleId: current.consoleName,
+      });
+      if (!importedPath) return;
+      toast({
+        title: "Save cargado",
+        description: "Reinicia el juego nativo si ya estaba abierto para que el emulador lea el archivo.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "No se pudo cargar",
+        description: error?.message || "El archivo seleccionado no se pudo aplicar.",
+        variant: "destructive",
+      });
+    }
   };
 
   if (!session) return null;
@@ -331,6 +440,9 @@ export default function NativeGameBubble() {
         </div>
         <div className="flex shrink-0 items-center gap-1">
           <Move className="h-3.5 w-3.5 text-white/35" />
+          <Button data-native-action size="icon" variant="ghost" className="h-6 w-6" onClick={openEmulatorSettings} aria-label="Configuracion del emulador">
+            <Settings className="h-3.5 w-3.5" />
+          </Button>
           <Button data-native-action size="icon" variant="ghost" className="h-6 w-6" onClick={minimizeSession} aria-label="Minimizar sesion">
             <Minus className="h-3.5 w-3.5" />
           </Button>
@@ -374,6 +486,33 @@ export default function NativeGameBubble() {
             Guardar y cerrar
           </Button>
         </div>
+        {supportsLocalSaveFiles && (
+          <>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={exportLocalSave}
+                className="h-8 border-white/10 bg-white/5 text-[10px]"
+              >
+                <Download className="mr-2 h-3.5 w-3.5" />
+                Exportar save
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={importLocalSave}
+                className="h-8 border-white/10 bg-white/5 text-[10px]"
+              >
+                <Upload className="mr-2 h-3.5 w-3.5" />
+                Cargar save
+              </Button>
+            </div>
+            <p className="mt-1.5 text-center text-[9px] leading-snug text-white/42">
+              Si cargas un save con el juego abierto, reinicia el emulador para que el archivo se lea correctamente.
+            </p>
+          </>
+        )}
         <p className="mt-1.5 text-center text-[9px] text-white/40">El emulador corre nativo; esta ventana registra la sesion.</p>
       </div>
     </div>

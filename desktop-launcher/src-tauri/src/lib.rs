@@ -6,6 +6,7 @@ use std::{
     time::Duration,
 };
 
+use base64::{engine::general_purpose, Engine as _};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize};
 use tauri_plugin_dialog::DialogExt;
@@ -85,8 +86,17 @@ struct NativeEmulatorWindowStateEvent {
     state: String,
 }
 
-const WEBSITE_URL: &str = "https://forbiddens.net/?launcher_version=0.1.24";
-const LAUNCHER_DOWNLOAD_URL: &str = "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.24_x64-setup.exe";
+#[derive(Serialize)]
+struct NativeSaveFilePayload {
+    console_id: String,
+    kind: String,
+    path: String,
+    data: String,
+    size: u64,
+}
+
+const WEBSITE_URL: &str = "https://forbiddens.net/?launcher_version=0.1.26";
+const LAUNCHER_DOWNLOAD_URL: &str = "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.26_x64-setup.exe";
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 const LAUNCHER_BRIDGE_SCRIPT: &str = r#"
 (function () {
@@ -162,8 +172,15 @@ const LAUNCHER_BRIDGE_SCRIPT: &str = r#"
     openNativeEmulator: function (consoleId, romPath) { return invoke("open_native_emulator", { consoleId: consoleId, romPath: romPath || null }); },
     closeNativeEmulator: function (processId) { return invoke("close_native_emulator", { processId: processId }); },
     setNativeEmulatorState: function (processId, action) { return invoke("set_native_emulator_state", { processId: processId, action: action }); },
+    nativeEmulatorAction: function (processId, action) { return invoke("native_emulator_action", { processId: processId, action: action }); },
+    readNativeSaveFile: function (args) { return invoke("read_native_save_file", args || {}); },
+    writeNativeSaveFile: function (args) { return invoke("write_native_save_file", args || {}); },
+    exportNativeLocalSave: function (args) { return invoke("export_native_local_save", args || {}); },
+    importNativeLocalSave: function (args) { return invoke("import_native_local_save", args || {}); },
+    downloadRemoteRomForNative: function (args) { return invoke("download_remote_rom_for_native", args || {}); },
     downloadDriveRomForNative: function (args) { return invoke("download_drive_rom_for_native", args || {}); },
     openDriveRomNative: function (args) { return invoke("open_drive_rom_native", args || {}); },
+    openRemoteRomNative: function (args) { return invoke("open_remote_rom_native", args || {}); },
     detectPpsspp: function () { return invoke("detect_ppsspp_native"); },
     openPpsspp: function (romPath) {
       return invoke("open_native_emulator", { consoleId: "psp", romPath: romPath || null });
@@ -796,6 +813,59 @@ fn sanitize_file_name(file_name: &str) -> String {
     } else {
         trimmed
     }
+}
+
+fn native_save_kind(console_id: &str) -> &'static str {
+    match console_id {
+        "n64" | "ps1" | "psp" | "ps2" => "real_save",
+        _ => "savestate",
+    }
+}
+
+fn native_save_base_name(rom_path: &str) -> String {
+    Path::new(rom_path)
+        .file_stem()
+        .map(|stem| sanitize_file_name(&stem.to_string_lossy()))
+        .unwrap_or_else(|| "game".to_string())
+}
+
+fn native_save_dirs(console_id: &str) -> (PathBuf, PathBuf) {
+    let root = local_app_data_dir().join("native-saves").join(console_id);
+    (root.join("saves"), root.join("states"))
+}
+
+fn ensure_retroarch_save_config(console_id: &str) -> Result<PathBuf, String> {
+    let (saves_dir, states_dir) = native_save_dirs(console_id);
+    fs::create_dir_all(&saves_dir).map_err(|error| error.to_string())?;
+    fs::create_dir_all(&states_dir).map_err(|error| error.to_string())?;
+
+    let config_dir = local_app_data_dir().join("native-config");
+    fs::create_dir_all(&config_dir).map_err(|error| error.to_string())?;
+    let config_path = config_dir.join(format!("retroarch-{}-saves.cfg", sanitize_file_name(console_id)));
+    let saves = saves_dir.to_string_lossy().replace('\\', "/");
+    let states = states_dir.to_string_lossy().replace('\\', "/");
+    let content = format!(
+        "savefile_directory = \"{}\"\nsavestate_directory = \"{}\"\n",
+        saves, states
+    );
+    fs::write(&config_path, content).map_err(|error| error.to_string())?;
+    Ok(config_path)
+}
+
+fn native_save_path(console_id: &str, rom_path: &str, requested_kind: Option<&str>) -> Option<(String, PathBuf)> {
+    let normalized = console_id.trim().to_lowercase();
+    let kind = requested_kind
+        .map(|value| value.trim().to_lowercase())
+        .filter(|value| value == "savestate" || value == "real_save")
+        .unwrap_or_else(|| native_save_kind(&normalized).to_string());
+    let (saves_dir, states_dir) = native_save_dirs(&normalized);
+    let base_name = native_save_base_name(rom_path);
+    let path = if kind == "real_save" {
+        saves_dir.join(format!("{}.srm", base_name))
+    } else {
+        states_dir.join(format!("{}.state", base_name))
+    };
+    Some((kind, path))
 }
 
 fn find_nested_executable_with_depth(root: &Path, executable_name: &str, max_depth: usize) -> Option<PathBuf> {
@@ -1490,6 +1560,15 @@ fn open_native_emulator(
             ));
         };
         command.arg("-L").arg(core_path);
+        if rom_path
+            .as_deref()
+            .map(str::trim)
+            .filter(|path| !path.is_empty())
+            .is_some()
+        {
+            let save_config = ensure_retroarch_save_config(&normalized)?;
+            command.arg(format!("--appendconfig={}", save_config.to_string_lossy()));
+        }
     }
     if let Some(path) = rom_path
         .as_deref()
@@ -1584,6 +1663,262 @@ fn set_native_emulator_state(process_id: u32, action: String) -> Result<(), Stri
 }
 
 #[tauri::command]
+fn native_emulator_action(process_id: u32, action: String) -> Result<(), String> {
+    let keys = match action.trim().to_lowercase().as_str() {
+        "menu" | "settings" | "config" => "{F1}",
+        "save_state" | "savestate" => "{F2}",
+        "load_state" => "{F4}",
+        _ => return Err("Accion del emulador no soportada.".to_string()),
+    };
+
+    let script = "$ErrorActionPreference='Stop'; \
+      Add-Type 'using System; using System.Runtime.InteropServices; public class ForbiddensEmuInput { [DllImport(\"user32.dll\")] public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow); [DllImport(\"user32.dll\")] public static extern bool SetForegroundWindow(IntPtr hWnd); }'; \
+      $processId = [int]$env:FORBIDDENS_EMU_PID; \
+      $p = Get-Process -Id $processId -ErrorAction Stop; \
+      if ($p.MainWindowHandle -eq 0) { throw 'No se encontro la ventana del emulador.' } \
+      [ForbiddensEmuInput]::ShowWindowAsync($p.MainWindowHandle, 9) | Out-Null; \
+      [ForbiddensEmuInput]::SetForegroundWindow($p.MainWindowHandle) | Out-Null; \
+      Start-Sleep -Milliseconds 160; \
+      $shell = New-Object -ComObject WScript.Shell; \
+      $shell.SendKeys($env:FORBIDDENS_EMU_KEYS)";
+    let mut command = powershell_command(script);
+    command.env("FORBIDDENS_EMU_PID", process_id.to_string());
+    command.env("FORBIDDENS_EMU_KEYS", keys);
+    run_hidden(command)
+}
+
+#[tauri::command]
+fn read_native_save_file(
+    console_id: String,
+    rom_path: String,
+    kind: Option<String>,
+) -> Result<Option<NativeSaveFilePayload>, String> {
+    let normalized = console_id.trim().to_lowercase();
+    if retroarch_core_file_name(&normalized).is_none() {
+        return Ok(None);
+    }
+    let Some((save_kind, path)) = native_save_path(&normalized, &rom_path, kind.as_deref()) else {
+        return Ok(None);
+    };
+    if !path.exists() || !path.is_file() {
+        return Ok(None);
+    }
+    let bytes = fs::read(&path).map_err(|error| error.to_string())?;
+    if bytes.is_empty() {
+        return Ok(None);
+    }
+    Ok(Some(NativeSaveFilePayload {
+        console_id: normalized,
+        kind: save_kind,
+        path: path.to_string_lossy().to_string(),
+        data: general_purpose::STANDARD.encode(&bytes),
+        size: bytes.len() as u64,
+    }))
+}
+
+#[tauri::command]
+fn write_native_save_file(
+    console_id: String,
+    rom_path: String,
+    kind: Option<String>,
+    data: String,
+) -> Result<Option<String>, String> {
+    let normalized = console_id.trim().to_lowercase();
+    if retroarch_core_file_name(&normalized).is_none() {
+        return Ok(None);
+    }
+    let Some((_, path)) = native_save_path(&normalized, &rom_path, kind.as_deref()) else {
+        return Ok(None);
+    };
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+    }
+    let bytes = general_purpose::STANDARD
+        .decode(data.trim())
+        .map_err(|error| format!("Save invalido: {}", error))?;
+    fs::write(&path, bytes).map_err(|error| error.to_string())?;
+    Ok(Some(path.to_string_lossy().to_string()))
+}
+
+fn ppsspp_savedata_candidates() -> Vec<PathBuf> {
+    let mut candidates = Vec::new();
+    if let Some(config) = get_engine_config("psp") {
+        if let Some(engine_path) = find_native_engine(&config) {
+            if let Some(root) = engine_path.parent() {
+                candidates.push(root.join("memstick").join("PSP").join("SAVEDATA"));
+            }
+        }
+    }
+    if let Ok(user_profile) = env::var("USERPROFILE") {
+        candidates.push(PathBuf::from(&user_profile).join("Documents").join("PPSSPP").join("PSP").join("SAVEDATA"));
+    }
+    if let Ok(app_data) = env::var("APPDATA") {
+        candidates.push(PathBuf::from(&app_data).join("PPSSPP").join("PSP").join("SAVEDATA"));
+    }
+    if let Ok(local_app_data) = env::var("LOCALAPPDATA") {
+        candidates.push(PathBuf::from(&local_app_data).join("PPSSPP").join("PSP").join("SAVEDATA"));
+    }
+    candidates
+}
+
+fn path_has_entries(path: &Path) -> bool {
+    fs::read_dir(path)
+        .map(|mut entries| entries.any(|entry| entry.is_ok()))
+        .unwrap_or(false)
+}
+
+fn ppsspp_savedata_dir_for_export() -> Result<PathBuf, String> {
+    ppsspp_savedata_candidates()
+        .into_iter()
+        .find(|path| path.is_dir() && path_has_entries(path))
+        .ok_or_else(|| "No se encontraron saves de PPSSPP para exportar.".to_string())
+}
+
+fn ppsspp_savedata_dir_for_import() -> Result<PathBuf, String> {
+    if let Some(existing) = ppsspp_savedata_candidates().into_iter().find(|path| path.is_dir()) {
+        return Ok(existing);
+    }
+    let Some(config) = get_engine_config("psp") else {
+        return Err("PSP no tiene motor nativo configurado.".to_string());
+    };
+    let Some(engine_path) = find_native_engine(&config) else {
+        return Err("Instala PPSSPP antes de cargar saves.".to_string());
+    };
+    let Some(root) = engine_path.parent() else {
+        return Err("No se encontro la carpeta de PPSSPP.".to_string());
+    };
+    let dir = root.join("memstick").join("PSP").join("SAVEDATA");
+    fs::create_dir_all(&dir).map_err(|error| error.to_string())?;
+    Ok(dir)
+}
+
+fn pcsx2_memcards_dir() -> Result<PathBuf, String> {
+    let root = pcsx2_root().ok_or_else(|| "Instala PCSX2 antes de usar saves locales.".to_string())?;
+    let memcards = root.join("memcards");
+    fs::create_dir_all(&memcards).map_err(|error| error.to_string())?;
+    Ok(memcards)
+}
+
+fn pcsx2_primary_memory_card_for_export() -> Result<PathBuf, String> {
+    let memcards = pcsx2_memcards_dir()?;
+    let preferred = memcards.join("Mcd001.ps2");
+    if preferred.exists() && preferred.is_file() {
+        return Ok(preferred);
+    }
+    fs::read_dir(&memcards)
+        .map_err(|error| error.to_string())?
+        .filter_map(Result::ok)
+        .map(|entry| entry.path())
+        .find(|path| {
+            path.is_file()
+                && path
+                    .extension()
+                    .map(|ext| ext.to_string_lossy().eq_ignore_ascii_case("ps2"))
+                    .unwrap_or(false)
+        })
+        .ok_or_else(|| "No se encontro una memory card de PCSX2 para exportar.".to_string())
+}
+
+fn pcsx2_primary_memory_card_for_import() -> Result<PathBuf, String> {
+    Ok(pcsx2_memcards_dir()?.join("Mcd001.ps2"))
+}
+
+fn local_save_file_name(game_name: &str, console_id: &str, extension: &str) -> String {
+    let game = sanitize_file_name(game_name).trim_end_matches(".rom").to_string();
+    format!("{}_{}_save.{}", game, sanitize_file_name(console_id), extension)
+}
+
+#[tauri::command]
+fn export_native_local_save(
+    app: AppHandle,
+    console_id: String,
+    game_name: String,
+) -> Result<Option<String>, String> {
+    let normalized = console_id.trim().to_lowercase();
+
+    if normalized == "ps2" {
+        let source = pcsx2_primary_memory_card_for_export()?;
+        let target = app.dialog().file()
+            .add_filter("Memory Card PS2", &["ps2"])
+            .set_file_name(&local_save_file_name(&game_name, "ps2", "ps2"))
+            .blocking_save_file();
+        let Some(target) = target.and_then(|file| file.into_path().ok()) else {
+            return Ok(None);
+        };
+        fs::copy(&source, &target).map_err(|error| error.to_string())?;
+        return Ok(Some(target.to_string_lossy().to_string()));
+    }
+
+    if normalized == "psp" {
+        let source = ppsspp_savedata_dir_for_export()?;
+        let target = app.dialog().file()
+            .add_filter("Save PSP comprimido", &["zip"])
+            .set_file_name(&local_save_file_name(&game_name, "psp", "zip"))
+            .blocking_save_file();
+        let Some(target) = target.and_then(|file| file.into_path().ok()) else {
+            return Ok(None);
+        };
+        let script = "$ErrorActionPreference='Stop'; \
+          $src = $env:FORBIDDENS_SAVE_SRC; \
+          $dst = $env:FORBIDDENS_SAVE_DST; \
+          if (Test-Path -LiteralPath $dst) { Remove-Item -LiteralPath $dst -Force } \
+          Compress-Archive -LiteralPath (Join-Path $src '*') -DestinationPath $dst -Force";
+        let mut command = powershell_command(script);
+        command.env("FORBIDDENS_SAVE_SRC", source.to_string_lossy().to_string());
+        command.env("FORBIDDENS_SAVE_DST", target.to_string_lossy().to_string());
+        run_hidden(command)?;
+        return Ok(Some(target.to_string_lossy().to_string()));
+    }
+
+    Err("Los saves locales manuales solo estan disponibles para PSP y PS2.".to_string())
+}
+
+#[tauri::command]
+fn import_native_local_save(app: AppHandle, console_id: String) -> Result<Option<String>, String> {
+    let normalized = console_id.trim().to_lowercase();
+
+    if normalized == "ps2" {
+        let picked = app
+            .dialog()
+            .file()
+            .add_filter("Memory Card PS2", &["ps2"])
+            .blocking_pick_file();
+        let Some(source) = picked.and_then(|file| file.into_path().ok()) else {
+            return Ok(None);
+        };
+        let target = pcsx2_primary_memory_card_for_import()?;
+        fs::copy(&source, &target).map_err(|error| error.to_string())?;
+        return Ok(Some(target.to_string_lossy().to_string()));
+    }
+
+    if normalized == "psp" {
+        let picked = app
+            .dialog()
+            .file()
+            .add_filter("Save PSP comprimido", &["zip"])
+            .blocking_pick_file();
+        let Some(source) = picked.and_then(|file| file.into_path().ok()) else {
+            return Ok(None);
+        };
+        let target = ppsspp_savedata_dir_for_import()?;
+        fs::create_dir_all(&target).map_err(|error| error.to_string())?;
+        let script = "$ErrorActionPreference='Stop'; \
+          $src = $env:FORBIDDENS_SAVE_SRC; \
+          $dst = $env:FORBIDDENS_SAVE_DST; \
+          if (Test-Path -LiteralPath $dst) { Remove-Item -LiteralPath $dst -Recurse -Force } \
+          New-Item -ItemType Directory -Force -LiteralPath $dst | Out-Null; \
+          Expand-Archive -LiteralPath $src -DestinationPath $dst -Force";
+        let mut command = powershell_command(script);
+        command.env("FORBIDDENS_SAVE_SRC", source.to_string_lossy().to_string());
+        command.env("FORBIDDENS_SAVE_DST", target.to_string_lossy().to_string());
+        run_hidden(command)?;
+        return Ok(Some(target.to_string_lossy().to_string()));
+    }
+
+    Err("Los saves locales manuales solo estan disponibles para PSP y PS2.".to_string())
+}
+
+#[tauri::command]
 fn download_drive_rom_for_native(
     console_id: String,
     file_id: String,
@@ -1661,6 +1996,57 @@ fn download_drive_rom_for_native(
 }
 
 #[tauri::command]
+fn download_remote_rom_for_native(
+    console_id: String,
+    game_id: String,
+    file_name: String,
+    rom_url: String,
+) -> Result<String, String> {
+    let normalized = console_id.trim().to_lowercase();
+    if get_engine_config(&normalized).is_none() {
+        return Err("Esta consola aun no tiene motor nativo configurado.".to_string());
+    }
+
+    let trimmed_url = rom_url.trim();
+    if !(trimmed_url.starts_with("https://") || trimmed_url.starts_with("http://")) {
+        return Err("La ROM publica no tiene una URL valida.".to_string());
+    }
+
+    let safe_name = sanitize_file_name(&file_name);
+    let safe_id = sanitize_file_name(&game_id);
+    let cache_dir = local_app_data_dir().join("roms").join("public").join(&normalized);
+    fs::create_dir_all(&cache_dir).map_err(|error| error.to_string())?;
+    let target = cache_dir.join(format!("{}_{}", safe_id, safe_name));
+    let temp_target = cache_dir.join(format!("{}.download", safe_id));
+
+    if target.is_dir() {
+        fs::remove_dir_all(&target).map_err(|error| error.to_string())?;
+    }
+    if target.exists() && target.metadata().map(|meta| meta.len()).unwrap_or(0) > 0 {
+        return Ok(target.to_string_lossy().to_string());
+    }
+    if target.exists() {
+        fs::remove_file(&target).map_err(|error| error.to_string())?;
+    }
+    if temp_target.exists() {
+        if temp_target.is_dir() {
+            fs::remove_dir_all(&temp_target).map_err(|error| error.to_string())?;
+        } else {
+            fs::remove_file(&temp_target).map_err(|error| error.to_string())?;
+        }
+    }
+
+    download_file(trimmed_url, &temp_target)?;
+    if !temp_target.exists() || temp_target.metadata().map(|meta| meta.len()).unwrap_or(0) == 0 {
+        let _ = fs::remove_file(&temp_target);
+        return Err("No se pudo descargar la ROM publica.".to_string());
+    }
+    fs::rename(&temp_target, &target).map_err(|error| error.to_string())?;
+
+    Ok(target.to_string_lossy().to_string())
+}
+
+#[tauri::command]
 fn open_drive_rom_native(
     app: AppHandle,
     console_id: String,
@@ -1669,6 +2055,18 @@ fn open_drive_rom_native(
     access_token: String,
 ) -> Result<NativeEmulatorLaunchResult, String> {
     let path = download_drive_rom_for_native(console_id.clone(), file_id, file_name, access_token)?;
+    open_native_emulator(app, console_id, Some(path))
+}
+
+#[tauri::command]
+fn open_remote_rom_native(
+    app: AppHandle,
+    console_id: String,
+    game_id: String,
+    file_name: String,
+    rom_url: String,
+) -> Result<NativeEmulatorLaunchResult, String> {
+    let path = download_remote_rom_for_native(console_id.clone(), game_id, file_name, rom_url)?;
     open_native_emulator(app, console_id, Some(path))
 }
 
@@ -1742,8 +2140,15 @@ pub fn run() {
             open_native_emulator,
             close_native_emulator,
             set_native_emulator_state,
+            native_emulator_action,
+            read_native_save_file,
+            write_native_save_file,
+            export_native_local_save,
+            import_native_local_save,
             download_drive_rom_for_native,
             open_drive_rom_native,
+            download_remote_rom_for_native,
+            open_remote_rom_native,
             detect_ppsspp_native,
             open_ppsspp_native
         ])

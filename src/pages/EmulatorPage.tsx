@@ -9,6 +9,7 @@ import { canPlayExtraConsole, EXTRA_CONSOLES } from "@/lib/membershipLimits";
 import { cn } from "@/lib/utils";
 import { formatLauncherBridgeError, getLauncherBridge, launcherSupportsNative, type NativeBiosStatus, type NativeEngineStatus } from "@/lib/launcherBridge";
 import { useNativeSession } from "@/contexts/NativeSessionContext";
+import { getNativeCloudSaveKind, restoreNativeCloudSave } from "@/lib/nativeCloudSaves";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -648,6 +649,15 @@ export default function EmulatorPage() {
 
       const romPath = await bridge.pickNativeRom(currentSystem.id);
       if (!romPath) return;
+      const nativeGameName = romPath.split(/[\\/]/).pop()?.replace(/\.[^.]+$/, "") || currentSystem.name;
+      const restoredNativeSave = await restoreNativeCloudSave({
+        consoleId: currentSystem.id,
+        gameName: nativeGameName,
+        romPath,
+      }).catch((error) => {
+        console.warn("Native cloud save restore skipped:", error);
+        return false;
+      });
       let launchResult: any = null;
       try {
         launchResult = await bridge.openNativeEmulator(currentSystem.id, romPath);
@@ -667,11 +677,17 @@ export default function EmulatorPage() {
       }
       launchNativeSession({
         consoleName: currentSystem.id,
-        gameName: romPath.split(/[\\/]/).pop()?.replace(/\.[^.]+$/, "") || currentSystem.name,
+        gameName: nativeGameName,
         engineName: status?.engine_name || currentSystem.core || "Emulador nativo",
         romPath,
         processId: typeof launchResult === "object" ? Number(launchResult?.process_id || 0) || null : null,
       });
+      const processId = typeof launchResult === "object" ? Number(launchResult?.process_id || 0) || null : null;
+      if (restoredNativeSave && getNativeCloudSaveKind(currentSystem.id) === "savestate" && processId) {
+        window.setTimeout(() => {
+          bridge.nativeEmulatorAction?.(processId, "load_state").catch(() => {});
+        }, 1800);
+      }
       toast({ title: "Abriendo emulador nativo", description: `${status?.engine_name || currentSystem.short} iniciando desde FORBIDDENS Launcher.` });
     } catch (error: any) {
       toast({ title: "Error nativo", description: error?.message || String(error || "No se pudo abrir el emulador nativo."), variant: "destructive" });
