@@ -150,7 +150,7 @@ export default function NativeGameBubble() {
 
   const supportsLocalSaveFiles = useMemo(() => {
     const consoleName = session?.consoleName?.toLowerCase();
-    return Boolean(consoleName && (consoleName === "psp" || consoleName === "ps2" || isNativeCloudSaveSupported(consoleName)));
+    return Boolean(consoleName && (consoleName === "ps1" || consoleName === "psp" || consoleName === "ps2" || isNativeCloudSaveSupported(consoleName)));
   }, [session?.consoleName]);
 
   const supportsCloudSaveControls = useMemo(() => {
@@ -473,26 +473,6 @@ export default function NativeGameBubble() {
     };
   }, [maximizeNativeSession, minimizeNativeSession]);
 
-  useEffect(() => {
-    if (!session?.processId || typeof document === "undefined") return;
-    const processId = session.processId;
-    const restoreFromLauncherFocus = () => {
-      const bridge = getLauncherBridge();
-      if (!bridge?.setNativeEmulatorState) return;
-      maximizeNativeSession();
-      bridge
-        .setNativeEmulatorState(processId, "restore")
-        .catch(() => {});
-    };
-
-    window.addEventListener("focus", restoreFromLauncherFocus);
-    window.addEventListener("pageshow", restoreFromLauncherFocus);
-    return () => {
-      window.removeEventListener("focus", restoreFromLauncherFocus);
-      window.removeEventListener("pageshow", restoreFromLauncherFocus);
-    };
-  }, [maximizeNativeSession, session?.processId]);
-
   const finishSession = async () => {
     const current = latestSessionRef.current;
     if (!current) return;
@@ -561,7 +541,7 @@ export default function NativeGameBubble() {
     }
     try {
       const consoleName = current.consoleName.toLowerCase();
-      if (current.processId && consoleName !== "psp" && consoleName !== "ps2" && isNativeCloudSaveSupported(consoleName)) {
+      if (current.processId && !["ps1", "psp", "ps2"].includes(consoleName) && isNativeCloudSaveSupported(consoleName)) {
         await bridge.nativeEmulatorAction?.(current.processId, "save_state").catch(() => {});
         await new Promise((resolve) => window.setTimeout(resolve, 700));
       }
@@ -577,7 +557,9 @@ export default function NativeGameBubble() {
           ? "Se guardo un ZIP con tus saves de PPSSPP."
           : consoleName === "ps2"
             ? "Se guardo la memory card de PCSX2."
-            : "Se guardo el savestate local del juego.",
+            : consoleName === "ps1"
+              ? "Se guardo la memory card de DuckStation."
+              : "Se guardo el savestate local del juego.",
       });
     } catch (error: any) {
       toast({
@@ -607,12 +589,12 @@ export default function NativeGameBubble() {
       });
       if (!importedPath) return;
       const consoleName = current.consoleName.toLowerCase();
-      if (current.processId && consoleName !== "psp" && consoleName !== "ps2" && isNativeCloudSaveSupported(consoleName)) {
+      if (current.processId && !["ps1", "psp", "ps2"].includes(consoleName) && isNativeCloudSaveSupported(consoleName)) {
         await bridge.nativeEmulatorAction?.(current.processId, "load_state").catch(() => {});
       }
       toast({
         title: "Save cargado",
-        description: consoleName === "psp" || consoleName === "ps2"
+        description: consoleName === "ps1" || consoleName === "psp" || consoleName === "ps2"
           ? "Reinicia el juego nativo si ya estaba abierto para que el emulador lea el archivo."
           : "Se cargo el savestate local en el emulador.",
       });

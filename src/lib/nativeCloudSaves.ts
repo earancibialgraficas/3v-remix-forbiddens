@@ -3,13 +3,13 @@ import { getLauncherBridge } from "@/lib/launcherBridge";
 
 type NativeCloudSaveKind = "savestate" | "real_save";
 
-const retroarchNativeConsoles = new Set(["nes", "snes", "gba", "gbc", "sega", "n64", "arcade", "psp", "ps2"]);
+const retroarchNativeConsoles = new Set(["nes", "snes", "gba", "gbc", "sega", "n64", "arcade", "ps1", "psp", "ps2"]);
 
 export const isNativeCloudSaveSupported = (consoleId: string) =>
   retroarchNativeConsoles.has(consoleId.trim().toLowerCase());
 
 export const getNativeCloudSaveKind = (consoleId: string): NativeCloudSaveKind =>
-  ["n64", "psp", "ps2"].includes(consoleId.trim().toLowerCase()) ? "real_save" : "savestate";
+  ["n64", "ps1", "psp", "ps2"].includes(consoleId.trim().toLowerCase()) ? "real_save" : "savestate";
 
 const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 

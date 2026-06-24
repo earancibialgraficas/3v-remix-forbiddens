@@ -120,8 +120,8 @@ struct NativeDownloadProgressEvent {
     error: Option<String>,
 }
 
-const WEBSITE_URL: &str = "https://forbiddens.net/?launcher_version=0.1.31";
-const LAUNCHER_DOWNLOAD_URL: &str = "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.31_x64-setup.exe";
+const WEBSITE_URL: &str = "https://forbiddens.net/?launcher_version=0.1.32";
+const LAUNCHER_DOWNLOAD_URL: &str = "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.32_x64-setup.exe";
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 const LAUNCHER_BRIDGE_SCRIPT: &str = r#"
 (function () {
@@ -1409,20 +1409,10 @@ fn restore_launcher_layout(app: &AppHandle) {
     let Some(window) = app.get_webview_window("main") else {
         return;
     };
-    let Some((x, y, screen_width, screen_height, _emulator_width, _companion_width)) =
-        screen_layout(app)
-    else {
-        return;
-    };
-
-    let width = screen_width.min(1280).max(1024);
-    let height = screen_height.min(820).max(650);
-    let target_x = x + ((screen_width.saturating_sub(width)) / 2) as i32;
-    let target_y = y + ((screen_height.saturating_sub(height)) / 2) as i32;
-
     let _ = window.set_min_size(Some(PhysicalSize::new(1024, 650)));
-    let _ = window.set_position(PhysicalPosition::new(target_x, target_y));
-    let _ = window.set_size(PhysicalSize::new(width, height));
+    let _ = window.unminimize();
+    let _ = window.maximize();
+    let _ = window.set_focus();
 }
 
 #[cfg(windows)]
@@ -1441,10 +1431,9 @@ extern "system" {
     fn GetWindowThreadProcessId(hwnd: isize, lpdw_process_id: *mut u32) -> u32;
     fn IsIconic(hwnd: isize) -> i32;
     fn IsWindowVisible(hwnd: isize) -> i32;
-    fn MoveWindow(hwnd: isize, x: i32, y: i32, width: i32, height: i32, repaint: i32) -> i32;
+    fn PostMessageW(hwnd: isize, msg: u32, w_param: usize, l_param: isize) -> i32;
     fn SetForegroundWindow(hwnd: isize) -> i32;
     fn ShowWindowAsync(hwnd: isize, cmd_show: i32) -> i32;
-    fn keybd_event(virtual_key: u8, scan_code: u8, flags: u32, extra_info: usize);
 }
 
 #[cfg(windows)]
@@ -1930,11 +1919,11 @@ fn native_emulator_action(process_id: u32, action: String) -> Result<(), String>
                 ShowWindowAsync(hwnd, 9);
                 SetForegroundWindow(hwnd);
             }
-            thread::sleep(Duration::from_millis(140));
+            thread::sleep(Duration::from_millis(80));
             unsafe {
-                keybd_event(virtual_key, 0, 0, 0);
-                thread::sleep(Duration::from_millis(40));
-                keybd_event(virtual_key, 0, 0x0002, 0);
+                PostMessageW(hwnd, 0x0100, virtual_key as usize, 1);
+                thread::sleep(Duration::from_millis(30));
+                PostMessageW(hwnd, 0x0101, virtual_key as usize, 0xC0000001u32 as isize);
             }
         }
         return Ok(());
@@ -2048,9 +2037,26 @@ public static class ForbiddensProcessVolume {
 if (-not ('ForbiddensProcessVolume' -as [type])) {
   Add-Type -TypeDefinition $source
 }
-$pidValue = [uint32]$env:FORBIDDENS_EMU_PID
 $volumeValue = [Math]::Max(0, [Math]::Min(1, ([single]$env:FORBIDDENS_EMU_VOLUME / 100)))
-[ForbiddensProcessVolume]::Set($pidValue, $volumeValue) | Out-Null
+$rootPid = [uint32]$env:FORBIDDENS_EMU_PID
+$processIds = @($rootPid)
+try {
+  $children = Get-CimInstance Win32_Process -Filter "ParentProcessId=$rootPid" -ErrorAction SilentlyContinue
+  foreach ($child in $children) {
+    if ($child.ProcessId) { $processIds += [uint32]$child.ProcessId }
+  }
+} catch {}
+$changed = $false
+foreach ($pidValue in ($processIds | Select-Object -Unique)) {
+  if ([ForbiddensProcessVolume]::Set($pidValue, $volumeValue)) { $changed = $true }
+}
+if (-not $changed) {
+  Start-Sleep -Milliseconds 250
+  foreach ($pidValue in ($processIds | Select-Object -Unique)) {
+    if ([ForbiddensProcessVolume]::Set($pidValue, $volumeValue)) { $changed = $true }
+  }
+}
+if (-not $changed) { throw 'No se encontro una sesion de audio activa para el emulador.' }
 "#;
     let mut command = powershell_command(script);
     command.env("FORBIDDENS_EMU_PID", process_id.to_string());
@@ -2067,6 +2073,20 @@ fn read_native_save_file(
     let normalized = console_id.trim().to_lowercase();
     if normalized == "ps2" {
         let path = pcsx2_primary_memory_card_for_export()?;
+        let bytes = fs::read(&path).map_err(|error| error.to_string())?;
+        if bytes.is_empty() {
+            return Ok(None);
+        }
+        return Ok(Some(NativeSaveFilePayload {
+            console_id: normalized,
+            kind: "real_save".to_string(),
+            path: path.to_string_lossy().to_string(),
+            data: general_purpose::STANDARD.encode(&bytes),
+            size: bytes.len() as u64,
+        }));
+    }
+    if normalized == "ps1" {
+        let path = duckstation_primary_memory_card_for_export()?;
         let bytes = fs::read(&path).map_err(|error| error.to_string())?;
         if bytes.is_empty() {
             return Ok(None);
@@ -2137,6 +2157,14 @@ fn write_native_save_file(
         .map_err(|error| format!("Save invalido: {}", error))?;
     if normalized == "ps2" {
         let path = pcsx2_primary_memory_card_for_import()?;
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+        }
+        fs::write(&path, bytes).map_err(|error| error.to_string())?;
+        return Ok(Some(path.to_string_lossy().to_string()));
+    }
+    if normalized == "ps1" {
+        let path = duckstation_primary_memory_card_for_import()?;
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent).map_err(|error| error.to_string())?;
         }
@@ -2279,6 +2307,80 @@ fn pcsx2_primary_memory_card_for_import() -> Result<PathBuf, String> {
     Ok(pcsx2_memcards_dir()?.join("Mcd001.ps2"))
 }
 
+fn duckstation_memcard_candidates() -> Vec<PathBuf> {
+    let mut candidates = Vec::new();
+    if let Some(config) = get_engine_config("ps1") {
+        if let Some(engine_path) = find_native_engine(&config) {
+            if let Some(root) = engine_path.parent() {
+                candidates.push(root.join("memcards"));
+                candidates.push(root.join("MemoryCards"));
+                candidates.push(root.join("user").join("memcards"));
+            }
+        }
+    }
+    if let Ok(user_profile) = env::var("USERPROFILE") {
+        candidates.push(PathBuf::from(&user_profile).join("Documents").join("DuckStation").join("memcards"));
+        candidates.push(PathBuf::from(&user_profile).join("Documents").join("DuckStation").join("MemoryCards"));
+    }
+    if let Ok(app_data) = env::var("APPDATA") {
+        candidates.push(PathBuf::from(&app_data).join("DuckStation").join("memcards"));
+        candidates.push(PathBuf::from(&app_data).join("DuckStation").join("MemoryCards"));
+    }
+    if let Ok(local_app_data) = env::var("LOCALAPPDATA") {
+        candidates.push(PathBuf::from(&local_app_data).join("DuckStation").join("memcards"));
+        candidates.push(PathBuf::from(&local_app_data).join("DuckStation").join("MemoryCards"));
+    }
+    candidates
+}
+
+fn is_duckstation_memcard(path: &Path) -> bool {
+    path.is_file()
+        && path
+            .extension()
+            .map(|ext| {
+                let ext = ext.to_string_lossy().to_ascii_lowercase();
+                ext == "mcd" || ext == "mcr" || ext == "mc"
+            })
+            .unwrap_or(false)
+}
+
+fn duckstation_primary_memory_card_for_export() -> Result<PathBuf, String> {
+    for dir in duckstation_memcard_candidates() {
+        let preferred = dir.join("MemoryCard1.mcd");
+        if preferred.exists() && preferred.is_file() {
+            return Ok(preferred);
+        }
+        if let Ok(entries) = fs::read_dir(&dir) {
+            if let Some(path) = entries
+                .filter_map(Result::ok)
+                .map(|entry| entry.path())
+                .find(|path| is_duckstation_memcard(path))
+            {
+                return Ok(path);
+            }
+        }
+    }
+    Err("No se encontro una memory card de DuckStation para exportar.".to_string())
+}
+
+fn duckstation_primary_memory_card_for_import() -> Result<PathBuf, String> {
+    if let Some(existing) = duckstation_memcard_candidates().into_iter().find(|path| path.is_dir()) {
+        return Ok(existing.join("MemoryCard1.mcd"));
+    }
+    let Some(config) = get_engine_config("ps1") else {
+        return Err("PS1 no tiene motor nativo configurado.".to_string());
+    };
+    let Some(engine_path) = find_native_engine(&config) else {
+        return Err("Instala DuckStation antes de cargar saves.".to_string());
+    };
+    let Some(root) = engine_path.parent() else {
+        return Err("No se encontro la carpeta de DuckStation.".to_string());
+    };
+    let dir = root.join("memcards");
+    fs::create_dir_all(&dir).map_err(|error| error.to_string())?;
+    Ok(dir.join("MemoryCard1.mcd"))
+}
+
 fn local_save_file_name(game_name: &str, console_id: &str, extension: &str) -> String {
     let game = sanitize_file_name(game_name).trim_end_matches(".rom").to_string();
     format!("{}_{}_save.{}", game, sanitize_file_name(console_id), extension)
@@ -2298,6 +2400,19 @@ fn export_native_local_save(
         let target = app.dialog().file()
             .add_filter("Memory Card PS2", &["ps2"])
             .set_file_name(&local_save_file_name(&game_name, "ps2", "ps2"))
+            .blocking_save_file();
+        let Some(target) = target.and_then(|file| file.into_path().ok()) else {
+            return Ok(None);
+        };
+        fs::copy(&source, &target).map_err(|error| error.to_string())?;
+        return Ok(Some(target.to_string_lossy().to_string()));
+    }
+
+    if normalized == "ps1" {
+        let source = duckstation_primary_memory_card_for_export()?;
+        let target = app.dialog().file()
+            .add_filter("Memory Card PS1", &["mcd", "mcr", "mc"])
+            .set_file_name(&local_save_file_name(&game_name, "ps1", "mcd"))
             .blocking_save_file();
         let Some(target) = target.and_then(|file| file.into_path().ok()) else {
             return Ok(None);
@@ -2359,6 +2474,23 @@ fn import_native_local_save(app: AppHandle, console_id: String, rom_path: Option
             return Ok(None);
         };
         let target = pcsx2_primary_memory_card_for_import()?;
+        fs::copy(&source, &target).map_err(|error| error.to_string())?;
+        return Ok(Some(target.to_string_lossy().to_string()));
+    }
+
+    if normalized == "ps1" {
+        let picked = app
+            .dialog()
+            .file()
+            .add_filter("Memory Card PS1", &["mcd", "mcr", "mc"])
+            .blocking_pick_file();
+        let Some(source) = picked.and_then(|file| file.into_path().ok()) else {
+            return Ok(None);
+        };
+        let target = duckstation_primary_memory_card_for_import()?;
+        if let Some(parent) = target.parent() {
+            fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+        }
         fs::copy(&source, &target).map_err(|error| error.to_string())?;
         return Ok(Some(target.to_string_lossy().to_string()));
     }
