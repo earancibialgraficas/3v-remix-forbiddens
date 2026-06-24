@@ -85,8 +85,8 @@ struct NativeEmulatorWindowStateEvent {
     state: String,
 }
 
-const WEBSITE_URL: &str = "https://forbiddens.net/?launcher_version=0.1.21";
-const LAUNCHER_DOWNLOAD_URL: &str = "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.21_x64-setup.exe";
+const WEBSITE_URL: &str = "https://forbiddens.net/?launcher_version=0.1.22";
+const LAUNCHER_DOWNLOAD_URL: &str = "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.22_x64-setup.exe";
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 const LAUNCHER_BRIDGE_SCRIPT: &str = r#"
 (function () {
@@ -1521,18 +1521,44 @@ fn download_drive_rom_for_native(
     let cache_dir = local_app_data_dir().join("roms").join(&normalized);
     fs::create_dir_all(&cache_dir).map_err(|error| error.to_string())?;
     let target = cache_dir.join(format!("{}_{}", sanitize_file_name(&file_id), safe_name));
+    let temp_target = cache_dir.join(format!(
+        "{}.download",
+        sanitize_file_name(&file_id)
+    ));
 
-    if target.exists() {
+    if target.is_dir() {
+        fs::remove_dir_all(&target).map_err(|error| error.to_string())?;
+    }
+
+    if target.exists() && target.metadata().map(|meta| meta.len()).unwrap_or(0) > 0 {
         return Ok(target.to_string_lossy().to_string());
+    }
+    if target.exists() {
+        fs::remove_file(&target).map_err(|error| error.to_string())?;
+    }
+    if temp_target.exists() {
+        if temp_target.is_dir() {
+            fs::remove_dir_all(&temp_target).map_err(|error| error.to_string())?;
+        } else {
+            fs::remove_file(&temp_target).map_err(|error| error.to_string())?;
+        }
     }
 
     let script = "$ErrorActionPreference='Stop'; \
       $ProgressPreference='SilentlyContinue'; \
-      New-Item -ItemType Directory -Force -Path $env:FORBIDDENS_ROM_DIR | Out-Null; \
-      $headers = @{ Authorization = \"Bearer $($env:FORBIDDENS_DRIVE_TOKEN)\" }; \
+      $dir = [Environment]::GetEnvironmentVariable('FORBIDDENS_ROM_DIR'); \
+      $out = [Environment]::GetEnvironmentVariable('FORBIDDENS_ROM_PATH'); \
+      $tmp = [Environment]::GetEnvironmentVariable('FORBIDDENS_ROM_TEMP_PATH'); \
+      New-Item -ItemType Directory -Force -LiteralPath $dir | Out-Null; \
+      if (Test-Path -LiteralPath $tmp) { Remove-Item -LiteralPath $tmp -Force -Recurse } \
       $uri = \"https://www.googleapis.com/drive/v3/files/$($env:FORBIDDENS_DRIVE_FILE_ID)?alt=media\"; \
       try { \
-        Invoke-WebRequest -Uri $uri -Headers $headers -OutFile $env:FORBIDDENS_ROM_PATH -UseBasicParsing \
+        $client = New-Object System.Net.WebClient; \
+        $client.Headers.Add('Authorization', \"Bearer $($env:FORBIDDENS_DRIVE_TOKEN)\"); \
+        $client.DownloadFile($uri, $tmp); \
+        if (-not (Test-Path -LiteralPath $tmp -PathType Leaf)) { throw 'No se pudo crear el archivo temporal de la ROM.' } \
+        if ((Get-Item -LiteralPath $tmp).Length -le 0) { throw 'Google Drive entrego una descarga vacia.' } \
+        Move-Item -LiteralPath $tmp -Destination $out -Force \
       } catch { \
         $status = 0; \
         if ($_.Exception.Response -and $_.Exception.Response.StatusCode) { $status = [int]$_.Exception.Response.StatusCode } \
@@ -1544,6 +1570,7 @@ fn download_drive_rom_for_native(
     let mut command = powershell_command(script);
     command.env("FORBIDDENS_ROM_DIR", &cache_dir);
     command.env("FORBIDDENS_ROM_PATH", &target);
+    command.env("FORBIDDENS_ROM_TEMP_PATH", &temp_target);
     command.env("FORBIDDENS_DRIVE_FILE_ID", file_id.trim());
     command.env("FORBIDDENS_DRIVE_TOKEN", access_token.trim());
     run_hidden(command)?;
