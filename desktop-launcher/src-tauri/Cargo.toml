@@ -1,6 +1,6 @@
 [package]
 name = "forbiddens_desktop_launcher"
-version = "0.1.22"
+version = "0.1.23"
 description = "FORBIDDENS desktop launcher"
 authors = ["FORBIDDENS"]
 edition = "2021"

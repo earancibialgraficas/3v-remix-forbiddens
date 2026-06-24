@@ -1,15 +1,15 @@
 {
-  "version": "0.1.22",
+  "version": "0.1.23",
   "notes": "Corrige el pantallazo negro de la pagina de emuladores, agrega recuperacion ante errores de render y fuerza carga fresca del website en el launcher.",
   "pub_date": "2026-06-24T01:58:52Z",
   "platforms": {
     "windows-x86_64": {
       "signature": "PEGA_AQUI_LA_FIRMA_DEL_INSTALADOR",
-      "url": "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.22_x64-setup.exe"
+      "url": "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.23_x64-setup.exe"
     },
     "windows-x86_64-pc-windows-msvc": {
       "signature": "PEGA_AQUI_LA_FIRMA_DEL_INSTALADOR",
-      "url": "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.22_x64-setup.exe"
+      "url": "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.23_x64-setup.exe"
     }
   }
 }

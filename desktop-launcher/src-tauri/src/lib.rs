@@ -85,8 +85,8 @@ struct NativeEmulatorWindowStateEvent {
     state: String,
 }
 
-const WEBSITE_URL: &str = "https://forbiddens.net/?launcher_version=0.1.22";
-const LAUNCHER_DOWNLOAD_URL: &str = "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.22_x64-setup.exe";
+const WEBSITE_URL: &str = "https://forbiddens.net/?launcher_version=0.1.23";
+const LAUNCHER_DOWNLOAD_URL: &str = "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.23_x64-setup.exe";
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 const LAUNCHER_BRIDGE_SCRIPT: &str = r#"
 (function () {
@@ -1549,7 +1549,7 @@ fn download_drive_rom_for_native(
       $dir = [Environment]::GetEnvironmentVariable('FORBIDDENS_ROM_DIR'); \
       $out = [Environment]::GetEnvironmentVariable('FORBIDDENS_ROM_PATH'); \
       $tmp = [Environment]::GetEnvironmentVariable('FORBIDDENS_ROM_TEMP_PATH'); \
-      New-Item -ItemType Directory -Force -LiteralPath $dir | Out-Null; \
+      [System.IO.Directory]::CreateDirectory($dir) | Out-Null; \
       if (Test-Path -LiteralPath $tmp) { Remove-Item -LiteralPath $tmp -Force -Recurse } \
       $uri = \"https://www.googleapis.com/drive/v3/files/$($env:FORBIDDENS_DRIVE_FILE_ID)?alt=media\"; \
       try { \

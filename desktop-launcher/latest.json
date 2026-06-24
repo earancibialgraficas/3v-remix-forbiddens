@@ -1,15 +1,15 @@
 {
-    "version":  "0.1.22",
-    "notes":  "Hace mas robusta la descarga local de ROMs de Drive en modo nativo usando archivo temporal y rutas literales para evitar fallos de PowerShell al guardar.",
-    "pub_date":  "2026-06-24T06:13:56Z",
+    "version":  "0.1.23",
+    "notes":  "Corrige compatibilidad de PowerShell al crear la carpeta de cache de ROMs nativas de Drive.",
+    "pub_date":  "2026-06-24T06:29:10Z",
     "platforms":  {
                       "windows-x86_64":  {
-                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRRXZQQXVxYjV4VXNSN2tUbG9QUWlwMXIvSFZselNsR2xTS2JKamJha3RxdUhUUlZxcW5nYUg5cnl0NEFvRStYM1lsUnB1NHlrdll1K1NzY0FvU293S1htVkZuUzRNM0FFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMjgxNjIyCWZpbGU6Rk9SQklEREVOU18wLjEuMjJfeDY0LXNldHVwLmV4ZQpQQkNYc3o1dis4b2RXTHcrcjgxU09sWWNmKzFra2IzbU5UcVJVNEhidHhtWmh0MTJQZGNCekdabTk0S0RjTFA3V2Fpbm5pS0U4MUl4RzlTdE5JUjNBQT09Cg==",
-                                             "url":  "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.22_x64-setup.exe"
+                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRRXZQQXVxYjV4VW9BTmtSMG1lb3BZaXZnMkpYa0JKcXZNb1N2VUhRcXN1TUVqOHExdy8vZWNRRXhFWnVwQytyNkZPY2VrcWlETXQzVy80WlFVYjU2cUhjQ3Nra0RQSmdvPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMjgyNTM0CWZpbGU6Rk9SQklEREVOU18wLjEuMjNfeDY0LXNldHVwLmV4ZQovWEROTmpCZ2dabFRrSnhYSjdBWGpBUGwzZXdZU05tVlBGQnFCWDVSWGdLSkZLQ0RNdlZmMXR2Q1JzeVB6c1hZL1hjMTd2ekhCdC94Zm5lUFNCUGJBZz09Cg==",
+                                             "url":  "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.23_x64-setup.exe"
                                          },
                       "windows-x86_64-pc-windows-msvc":  {
-                                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRRXZQQXVxYjV4VXNSN2tUbG9QUWlwMXIvSFZselNsR2xTS2JKamJha3RxdUhUUlZxcW5nYUg5cnl0NEFvRStYM1lsUnB1NHlrdll1K1NzY0FvU293S1htVkZuUzRNM0FFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMjgxNjIyCWZpbGU6Rk9SQklEREVOU18wLjEuMjJfeDY0LXNldHVwLmV4ZQpQQkNYc3o1dis4b2RXTHcrcjgxU09sWWNmKzFra2IzbU5UcVJVNEhidHhtWmh0MTJQZGNCekdabTk0S0RjTFA3V2Fpbm5pS0U4MUl4RzlTdE5JUjNBQT09Cg==",
-                                                             "url":  "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.22_x64-setup.exe"
+                                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRRXZQQXVxYjV4VW9BTmtSMG1lb3BZaXZnMkpYa0JKcXZNb1N2VUhRcXN1TUVqOHExdy8vZWNRRXhFWnVwQytyNkZPY2VrcWlETXQzVy80WlFVYjU2cUhjQ3Nra0RQSmdvPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMjgyNTM0CWZpbGU6Rk9SQklEREVOU18wLjEuMjNfeDY0LXNldHVwLmV4ZQovWEROTmpCZ2dabFRrSnhYSjdBWGpBUGwzZXdZU05tVlBGQnFCWDVSWGdLSkZLQ0RNdlZmMXR2Q1JzeVB6c1hZL1hjMTd2ekhCdC94Zm5lUFNCUGJBZz09Cg==",
+                                                             "url":  "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.23_x64-setup.exe"
                                                          }
                   }
 }
