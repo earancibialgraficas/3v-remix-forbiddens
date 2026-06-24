@@ -550,9 +550,6 @@ export default function ChillMusicPlayer() {
       const timer = setTimeout(() => {
         if (!iframeRef.current?.contentWindow) return;
         iframeRef.current.contentWindow.postMessage(
-          JSON.stringify({ event: 'command', func: isPlaying ? 'playVideo' : 'pauseVideo' }), '*'
-        );
-        iframeRef.current.contentWindow.postMessage(
           JSON.stringify({ event: 'command', func: 'setVolume', args: [volume] }), '*'
         );
         
@@ -560,6 +557,9 @@ export default function ChillMusicPlayer() {
           iframeRef.current.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'seekTo', args: [timeToRestoreRef.current, true] }), '*');
           timeToRestoreRef.current = null;
         }
+        iframeRef.current.contentWindow.postMessage(
+          JSON.stringify({ event: 'command', func: isPlaying ? 'playVideo' : 'pauseVideo' }), '*'
+        );
       }, 300);
       return () => clearTimeout(timer);
     }
@@ -1217,22 +1217,22 @@ export default function ChillMusicPlayer() {
     playerWindow.postMessage(
       JSON.stringify({ event: 'command', func: 'setVolume', args: [volume] }), '*'
     );
-    playerWindow.postMessage(
-      JSON.stringify({ event: 'command', func: isPlaying ? 'playVideo' : 'pauseVideo' }), '*'
-    );
     if (timeToRestoreRef.current !== null) {
       playerWindow.postMessage(
         JSON.stringify({ event: 'command', func: 'seekTo', args: [timeToRestoreRef.current, true] }), '*'
       );
       timeToRestoreRef.current = null;
     }
+    playerWindow.postMessage(
+      JSON.stringify({ event: 'command', func: isPlaying ? 'playVideo' : 'pauseVideo' }), '*'
+    );
   };
 
   const renderYT = currentYoutubeId ? (
     <iframe
       ref={iframeRef}
       key={`yt-${currentYoutubeId}`}
-      src={`https://www.youtube.com/embed/${currentYoutubeId}?enablejsapi=1&autoplay=${isPlaying ? 1 : 0}&origin=${encodeURIComponent(window.location.origin)}`}
+      src={`https://www.youtube.com/embed/${currentYoutubeId}?enablejsapi=1&playsinline=1&origin=${encodeURIComponent(window.location.origin)}`}
       className="w-0 h-0 absolute pointer-events-none"
       allow="autoplay"
       title="Chill Music"
@@ -1348,7 +1348,7 @@ export default function ChillMusicPlayer() {
 
           <div className="chill-emulator-volume-label flex items-center justify-center gap-0.5">
             {isMuted || volume === 0 ? <VolumeX className="w-2 h-2 text-muted-foreground" /> : <Volume2 className="w-2 h-2 text-neon-cyan" />}
-            <span className="text-[7px] font-pixel text-neon-cyan tabular-nums">{volume}%</span>
+            <span className={cn("text-[7px] font-pixel text-neon-cyan tabular-nums", volume >= 100 && "chill-emulator-volume-max")}>{volume}%</span>
           </div>
         </div>
 
@@ -1385,7 +1385,8 @@ export default function ChillMusicPlayer() {
               style={{ right, bottom }}
               className={cn(
                 "absolute min-w-[140px] max-w-[200px] bg-black/95 border-2 border-neon-cyan/60 rounded-lg shadow-[0_0_20px_rgba(34,211,238,0.5),inset_0_0_10px_rgba(34,211,238,0.1)] overflow-hidden backdrop-blur-md",
-                rositaEmulatorPalette && "rosita-music-menu",
+                "rosita-music-menu",
+                rositaEmulatorPalette && "rosita-music-menu-rosita",
               )}
               onClick={(e) => e.stopPropagation()}
             >

@@ -12,6 +12,9 @@ export default defineConfig(({ mode }) => ({
     hmr: {
       overlay: false,
     },
+    watch: {
+      ignored: ["**/desktop-launcher/src-tauri/target/**"],
+    },
   },
   plugins: [
     react(),

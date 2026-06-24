@@ -4304,11 +4304,11 @@ aside,
 
   .gamebubble-shell-snes-retro.snes-retro-shell-desktop .snes-retro-desktop-music-slot {
     position: absolute;
-    left: 85.85%;
-    top: 65.8%;
+    left: 85.72%;
+    top: 66.05%;
     z-index: 120;
-    width: 8.35%;
-    height: 19.7%;
+    width: 8.85%;
+    height: 19.35%;
     min-width: 0;
     min-height: 0;
     padding: clamp(1px, 0.18vw, 3px);
@@ -4383,6 +4383,7 @@ aside,
     display: flex;
     flex-direction: column;
     padding: 0 !important;
+    justify-content: space-between;
     background: linear-gradient(180deg, hsl(343 100% 97% / 0.96), hsl(326 100% 94% / 0.94)) !important;
     border-color: hsl(337 76% 73% / 0.78) !important;
     box-shadow: 0 8px 18px hsl(337 48% 38% / 0.14), inset 0 0 0 1px hsl(0 0% 100% / 0.58) !important;
@@ -4403,47 +4404,112 @@ aside,
   }
 
   .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-header {
-    min-height: 12px;
-    padding: 1px 4px !important;
+    min-height: clamp(15px, 1.25vw, 19px);
+    padding: 2px 5px !important;
+    gap: 3px !important;
+    overflow: hidden;
+    align-items: center !important;
   }
 
   .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-track {
     flex: 0 0 auto;
-    padding: 2px 4px 1px !important;
+    padding: 2px 5px !important;
   }
 
   .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-track > div {
-    height: clamp(15px, 1.55vw, 20px) !important;
+    height: clamp(17px, 1.62vw, 22px) !important;
   }
 
   .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-controls {
     flex: 1 1 auto;
     min-height: 0;
-    gap: 2px !important;
-    justify-content: center !important;
-    padding: 2px 4px !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) minmax(0, 0.78fr);
+    align-items: center !important;
+    column-gap: clamp(4px, 0.42vw, 8px) !important;
+    row-gap: clamp(2px, 0.2vw, 4px) !important;
+    justify-content: stretch !important;
+    padding: 2px 6px !important;
   }
 
   .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-play {
-    width: clamp(25px, 2.18vw, 32px) !important;
-    height: clamp(25px, 2.18vw, 32px) !important;
-    min-width: clamp(25px, 2.18vw, 32px) !important;
-    min-height: clamp(25px, 2.18vw, 32px) !important;
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: center !important;
+    width: clamp(28px, 2.35vw, 36px) !important;
+    height: clamp(28px, 2.35vw, 36px) !important;
+    min-width: clamp(28px, 2.35vw, 36px) !important;
+    min-height: clamp(28px, 2.35vw, 36px) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
     padding: 0 !important;
+    line-height: 1 !important;
   }
 
   .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-skip-button,
   .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-volume-button {
-    width: clamp(24px, 2.05vw, 30px) !important;
-    height: clamp(15px, 1.28vw, 19px) !important;
-    min-width: clamp(24px, 2.05vw, 30px) !important;
-    min-height: clamp(15px, 1.28vw, 19px) !important;
+    width: clamp(27px, 2.15vw, 34px) !important;
+    height: clamp(18px, 1.46vw, 23px) !important;
+    min-width: clamp(27px, 2.15vw, 34px) !important;
+    min-height: clamp(18px, 1.46vw, 23px) !important;
+    justify-self: center !important;
+  }
+
+  .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-skip,
+  .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-volume-buttons {
+    display: contents !important;
+  }
+
+  .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-skip-button:first-child {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: end !important;
+  }
+
+  .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-skip-button:last-child {
+    grid-column: 3;
+    grid-row: 1;
+    justify-self: start !important;
+  }
+
+  .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-volume-button:first-child {
+    grid-column: 1;
+    grid-row: 2;
+    justify-self: end !important;
+  }
+
+  .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-volume-button:last-child {
+    grid-column: 3;
+    grid-row: 2;
+    justify-self: start !important;
   }
 
   .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-volume-buttons,
   .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-volume-label {
     gap: 1px !important;
     margin-top: 0 !important;
+  }
+
+  .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-volume-label {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: center !important;
+    width: clamp(30px, 2.5vw, 40px);
+    min-width: clamp(30px, 2.5vw, 40px);
+    max-width: clamp(30px, 2.5vw, 40px);
+    overflow: hidden;
+  }
+
+  .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-volume-label span {
+    display: inline-block !important;
+    min-width: 3.4ch;
+    text-align: center;
+  }
+
+  .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-volume-label .chill-emulator-volume-max {
+    font-size: clamp(5px, 0.48vw, 7px) !important;
   }
 
   .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-category button:hover {
@@ -4453,13 +4519,13 @@ aside,
 
   .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-category {
     flex: 0 0 auto;
-    padding: 1px 4px 4px !important;
+    padding: 2px 5px 5px !important;
   }
 
   .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-category button {
-    min-height: clamp(17px, 1.45vw, 21px) !important;
-    padding: 2px 4px !important;
-    gap: 2px !important;
+    min-height: clamp(20px, 1.65vw, 25px) !important;
+    padding: 3px 5px !important;
+    gap: 3px !important;
     border-radius: clamp(4px, 0.42vw, 7px) !important;
   }
 
@@ -4473,14 +4539,37 @@ aside,
 
   .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-panel p,
   .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-panel span {
-    font-size: clamp(5.5px, 0.52vw, 7.5px) !important;
+    font-size: clamp(6px, 0.57vw, 8px) !important;
     letter-spacing: 0 !important;
-    line-height: 1 !important;
+    line-height: 1.16 !important;
+    min-width: 0 !important;
   }
 
   .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-panel svg {
-    width: clamp(8px, 0.82vw, 12px) !important;
-    height: clamp(8px, 0.82vw, 12px) !important;
+    width: clamp(9px, 0.92vw, 13px) !important;
+    height: clamp(9px, 0.92vw, 13px) !important;
+    flex-shrink: 0 !important;
+  }
+
+  .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-play svg {
+    width: clamp(13px, 1.12vw, 17px) !important;
+    height: clamp(13px, 1.12vw, 17px) !important;
+    margin: auto !important;
+    transform: none !important;
+    display: block !important;
+    position: static !important;
+  }
+
+  .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-category span,
+  .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-header p {
+    display: block !important;
+    min-height: 1.16em;
+    padding-top: 1px;
+    margin-top: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
   }
 
   .gamebubble-shell-snes-retro.snes-retro-shell-desktop #music-slot-emulator .chill-emulator-play,
@@ -5843,51 +5932,138 @@ body.rosita-mobile-overlay-active *::-webkit-scrollbar {
   }
 
   .rosita-music-menu {
-    min-width: clamp(164px, 12.5vw, 220px) !important;
-    max-width: clamp(188px, 15vw, 260px) !important;
-    max-height: min(58vh, 360px) !important;
-    overflow-y: auto !important;
+    --music-menu-bg: linear-gradient(180deg, rgba(5, 10, 18, 0.98), rgba(9, 18, 30, 0.96));
+    --music-menu-header-bg: rgba(34, 211, 238, 0.12);
+    --music-menu-border: rgba(34, 211, 238, 0.62);
+    --music-menu-text: #bff8ff;
+    --music-menu-muted: rgba(191, 248, 255, 0.72);
+    --music-menu-hover-bg: rgba(34, 211, 238, 0.14);
+    --music-menu-active-bg: rgba(34, 211, 238, 0.22);
+    --music-menu-shadow: 0 12px 26px rgba(0, 0, 0, 0.34), 0 0 22px rgba(34, 211, 238, 0.18), inset 0 0 0 1px rgba(191, 248, 255, 0.12);
+    width: clamp(170px, 12vw, 220px) !important;
+    min-width: clamp(170px, 12vw, 220px) !important;
+    max-width: clamp(170px, 12vw, 220px) !important;
+    max-height: none !important;
+    overflow: visible !important;
+    overflow-y: visible !important;
     border-radius: 10px !important;
-    background: linear-gradient(180deg, hsl(343 100% 97% / 0.98), hsl(326 100% 94% / 0.96)) !important;
-    border-color: hsl(337 76% 73% / 0.82) !important;
-    box-shadow: 0 12px 26px hsl(337 48% 38% / 0.16), inset 0 0 0 1px hsl(0 0% 100% / 0.58) !important;
+    background: var(--music-menu-bg) !important;
+    border-color: var(--music-menu-border) !important;
+    box-shadow: var(--music-menu-shadow) !important;
+  }
+
+  .rosita-music-menu.rosita-music-menu-rosita {
+    --music-menu-bg: linear-gradient(180deg, hsl(343 100% 97% / 0.98), hsl(326 100% 94% / 0.96));
+    --music-menu-header-bg: hsl(346 100% 98% / 0.76);
+    --music-menu-border: rgba(198, 83, 139, 0.82);
+    --music-menu-text: #7b2f55;
+    --music-menu-muted: rgba(123, 47, 85, 0.72);
+    --music-menu-hover-bg: hsl(335 100% 92% / 0.74);
+    --music-menu-active-bg: hsl(335 92% 88% / 0.82);
+    --music-menu-shadow: 0 12px 26px hsl(337 48% 38% / 0.16), inset 0 0 0 1px hsl(0 0% 100% / 0.58);
   }
 
   .rosita-music-menu > div:first-child {
-    background: hsl(326 100% 94% / 0.96) !important;
-    border-color: hsl(337 76% 73% / 0.82) !important;
+    background: var(--music-menu-header-bg) !important;
+    border-color: var(--music-menu-border) !important;
   }
 
   .rosita-music-menu .relative > div,
   .rosita-music-menu button {
     background-color: transparent !important;
-    border-color: hsl(337 76% 73% / 0.38) !important;
-    color: hsl(336 58% 42%) !important;
+    border-color: color-mix(in srgb, var(--music-menu-border) 50%, transparent) !important;
+    color: var(--music-menu-text) !important;
     box-shadow: none !important;
   }
 
   .rosita-music-menu button {
-    min-height: 28px !important;
-    padding: 7px 10px !important;
+    min-height: 24px !important;
+    padding: 5px 9px !important;
     font-size: 9px !important;
     line-height: 1.15 !important;
   }
 
   .rosita-music-menu .relative > div:first-child {
-    background: hsl(346 100% 98% / 0.76) !important;
-    border-color: hsl(337 76% 73% / 0.56) !important;
+    background: var(--music-menu-header-bg) !important;
+    border-color: color-mix(in srgb, var(--music-menu-border) 72%, transparent) !important;
   }
 
   .rosita-music-menu p,
   .rosita-music-menu span {
-    color: hsl(336 58% 42%) !important;
+    color: var(--music-menu-text) !important;
     letter-spacing: 0 !important;
+    line-height: 1.18 !important;
   }
 
   .rosita-music-menu button:hover,
   .rosita-music-menu button[class*="bg-neon"] {
-    background: hsl(335 100% 92% / 0.74) !important;
-    color: hsl(334 62% 37%) !important;
+    background: var(--music-menu-hover-bg) !important;
+    color: var(--music-menu-text) !important;
+  }
+
+  .rosita-music-menu button[class*="bg-neon"] {
+    background: var(--music-menu-active-bg) !important;
+  }
+
+  html:is(.skin-theme-angelical, [data-skin-slug="angelical"], [style*="--skin-slug: angelical"]) .rosita-music-menu {
+    --music-menu-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(239, 249, 255, 0.96));
+    --music-menu-header-bg: rgba(219, 244, 255, 0.86);
+    --music-menu-border: rgba(111, 190, 221, 0.78);
+    --music-menu-text: #275b78;
+    --music-menu-hover-bg: rgba(197, 234, 250, 0.86);
+    --music-menu-active-bg: rgba(174, 224, 246, 0.92);
+    --music-menu-shadow: 0 12px 26px rgba(77, 158, 194, 0.18), inset 0 0 0 1px rgba(255, 255, 255, 0.68);
+  }
+
+  html:is(.skin-theme-mi_melodia_rosa, [data-skin-slug="mi_melodia_rosa"], [style*="--skin-slug: mi_melodia_rosa"]) .rosita-music-menu {
+    --music-menu-bg: linear-gradient(180deg, rgba(255, 248, 253, 0.98), rgba(255, 226, 243, 0.96));
+    --music-menu-header-bg: rgba(255, 235, 248, 0.9);
+    --music-menu-border: rgba(217, 91, 151, 0.82);
+    --music-menu-text: #87375e;
+    --music-menu-hover-bg: rgba(255, 208, 235, 0.82);
+    --music-menu-active-bg: rgba(247, 188, 224, 0.9);
+    --music-menu-shadow: 0 12px 26px rgba(139, 54, 96, 0.16), inset 0 0 0 1px rgba(255, 255, 255, 0.58);
+  }
+
+  html:is(.skin-theme-demoniaco, [data-skin-slug="demoniaco"], [style*="--skin-slug: demoniaco"]) .rosita-music-menu {
+    --music-menu-bg: linear-gradient(180deg, rgba(28, 10, 8, 0.98), rgba(7, 7, 7, 0.96));
+    --music-menu-header-bg: rgba(97, 20, 14, 0.86);
+    --music-menu-border: rgba(219, 56, 33, 0.78);
+    --music-menu-text: #ffd5c7;
+    --music-menu-hover-bg: rgba(145, 31, 20, 0.78);
+    --music-menu-active-bg: rgba(190, 43, 27, 0.82);
+    --music-menu-shadow: 0 12px 28px rgba(0, 0, 0, 0.42), 0 0 20px rgba(255, 58, 0, 0.16), inset 0 0 0 1px rgba(255, 152, 113, 0.2);
+  }
+
+  html:is(.skin-theme-mercenario_bocasas, [data-skin-slug="mercenario_bocasas"], [style*="--skin-slug: mercenario_bocasas"]) .rosita-music-menu {
+    --music-menu-bg: linear-gradient(180deg, rgba(30, 12, 10, 0.98), rgba(6, 6, 6, 0.96));
+    --music-menu-header-bg: rgba(105, 26, 21, 0.86);
+    --music-menu-border: rgba(224, 64, 48, 0.78);
+    --music-menu-text: #ffd8c9;
+    --music-menu-hover-bg: rgba(128, 35, 28, 0.8);
+    --music-menu-active-bg: rgba(174, 45, 34, 0.86);
+    --music-menu-shadow: 0 12px 28px rgba(0, 0, 0, 0.42), 0 0 18px rgba(224, 44, 35, 0.14), inset 0 0 0 1px rgba(255, 158, 126, 0.2);
+  }
+
+  body .rosita-music-menu.rosita-music-menu-rosita {
+    --music-menu-bg: linear-gradient(180deg, hsl(343 100% 97% / 0.98), hsl(326 100% 94% / 0.96));
+    --music-menu-header-bg: hsl(346 100% 98% / 0.76);
+    --music-menu-border: rgba(198, 83, 139, 0.82);
+    --music-menu-text: #7b2f55;
+    --music-menu-muted: rgba(123, 47, 85, 0.72);
+    --music-menu-hover-bg: hsl(335 100% 92% / 0.74);
+    --music-menu-active-bg: hsl(335 92% 88% / 0.82);
+    --music-menu-shadow: 0 12px 26px hsl(337 48% 38% / 0.16), inset 0 0 0 1px hsl(0 0% 100% / 0.58);
+    width: clamp(174px, 12.6vw, 224px) !important;
+    min-width: clamp(174px, 12.6vw, 224px) !important;
+    max-width: clamp(174px, 12.6vw, 224px) !important;
+    max-height: none !important;
+    overflow: visible !important;
+    overflow-y: visible !important;
+  }
+
+  body .rosita-music-menu.rosita-music-menu-rosita :is(p, span, button) {
+    color: #7b2f55 !important;
   }
 
   .gamebubble-shell-rosita-nes .rosita-window-side-controls > div:has(button[title^="Ajustar Volumen"]) {
