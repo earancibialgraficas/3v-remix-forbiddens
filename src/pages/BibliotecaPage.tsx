@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { getNameStyle } from "@/lib/profileAppearance";
 import { useAuth } from "@/hooks/useAuth";
@@ -155,6 +156,20 @@ export default function BibliotecaPage() {
   
   const [selectedConsole, setSelectedConsole] = useState<string>(initialConsoleParam);
   const [dropdownValue, setDropdownValue] = useState<string>(savedTab === "bet" ? "bet" : savedTab === "multi" ? "multi" : `console:${initialConsoleParam}`);
+  const [preferNativeEmulator, setPreferNativeEmulator] = useState(true);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const saved = localStorage.getItem(`biblioteca:nativeMode:${selectedConsole}`);
+    setPreferNativeEmulator(saved !== "web");
+  }, [selectedConsole]);
+
+  const setNativeModePreference = (checked: boolean) => {
+    setPreferNativeEmulator(checked);
+    if (typeof window !== "undefined") {
+      localStorage.setItem(`biblioteca:nativeMode:${selectedConsole}`, checked ? "native" : "web");
+    }
+  };
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -618,6 +633,12 @@ const handlePlayCloudGame = async (game: any) => {
     return [...official, ...cloud];
   }, [searchQuery, selectedConsole, driveGames]);
 
+  const hasCloudGames = currentGames.some((game: any) => game.isCloud);
+  const canUseWebCloudMode = selectedConsole !== "psp";
+  const canOfferNativeMode = launcherDetected && launcherSupportsNative(selectedConsole) && hasCloudGames;
+  const forceNativeMode = canOfferNativeMode && !canUseWebCloudMode;
+  const playCloudGamesNative = canOfferNativeMode && (forceNativeMode || preferNativeEmulator);
+
   const leaderboardConsole = dropdownValue === "multi" ? "multiplayer" : dropdownValue === "bet" ? "bet" : selectedConsole;
 
   const fetchLeaderboard = useCallback(async () => {
@@ -971,7 +992,40 @@ const handlePlayCloudGame = async (game: any) => {
             </div>
           ) : (
             <>
-              {launcherDetected && launcherSupportsNative(selectedConsole) && selectedNativeStatus && !selectedNativeStatus.installed && currentGames.some((game: any) => game.isCloud) && (
+              {canOfferNativeMode && (
+                <div className="mb-3 rounded-lg border border-neon-cyan/25 bg-black/35 p-3 shadow-[0_0_24px_rgba(34,211,238,0.06)] backdrop-blur-sm">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <p className="font-pixel text-[9px] uppercase tracking-widest text-neon-cyan">
+                        Modo de emulacion
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {forceNativeMode
+                          ? `${consoleInfo?.label} usa emulador nativo desde el launcher.`
+                          : playCloudGamesNative
+                            ? `Tus ROMs de Drive se abriran con ${selectedNativeStatus?.engine_name || "emulador nativo"}.`
+                            : "Tus ROMs de Drive se abriran con el emulador web."}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2">
+                      <span className={cn("font-pixel text-[8px] uppercase tracking-widest", !playCloudGamesNative ? "text-neon-cyan" : "text-muted-foreground")}>
+                        Web
+                      </span>
+                      <Switch
+                        checked={playCloudGamesNative}
+                        disabled={forceNativeMode}
+                        onCheckedChange={setNativeModePreference}
+                        className="data-[state=checked]:bg-neon-green data-[state=unchecked]:bg-neon-cyan/45"
+                        aria-label="Alternar entre emulador web y emulador nativo"
+                      />
+                      <span className={cn("font-pixel text-[8px] uppercase tracking-widest", playCloudGamesNative ? "text-neon-green" : "text-muted-foreground")}>
+                        Nativo
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {playCloudGamesNative && selectedNativeStatus && !selectedNativeStatus.installed && (
                 <div className="mb-3 rounded-lg border border-neon-cyan/30 bg-black/45 p-3 shadow-[0_0_24px_rgba(34,211,238,0.08)] backdrop-blur-sm">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
@@ -994,7 +1048,7 @@ const handlePlayCloudGame = async (game: any) => {
                   </div>
                 </div>
               )}
-              {launcherDetected && launcherSupportsNative(selectedConsole) && selectedNativeStatus?.installed && currentGames.some((game: any) => game.isCloud) && (
+              {playCloudGamesNative && selectedNativeStatus?.installed && (
                 <div className="mb-3 rounded-lg border border-neon-yellow/25 bg-black/35 p-3 shadow-[0_0_24px_rgba(250,204,21,0.06)] backdrop-blur-sm">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
@@ -1021,8 +1075,7 @@ const handlePlayCloudGame = async (game: any) => {
               {currentGames.map((game: any) => {
                 const needsNativeInstall = Boolean(
                   game.isCloud &&
-                  launcherDetected &&
-                  launcherSupportsNative(game.console) &&
+                  playCloudGamesNative &&
                   selectedNativeStatus &&
                   !selectedNativeStatus.installed
                 );
@@ -1035,7 +1088,7 @@ const handlePlayCloudGame = async (game: any) => {
                       return;
                     }
                     if (game.isCloud) {
-                      if (launcherDetected && launcherSupportsNative(game.console)) {
+                      if (playCloudGamesNative) {
                         void handlePlayCloudGameNative(game, event);
                       } else {
                         void handlePlayCloudGame(game);
@@ -1094,19 +1147,21 @@ const handlePlayCloudGame = async (game: any) => {
                     )}
                   </div>
                   <div className="p-1.5 flex items-center gap-1">
-                    <Play className="w-2.5 h-2.5 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+                    {game.isCloud && playCloudGamesNative ? (
+                      <Cpu className="w-2.5 h-2.5 text-neon-green transition-colors shrink-0" />
+                    ) : (
+                      <Play className="w-2.5 h-2.5 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+                    )}
                     <p className="text-[10px] font-body text-foreground truncate">{game.name}</p>
-                    {game.isCloud && launcherDetected && launcherSupportsNative(game.console) && (
-                      <button
-                        type="button"
-                        onClick={(event) => handlePlayCloudGameNative(game, event)}
-                        disabled={nativeBusyGameId === game.id || launchingGameId === game.id}
-                        className="ml-auto grid h-6 w-6 shrink-0 place-items-center rounded border border-neon-green/35 bg-neon-green/10 text-neon-green transition-colors hover:bg-neon-green/20 disabled:cursor-wait disabled:opacity-60"
-                        title="Abrir con emulador nativo del launcher"
-                        aria-label="Abrir con emulador nativo del launcher"
-                      >
-                        {nativeBusyGameId === game.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Cpu className="h-3.5 w-3.5" />}
-                      </button>
+                    {game.isCloud && canOfferNativeMode && (
+                      <span className={cn(
+                        "ml-auto shrink-0 rounded border px-1 py-0.5 font-pixel text-[7px] uppercase tracking-wider",
+                        playCloudGamesNative
+                          ? "border-neon-green/35 bg-neon-green/10 text-neon-green"
+                          : "border-neon-cyan/35 bg-neon-cyan/10 text-neon-cyan"
+                      )}>
+                        {playCloudGamesNative ? "NAT" : "WEB"}
+                      </span>
                     )}
                   </div>
                 </div>
