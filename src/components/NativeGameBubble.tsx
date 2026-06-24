@@ -150,7 +150,7 @@ export default function NativeGameBubble() {
 
   const supportsLocalSaveFiles = useMemo(() => {
     const consoleName = session?.consoleName?.toLowerCase();
-    return consoleName === "psp" || consoleName === "ps2";
+    return Boolean(consoleName && (consoleName === "psp" || consoleName === "ps2" || isNativeCloudSaveSupported(consoleName)));
   }, [session?.consoleName]);
 
   const supportsCloudSaveControls = useMemo(() => {
@@ -476,24 +476,20 @@ export default function NativeGameBubble() {
   useEffect(() => {
     if (!session?.processId || typeof document === "undefined") return;
     const processId = session.processId;
-    const syncFromLauncherVisibility = () => {
+    const restoreFromLauncherFocus = () => {
       const bridge = getLauncherBridge();
       if (!bridge?.setNativeEmulatorState) return;
-      if (!document.hidden) {
-        maximizeNativeSession();
-      }
+      maximizeNativeSession();
       bridge
-        .setNativeEmulatorState(processId, document.hidden ? "minimize" : "restore")
+        .setNativeEmulatorState(processId, "restore")
         .catch(() => {});
     };
 
-    window.addEventListener("focus", syncFromLauncherVisibility);
-    window.addEventListener("pageshow", syncFromLauncherVisibility);
-    document.addEventListener("visibilitychange", syncFromLauncherVisibility);
+    window.addEventListener("focus", restoreFromLauncherFocus);
+    window.addEventListener("pageshow", restoreFromLauncherFocus);
     return () => {
-      window.removeEventListener("focus", syncFromLauncherVisibility);
-      window.removeEventListener("pageshow", syncFromLauncherVisibility);
-      document.removeEventListener("visibilitychange", syncFromLauncherVisibility);
+      window.removeEventListener("focus", restoreFromLauncherFocus);
+      window.removeEventListener("pageshow", restoreFromLauncherFocus);
     };
   }, [maximizeNativeSession, session?.processId]);
 
@@ -511,10 +507,12 @@ export default function NativeGameBubble() {
 
   const minimizeSession = async () => {
     const current = latestSessionRef.current;
+    const bridge = getLauncherBridge();
     if (current?.processId) {
-      await getLauncherBridge()?.setNativeEmulatorState?.(current.processId, "minimize").catch(() => {});
+      await bridge?.setNativeEmulatorState?.(current.processId, "minimize").catch(() => {});
     }
     minimizeNativeSession();
+    await bridge?.launcherWindowAction?.("minimize").catch(() => {});
   };
 
   const restoreSession = async (index?: number) => {
@@ -562,16 +560,24 @@ export default function NativeGameBubble() {
       return;
     }
     try {
+      const consoleName = current.consoleName.toLowerCase();
+      if (current.processId && consoleName !== "psp" && consoleName !== "ps2" && isNativeCloudSaveSupported(consoleName)) {
+        await bridge.nativeEmulatorAction?.(current.processId, "save_state").catch(() => {});
+        await new Promise((resolve) => window.setTimeout(resolve, 700));
+      }
       const exportedPath = await bridge.exportNativeLocalSave({
         consoleId: current.consoleName,
         gameName: current.gameName,
+        romPath: current.romPath || null,
       });
       if (!exportedPath) return;
       toast({
         title: "Save exportado",
-        description: current.consoleName.toLowerCase() === "psp"
+        description: consoleName === "psp"
           ? "Se guardo un ZIP con tus saves de PPSSPP."
-          : "Se guardo la memory card de PCSX2.",
+          : consoleName === "ps2"
+            ? "Se guardo la memory card de PCSX2."
+            : "Se guardo el savestate local del juego.",
       });
     } catch (error: any) {
       toast({
@@ -597,11 +603,18 @@ export default function NativeGameBubble() {
     try {
       const importedPath = await bridge.importNativeLocalSave({
         consoleId: current.consoleName,
+        romPath: current.romPath || null,
       });
       if (!importedPath) return;
+      const consoleName = current.consoleName.toLowerCase();
+      if (current.processId && consoleName !== "psp" && consoleName !== "ps2" && isNativeCloudSaveSupported(consoleName)) {
+        await bridge.nativeEmulatorAction?.(current.processId, "load_state").catch(() => {});
+      }
       toast({
         title: "Save cargado",
-        description: "Reinicia el juego nativo si ya estaba abierto para que el emulador lea el archivo.",
+        description: consoleName === "psp" || consoleName === "ps2"
+          ? "Reinicia el juego nativo si ya estaba abierto para que el emulador lea el archivo."
+          : "Se cargo el savestate local en el emulador.",
       });
     } catch (error: any) {
       toast({
@@ -636,7 +649,7 @@ export default function NativeGameBubble() {
       ref={bubbleRef}
       className={cn(
         launcherPanelMode
-          ? "fixed bottom-2 left-2 right-2 top-12 z-[80] flex flex-col overflow-hidden rounded-lg border border-neon-cyan/30 bg-[#080a10]/92 shadow-[0_0_40px_rgba(34,211,238,0.22)] backdrop-blur-xl"
+          ? "fixed bottom-2 left-2 right-2 top-2 z-[80] flex flex-col overflow-hidden rounded-lg border border-neon-cyan/30 bg-[#080a10]/92 shadow-[0_0_40px_rgba(34,211,238,0.22)] backdrop-blur-xl"
           : "fixed z-[80] w-[min(94vw,330px)] overflow-hidden rounded-lg border border-neon-cyan/30 bg-[#080a10]/92 shadow-[0_0_40px_rgba(34,211,238,0.22)] backdrop-blur-xl",
         dragging && "select-none",
       )}
@@ -804,7 +817,7 @@ export default function NativeGameBubble() {
                 className="h-8 border-white/10 bg-white/5 text-[10px]"
               >
                 <Download className="mr-2 h-3.5 w-3.5" />
-                Exportar save
+                Guardar local
               </Button>
               <Button
                 size="sm"
@@ -813,7 +826,7 @@ export default function NativeGameBubble() {
                 className="h-8 border-white/10 bg-white/5 text-[10px]"
               >
                 <Upload className="mr-2 h-3.5 w-3.5" />
-                Cargar save
+                Cargar local
               </Button>
             </div>
             <p className="mt-1.5 text-center text-[9px] leading-snug text-white/42">

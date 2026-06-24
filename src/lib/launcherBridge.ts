@@ -96,9 +96,11 @@ type LauncherBridge = {
   exportNativeLocalSave?: (args: {
     consoleId: string;
     gameName: string;
+    romPath?: string | null;
   }) => Promise<string | null>;
   importNativeLocalSave?: (args: {
     consoleId: string;
+    romPath?: string | null;
   }) => Promise<string | null>;
   startDriveRomDownloadForNative?: (args: {
     consoleId: string;

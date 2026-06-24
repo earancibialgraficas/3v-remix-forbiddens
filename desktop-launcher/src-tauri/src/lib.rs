@@ -120,8 +120,8 @@ struct NativeDownloadProgressEvent {
     error: Option<String>,
 }
 
-const WEBSITE_URL: &str = "https://forbiddens.net/?launcher_version=0.1.30";
-const LAUNCHER_DOWNLOAD_URL: &str = "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.30_x64-setup.exe";
+const WEBSITE_URL: &str = "https://forbiddens.net/?launcher_version=0.1.31";
+const LAUNCHER_DOWNLOAD_URL: &str = "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.31_x64-setup.exe";
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 const LAUNCHER_BRIDGE_SCRIPT: &str = r#"
 (function () {
@@ -1311,6 +1311,11 @@ fn powershell_command(script: &str) -> Command {
         "-Command",
         script,
     ]);
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        command.creation_flags(CREATE_NO_WINDOW);
+    }
     command
 }
 
@@ -1436,6 +1441,10 @@ extern "system" {
     fn GetWindowThreadProcessId(hwnd: isize, lpdw_process_id: *mut u32) -> u32;
     fn IsIconic(hwnd: isize) -> i32;
     fn IsWindowVisible(hwnd: isize) -> i32;
+    fn MoveWindow(hwnd: isize, x: i32, y: i32, width: i32, height: i32, repaint: i32) -> i32;
+    fn SetForegroundWindow(hwnd: isize) -> i32;
+    fn ShowWindowAsync(hwnd: isize, cmd_show: i32) -> i32;
+    fn keybd_event(virtual_key: u8, scan_code: u8, flags: u32, extra_info: usize);
 }
 
 #[cfg(windows)]
@@ -1456,6 +1465,12 @@ unsafe extern "system" fn enum_windows_for_process(hwnd: isize, l_param: isize) 
 
 #[cfg(windows)]
 fn native_process_window_minimized(process_id: u32) -> Option<bool> {
+    let hwnd = native_process_window_handle(process_id)?;
+    unsafe { Some(IsIconic(hwnd) != 0) }
+}
+
+#[cfg(windows)]
+fn native_process_window_handle(process_id: u32) -> Option<isize> {
     let mut search = WindowSearch {
         process_id,
         hwnd: 0,
@@ -1465,16 +1480,17 @@ fn native_process_window_minimized(process_id: u32) -> Option<bool> {
             Some(enum_windows_for_process),
             &mut search as *mut WindowSearch as isize,
         );
-        if search.hwnd == 0 {
-            None
-        } else {
-            Some(IsIconic(search.hwnd) != 0)
-        }
+        (search.hwnd != 0).then_some(search.hwnd)
     }
 }
 
 #[cfg(not(windows))]
 fn native_process_window_minimized(_process_id: u32) -> Option<bool> {
+    None
+}
+
+#[cfg(not(windows))]
+fn native_process_window_handle(_process_id: u32) -> Option<isize> {
     None
 }
 
@@ -1875,55 +1891,57 @@ fn close_native_emulator(process_id: u32) -> Result<(), String> {
 fn set_native_emulator_state(process_id: u32, action: String) -> Result<(), String> {
     let normalized = action.trim().to_lowercase();
     let show_command = match normalized.as_str() {
-        "minimize" => "6",
-        "restore" | "show" | "maximize" => "9",
+        "minimize" => 6,
+        "restore" | "show" | "maximize" => 9,
         _ => return Err("Accion de ventana no soportada.".to_string()),
     };
 
-    let script = "$ErrorActionPreference='SilentlyContinue'; \
-      Add-Type 'using System; using System.Runtime.InteropServices; public class ForbiddensWinState { [DllImport(\"user32.dll\")] public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow); }'; \
-      $processId = [int]$env:FORBIDDENS_EMU_PID; \
-      $p = Get-Process -Id $processId -ErrorAction SilentlyContinue; \
-      if ($p -and $p.MainWindowHandle -ne 0) { [ForbiddensWinState]::ShowWindowAsync($p.MainWindowHandle, [int]$env:FORBIDDENS_SHOW_CMD) | Out-Null }";
-    let mut command = powershell_command(script);
-    command.env("FORBIDDENS_EMU_PID", process_id.to_string());
-    command.env("FORBIDDENS_SHOW_CMD", show_command);
-    run_hidden(command)
+    #[cfg(windows)]
+    {
+        if let Some(hwnd) = native_process_window_handle(process_id) {
+            unsafe {
+                ShowWindowAsync(hwnd, show_command);
+                if show_command != 6 {
+                    SetForegroundWindow(hwnd);
+                }
+            }
+        }
+        return Ok(());
+    }
+
+    #[cfg(not(windows))]
+    Ok(())
 }
 
 #[tauri::command]
 fn native_emulator_action(process_id: u32, action: String) -> Result<(), String> {
-    let keys = match action.trim().to_lowercase().as_str() {
-        "menu" | "settings" | "config" => "{F1}",
-        "save_state" | "savestate" => "{F2}",
-        "load_state" => "{F4}",
-        "pause" | "pause_toggle" | "play_pause" => "p",
+    let virtual_key = match action.trim().to_lowercase().as_str() {
+        "menu" | "settings" | "config" => 0x70,
+        "save_state" | "savestate" => 0x71,
+        "load_state" => 0x73,
+        "pause" | "pause_toggle" | "play_pause" => 0x50,
         _ => return Err("Accion del emulador no soportada.".to_string()),
     };
 
-    let script = "$ErrorActionPreference='SilentlyContinue'; \
-      Add-Type -AssemblyName System.Windows.Forms; \
-      Add-Type 'using System; using System.Runtime.InteropServices; public class ForbiddensEmuInput { [DllImport(\"user32.dll\")] public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow); [DllImport(\"user32.dll\")] public static extern bool SetForegroundWindow(IntPtr hWnd); }'; \
-      $processId = [int]$env:FORBIDDENS_EMU_PID; \
-      $p = Get-Process -Id $processId -ErrorAction SilentlyContinue; \
-      if (-not $p) { exit 0 } \
-      if ($p.MainWindowHandle -ne 0) { \
-        [ForbiddensEmuInput]::ShowWindowAsync($p.MainWindowHandle, 9) | Out-Null; \
-        [ForbiddensEmuInput]::SetForegroundWindow($p.MainWindowHandle) | Out-Null; \
-      } \
-      Start-Sleep -Milliseconds 260; \
-      $shell = New-Object -ComObject WScript.Shell; \
-      $shell.AppActivate($processId) | Out-Null; \
-      Start-Sleep -Milliseconds 120; \
-      try { \
-        [System.Windows.Forms.SendKeys]::SendWait($env:FORBIDDENS_EMU_KEYS); \
-      } catch { \
-        $shell.SendKeys($env:FORBIDDENS_EMU_KEYS); \
-      }";
-    let mut command = powershell_command(script);
-    command.env("FORBIDDENS_EMU_PID", process_id.to_string());
-    command.env("FORBIDDENS_EMU_KEYS", keys);
-    run_hidden(command)
+    #[cfg(windows)]
+    {
+        if let Some(hwnd) = native_process_window_handle(process_id) {
+            unsafe {
+                ShowWindowAsync(hwnd, 9);
+                SetForegroundWindow(hwnd);
+            }
+            thread::sleep(Duration::from_millis(140));
+            unsafe {
+                keybd_event(virtual_key, 0, 0, 0);
+                thread::sleep(Duration::from_millis(40));
+                keybd_event(virtual_key, 0, 0x0002, 0);
+            }
+        }
+        return Ok(());
+    }
+
+    #[cfg(not(windows))]
+    Ok(())
 }
 
 #[tauri::command]
@@ -2047,9 +2065,46 @@ fn read_native_save_file(
     kind: Option<String>,
 ) -> Result<Option<NativeSaveFilePayload>, String> {
     let normalized = console_id.trim().to_lowercase();
+    if normalized == "ps2" {
+        let path = pcsx2_primary_memory_card_for_export()?;
+        let bytes = fs::read(&path).map_err(|error| error.to_string())?;
+        if bytes.is_empty() {
+            return Ok(None);
+        }
+        return Ok(Some(NativeSaveFilePayload {
+            console_id: normalized,
+            kind: "real_save".to_string(),
+            path: path.to_string_lossy().to_string(),
+            data: general_purpose::STANDARD.encode(&bytes),
+            size: bytes.len() as u64,
+        }));
+    }
+    if normalized == "psp" {
+        let source = ppsspp_savedata_dir_for_export()?;
+        let temp = local_app_data_dir().join("tmp").join(format!(
+            "ppsspp-cloud-save-{}.zip",
+            SystemTime::now().duration_since(UNIX_EPOCH).map(|value| value.as_millis()).unwrap_or(0)
+        ));
+        if let Some(parent) = temp.parent() {
+            fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+        }
+        compress_dir_to_zip(&source, &temp)?;
+        let bytes = fs::read(&temp).map_err(|error| error.to_string())?;
+        let _ = fs::remove_file(&temp);
+        if bytes.is_empty() {
+            return Ok(None);
+        }
+        return Ok(Some(NativeSaveFilePayload {
+            console_id: normalized,
+            kind: "real_save".to_string(),
+            path: source.to_string_lossy().to_string(),
+            data: general_purpose::STANDARD.encode(&bytes),
+            size: bytes.len() as u64,
+        }));
+    }
     if retroarch_core_file_name(&normalized).is_none() {
         return Ok(None);
-    }
+    };
     let Some((save_kind, path)) = native_save_path(&normalized, &rom_path, kind.as_deref()) else {
         return Ok(None);
     };
@@ -2077,6 +2132,32 @@ fn write_native_save_file(
     data: String,
 ) -> Result<Option<String>, String> {
     let normalized = console_id.trim().to_lowercase();
+    let bytes = general_purpose::STANDARD
+        .decode(data.trim())
+        .map_err(|error| format!("Save invalido: {}", error))?;
+    if normalized == "ps2" {
+        let path = pcsx2_primary_memory_card_for_import()?;
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+        }
+        fs::write(&path, bytes).map_err(|error| error.to_string())?;
+        return Ok(Some(path.to_string_lossy().to_string()));
+    }
+    if normalized == "psp" {
+        let temp = local_app_data_dir().join("tmp").join(format!(
+            "ppsspp-cloud-restore-{}.zip",
+            SystemTime::now().duration_since(UNIX_EPOCH).map(|value| value.as_millis()).unwrap_or(0)
+        ));
+        if let Some(parent) = temp.parent() {
+            fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+        }
+        fs::write(&temp, bytes).map_err(|error| error.to_string())?;
+        let target = ppsspp_savedata_dir_for_import()?;
+        let result = expand_zip_to_dir(&temp, &target);
+        let _ = fs::remove_file(&temp);
+        result?;
+        return Ok(Some(target.to_string_lossy().to_string()));
+    }
     if retroarch_core_file_name(&normalized).is_none() {
         return Ok(None);
     }
@@ -2086,11 +2167,33 @@ fn write_native_save_file(
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).map_err(|error| error.to_string())?;
     }
-    let bytes = general_purpose::STANDARD
-        .decode(data.trim())
-        .map_err(|error| format!("Save invalido: {}", error))?;
     fs::write(&path, bytes).map_err(|error| error.to_string())?;
     Ok(Some(path.to_string_lossy().to_string()))
+}
+
+fn compress_dir_to_zip(source: &Path, target: &Path) -> Result<(), String> {
+    let script = "$ErrorActionPreference='Stop'; \
+      $src = $env:FORBIDDENS_SAVE_SRC; \
+      $dst = $env:FORBIDDENS_SAVE_DST; \
+      if (Test-Path -LiteralPath $dst) { Remove-Item -LiteralPath $dst -Force } \
+      Compress-Archive -LiteralPath (Join-Path $src '*') -DestinationPath $dst -Force";
+    let mut command = powershell_command(script);
+    command.env("FORBIDDENS_SAVE_SRC", source.to_string_lossy().to_string());
+    command.env("FORBIDDENS_SAVE_DST", target.to_string_lossy().to_string());
+    run_hidden(command)
+}
+
+fn expand_zip_to_dir(source: &Path, target: &Path) -> Result<(), String> {
+    let script = "$ErrorActionPreference='Stop'; \
+      $src = $env:FORBIDDENS_SAVE_SRC; \
+      $dst = $env:FORBIDDENS_SAVE_DST; \
+      if (Test-Path -LiteralPath $dst) { Remove-Item -LiteralPath $dst -Recurse -Force } \
+      New-Item -ItemType Directory -Force -LiteralPath $dst | Out-Null; \
+      Expand-Archive -LiteralPath $src -DestinationPath $dst -Force";
+    let mut command = powershell_command(script);
+    command.env("FORBIDDENS_SAVE_SRC", source.to_string_lossy().to_string());
+    command.env("FORBIDDENS_SAVE_DST", target.to_string_lossy().to_string());
+    run_hidden(command)
 }
 
 fn ppsspp_savedata_candidates() -> Vec<PathBuf> {
@@ -2186,6 +2289,7 @@ fn export_native_local_save(
     app: AppHandle,
     console_id: String,
     game_name: String,
+    rom_path: Option<String>,
 ) -> Result<Option<String>, String> {
     let normalized = console_id.trim().to_lowercase();
 
@@ -2211,23 +2315,38 @@ fn export_native_local_save(
         let Some(target) = target.and_then(|file| file.into_path().ok()) else {
             return Ok(None);
         };
-        let script = "$ErrorActionPreference='Stop'; \
-          $src = $env:FORBIDDENS_SAVE_SRC; \
-          $dst = $env:FORBIDDENS_SAVE_DST; \
-          if (Test-Path -LiteralPath $dst) { Remove-Item -LiteralPath $dst -Force } \
-          Compress-Archive -LiteralPath (Join-Path $src '*') -DestinationPath $dst -Force";
-        let mut command = powershell_command(script);
-        command.env("FORBIDDENS_SAVE_SRC", source.to_string_lossy().to_string());
-        command.env("FORBIDDENS_SAVE_DST", target.to_string_lossy().to_string());
-        run_hidden(command)?;
+        compress_dir_to_zip(&source, &target)?;
         return Ok(Some(target.to_string_lossy().to_string()));
     }
 
-    Err("Los saves locales manuales solo estan disponibles para PSP y PS2.".to_string())
+    if retroarch_core_file_name(&normalized).is_some() {
+        let rom_path = rom_path
+            .as_deref()
+            .map(str::trim)
+            .filter(|path| !path.is_empty())
+            .ok_or_else(|| "No se encontro la ruta de la ROM para guardar el savestate local.".to_string())?;
+        let Some((_, source)) = native_save_path(&normalized, rom_path, Some("savestate")) else {
+            return Ok(None);
+        };
+        if !source.exists() || !source.is_file() {
+            return Err("Aun no existe un savestate local para este juego.".to_string());
+        }
+        let target = app.dialog().file()
+            .add_filter("Savestate RetroArch", &["state"])
+            .set_file_name(&local_save_file_name(&game_name, &normalized, "state"))
+            .blocking_save_file();
+        let Some(target) = target.and_then(|file| file.into_path().ok()) else {
+            return Ok(None);
+        };
+        fs::copy(&source, &target).map_err(|error| error.to_string())?;
+        return Ok(Some(target.to_string_lossy().to_string()));
+    }
+
+    Err("Esta consola no soporta saves locales manuales todavia.".to_string())
 }
 
 #[tauri::command]
-fn import_native_local_save(app: AppHandle, console_id: String) -> Result<Option<String>, String> {
+fn import_native_local_save(app: AppHandle, console_id: String, rom_path: Option<String>) -> Result<Option<String>, String> {
     let normalized = console_id.trim().to_lowercase();
 
     if normalized == "ps2" {
@@ -2255,20 +2374,35 @@ fn import_native_local_save(app: AppHandle, console_id: String) -> Result<Option
         };
         let target = ppsspp_savedata_dir_for_import()?;
         fs::create_dir_all(&target).map_err(|error| error.to_string())?;
-        let script = "$ErrorActionPreference='Stop'; \
-          $src = $env:FORBIDDENS_SAVE_SRC; \
-          $dst = $env:FORBIDDENS_SAVE_DST; \
-          if (Test-Path -LiteralPath $dst) { Remove-Item -LiteralPath $dst -Recurse -Force } \
-          New-Item -ItemType Directory -Force -LiteralPath $dst | Out-Null; \
-          Expand-Archive -LiteralPath $src -DestinationPath $dst -Force";
-        let mut command = powershell_command(script);
-        command.env("FORBIDDENS_SAVE_SRC", source.to_string_lossy().to_string());
-        command.env("FORBIDDENS_SAVE_DST", target.to_string_lossy().to_string());
-        run_hidden(command)?;
+        expand_zip_to_dir(&source, &target)?;
         return Ok(Some(target.to_string_lossy().to_string()));
     }
 
-    Err("Los saves locales manuales solo estan disponibles para PSP y PS2.".to_string())
+    if retroarch_core_file_name(&normalized).is_some() {
+        let rom_path = rom_path
+            .as_deref()
+            .map(str::trim)
+            .filter(|path| !path.is_empty())
+            .ok_or_else(|| "No se encontro la ruta de la ROM para cargar el savestate local.".to_string())?;
+        let picked = app
+            .dialog()
+            .file()
+            .add_filter("Savestate RetroArch", &["state"])
+            .blocking_pick_file();
+        let Some(source) = picked.and_then(|file| file.into_path().ok()) else {
+            return Ok(None);
+        };
+        let Some((_, target)) = native_save_path(&normalized, rom_path, Some("savestate")) else {
+            return Ok(None);
+        };
+        if let Some(parent) = target.parent() {
+            fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+        }
+        fs::copy(&source, &target).map_err(|error| error.to_string())?;
+        return Ok(Some(target.to_string_lossy().to_string()));
+    }
+
+    Err("Esta consola no soporta saves locales manuales todavia.".to_string())
 }
 
 #[tauri::command]

@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { getLauncherBridge } from "@/lib/launcherBridge";
+import { useNativeSession } from "@/contexts/NativeSessionContext";
 
 export default function MainLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -30,8 +31,10 @@ export default function MainLayout() {
   const mobileScrollRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
   const location = useLocation();
+  const { sessions: nativeSessions } = useNativeSession();
+  const hasNativeSession = nativeSessions.length > 0;
   const mobileTopBarHeight = 46;
-  const launcherTopBarHeight = launcherDetected ? 40 : 0;
+  const launcherTopBarHeight = launcherDetected && !hasNativeSession ? 40 : 0;
 
   useEffect(() => {
     if (launcherDetected) return;
@@ -158,14 +161,14 @@ export default function MainLayout() {
     <div
       className={cn(
         "box-border flex bg-background text-foreground w-full overflow-hidden relative",
-        launcherDetected
+        launcherDetected && !hasNativeSession
           ? "h-[100dvh] min-h-0 pt-10 lg:h-[100dvh] lg:min-h-0 lg:overflow-hidden"
           : "h-[100dvh] lg:h-auto lg:min-h-screen lg:overflow-visible"
       )}
     >
-      <DesktopLauncherTitleBar />
+      {!hasNativeSession && <DesktopLauncherTitleBar />}
       {/* Sidebar de PC (Oculto en Tablet y Celular) */}
-      <div className={cn("hidden lg:block sticky", launcherDetected ? "top-10 h-[calc(100dvh-2.5rem)]" : "top-0 h-screen")}>
+      <div className={cn("hidden lg:block sticky", launcherDetected && !hasNativeSession ? "top-10 h-[calc(100dvh-2.5rem)]" : "top-0 h-screen")}>
         <ForumSidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
       </div>
 
@@ -216,7 +219,7 @@ export default function MainLayout() {
       <main
         className={cn(
           "flex-1 flex flex-col min-w-0 overflow-y-auto overflow-x-hidden",
-          launcherDetected
+          launcherDetected && !hasNativeSession
             ? "min-h-0 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:overflow-x-hidden"
             : "lg:h-auto lg:overflow-visible",
           isLandscape
@@ -243,7 +246,7 @@ export default function MainLayout() {
           <div
             className={cn(
               "site-rightbar-shell hidden lg:block w-60 xl:w-72 2xl:w-80 shrink-0 self-start",
-              launcherDetected
+              launcherDetected && !hasNativeSession
                 ? "h-[calc(100dvh-4rem)] 2xl:h-[calc(100dvh-4.5rem)]"
                 : "h-[calc(100vh-1.5rem)] 2xl:h-[calc(100vh-2rem)]"
             )}
@@ -251,7 +254,7 @@ export default function MainLayout() {
             <div
               className={cn(
                 "site-rightbar-fixed fixed right-3 2xl:right-6 z-30 w-60 xl:w-72 2xl:w-80",
-                launcherDetected
+                launcherDetected && !hasNativeSession
                   ? "top-[52px] h-[calc(100dvh-4rem)] 2xl:h-[calc(100dvh-4.5rem)]"
                   : "top-3 2xl:top-4 h-[calc(100vh-1.5rem)] 2xl:h-[calc(100vh-2rem)]"
               )}
