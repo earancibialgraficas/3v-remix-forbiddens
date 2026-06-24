@@ -183,7 +183,21 @@ const buildBridgeFromTauri = (): LauncherBridge | null => {
 
 export const getLauncherBridge = (): LauncherBridge | null => {
   if (typeof window === "undefined") return null;
-  return ((window as any).forbiddensLauncher || buildBridgeFromTauri()) as LauncherBridge | null;
+  const existing = (window as any).forbiddensLauncher as LauncherBridge | undefined;
+  const hasTauriInvoke = typeof (window as any).__TAURI__?.core?.invoke === "function";
+  const missingNativeApi = Boolean(
+    hasTauriInvoke &&
+      existing &&
+      (!existing.openNativeEmulator ||
+        !existing.nativeEmulatorAction ||
+        !existing.startDriveRomDownloadForNative ||
+        !existing.startRemoteRomDownloadForNative),
+  );
+
+  if (!existing || missingNativeApi) {
+    return buildBridgeFromTauri();
+  }
+  return existing;
 };
 
 export const formatLauncherBridgeError = (error: any, fallback: string) => {

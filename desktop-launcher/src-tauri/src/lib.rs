@@ -120,8 +120,8 @@ struct NativeDownloadProgressEvent {
     error: Option<String>,
 }
 
-const WEBSITE_URL: &str = "https://forbiddens.net/?launcher_version=0.1.27";
-const LAUNCHER_DOWNLOAD_URL: &str = "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.27_x64-setup.exe";
+const WEBSITE_URL: &str = "https://forbiddens.net/?launcher_version=0.1.28";
+const LAUNCHER_DOWNLOAD_URL: &str = "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.28_x64-setup.exe";
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 const LAUNCHER_BRIDGE_SCRIPT: &str = r#"
 (function () {
@@ -1313,6 +1313,42 @@ fn powershell_command(script: &str) -> Command {
     command
 }
 
+#[cfg(windows)]
+fn windows_work_area_for_point(x: i32, y: i32) -> Option<(i32, i32, u32, u32)> {
+    let script = r#"
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
+$point = New-Object System.Drawing.Point([int]$env:FORBIDDENS_MONITOR_X, [int]$env:FORBIDDENS_MONITOR_Y)
+$area = [System.Windows.Forms.Screen]::FromPoint($point).WorkingArea
+Write-Output "$($area.X),$($area.Y),$($area.Width),$($area.Height)"
+"#;
+    let mut command = powershell_command(script);
+    command.env("FORBIDDENS_MONITOR_X", x.to_string());
+    command.env("FORBIDDENS_MONITOR_Y", y.to_string());
+    let output = command.output().ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let parts: Vec<&str> = stdout.trim().split(',').collect();
+    if parts.len() != 4 {
+        return None;
+    }
+    let area_x = parts[0].trim().parse::<i32>().ok()?;
+    let area_y = parts[1].trim().parse::<i32>().ok()?;
+    let width = parts[2].trim().parse::<u32>().ok()?;
+    let height = parts[3].trim().parse::<u32>().ok()?;
+    if width == 0 || height == 0 {
+        return None;
+    }
+    Some((area_x, area_y, width, height))
+}
+
+#[cfg(not(windows))]
+fn windows_work_area_for_point(_x: i32, _y: i32) -> Option<(i32, i32, u32, u32)> {
+    None
+}
+
 fn screen_layout(app: &AppHandle) -> Option<(i32, i32, u32, u32, u32, u32)> {
     let window = app.get_webview_window("main")?;
     let monitor = window
@@ -1322,14 +1358,18 @@ fn screen_layout(app: &AppHandle) -> Option<(i32, i32, u32, u32, u32, u32)> {
         .or_else(|| window.primary_monitor().ok().flatten())?;
     let size = monitor.size();
     let position = monitor.position();
-    let minimum_companion_width = 340.min(size.width);
-    let companion_width = (size.width / 5).max(minimum_companion_width);
-    let emulator_width = size.width.saturating_sub(companion_width);
+    let monitor_center_x = position.x + (size.width / 2) as i32;
+    let monitor_center_y = position.y + (size.height / 2) as i32;
+    let (x, y, width, height) = windows_work_area_for_point(monitor_center_x, monitor_center_y)
+        .unwrap_or((position.x, position.y, size.width, size.height));
+    let minimum_companion_width = 340.min(width);
+    let companion_width = (width / 5).max(minimum_companion_width);
+    let emulator_width = width.saturating_sub(companion_width);
     Some((
-        position.x,
-        position.y,
-        size.width,
-        size.height,
+        x,
+        y,
+        width,
+        height,
         emulator_width,
         companion_width,
     ))

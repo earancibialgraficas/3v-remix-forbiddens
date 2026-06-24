@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CloudDownload, CloudUpload, Cpu, Download, Minus, Move, Pause, Play, Settings, SkipBack, SkipForward, Square, Trophy, Upload, Volume2, VolumeX, X } from "lucide-react";
+import { CloudDownload, CloudUpload, Cpu, Download, ListFilter, Minus, Move, Pause, Play, Settings, SkipBack, SkipForward, Trophy, Upload, Volume2, VolumeX, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -11,6 +11,19 @@ import { getNativeCloudSaveKind, isNativeCloudSaveSupported, restoreNativeCloudS
 
 const POINTS_INTERVAL_MS = 10_000;
 const POINTS_PER_INTERVAL = 10;
+const DEFAULT_MUSIC_OPTIONS = [
+  { id: "Todos", label: "Todos", category: "Todos" },
+  { id: "Metal", label: "Metal", category: "Metal" },
+  { id: "Rap", label: "Rap", category: "Rap" },
+  { id: "Lofi Hip-Hop", label: "Lofi Hip-Hop", category: "Lofi Hip-Hop" },
+];
+
+type MusicOption = {
+  id: string;
+  label: string;
+  category: string;
+  playlistId?: string;
+};
 
 type SaveScoreResult =
   | { status: "none"; score: number; previousBest: number }
@@ -35,6 +48,8 @@ export default function NativeGameBubble() {
   const [musicTitle, setMusicTitle] = useState("FORBIDDENS Player");
   const [musicVolume, setMusicVolume] = useState(80);
   const [musicPlaying, setMusicPlaying] = useState(false);
+  const [musicCategory, setMusicCategory] = useState("Todos");
+  const [musicOptions, setMusicOptions] = useState<MusicOption[]>(DEFAULT_MUSIC_OPTIONS);
   const launcherPanelMode = Boolean(getLauncherBridge());
   const latestSessionRef = useRef(session);
   const bubbleRef = useRef<HTMLDivElement>(null);
@@ -57,6 +72,7 @@ export default function NativeGameBubble() {
         setMusicTitle(localStorage.getItem("forbiddens_music_current_title") || session?.title || "FORBIDDENS Player");
         setMusicVolume(Number(localStorage.getItem("forbiddens_music_volume") || session?.volume || 80));
         setMusicPlaying(localStorage.getItem("forbiddens_music_playing") === "true" || Boolean(session?.playing));
+        setMusicCategory(session?.playlistName || session?.category || localStorage.getItem("forbiddens_music_category") || "Todos");
       } catch {}
     };
     syncMusicState();
@@ -67,6 +83,39 @@ export default function NativeGameBubble() {
       window.removeEventListener("storage", syncMusicState);
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadMusicOptions = async () => {
+      if (!user) {
+        setMusicOptions(DEFAULT_MUSIC_OPTIONS);
+        return;
+      }
+      try {
+        const { data, error } = await (supabase as any)
+          .from("user_music_playlists")
+          .select("id,name,songs")
+          .eq("user_id", user.id)
+          .order("updated_at", { ascending: false });
+        if (error) throw error;
+        const personal = (data || [])
+          .filter((row: any) => row?.id && row?.name && Array.isArray(row?.songs) && row.songs.length > 0)
+          .map((row: any) => ({
+            id: `playlist:${row.id}`,
+            label: String(row.name),
+            category: String(row.name),
+            playlistId: String(row.id),
+          }));
+        if (!cancelled) setMusicOptions([...DEFAULT_MUSIC_OPTIONS, ...personal]);
+      } catch {
+        if (!cancelled) setMusicOptions(DEFAULT_MUSIC_OPTIONS);
+      }
+    };
+    void loadMusicOptions();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   useEffect(() => {
     if (!session || paused) return;
@@ -97,6 +146,10 @@ export default function NativeGameBubble() {
     const consoleName = session?.consoleName?.toLowerCase();
     return Boolean(consoleName && isNativeCloudSaveSupported(consoleName));
   }, [session?.consoleName]);
+
+  const selectedMusicOptionId = useMemo(() => {
+    return musicOptions.find((option) => option.category === musicCategory || option.label === musicCategory)?.id || DEFAULT_MUSIC_OPTIONS[0].id;
+  }, [musicCategory, musicOptions]);
 
   const clampPosition = useCallback((x: number, y: number) => {
     if (typeof window === "undefined") return { x, y };
@@ -296,17 +349,32 @@ export default function NativeGameBubble() {
     }
   };
 
-  const sendMusicCommand = (command: "prev" | "playPause" | "next" | "volumeUp" | "volumeDown" | "mute") => {
+  const sendMusicPayload = (payload: Record<string, unknown>) => {
     try {
-      const payload = { type: "forbiddens-music-command", command, source: "native-panel", at: Date.now() };
+      const nextPayload = { type: "forbiddens-music-command", source: "native-panel", at: Date.now(), ...payload };
       if (typeof BroadcastChannel !== "undefined") {
         const channel = new BroadcastChannel("forbiddens_music_player");
-        channel.postMessage(payload);
+        channel.postMessage(nextPayload);
         channel.close();
       }
-      localStorage.setItem("forbiddens_music_command", JSON.stringify(payload));
-      window.dispatchEvent(new StorageEvent("storage", { key: "forbiddens_music_command", newValue: JSON.stringify(payload) }));
+      localStorage.setItem("forbiddens_music_command", JSON.stringify(nextPayload));
+      window.dispatchEvent(new CustomEvent("forbiddens-music-command", { detail: nextPayload }));
+      window.dispatchEvent(new StorageEvent("storage", { key: "forbiddens_music_command", newValue: JSON.stringify(nextPayload) }));
     } catch {}
+  };
+
+  const sendMusicCommand = (command: "prev" | "playPause" | "next" | "volumeUp" | "volumeDown" | "mute") => {
+    sendMusicPayload({ command });
+  };
+
+  const changeMusicCategory = (optionId: string) => {
+    const option = musicOptions.find((item) => item.id === optionId) || DEFAULT_MUSIC_OPTIONS[0];
+    setMusicCategory(option.category);
+    sendMusicPayload({
+      command: "category",
+      category: option.category,
+      playlistId: option.playlistId || "",
+    });
   };
 
   const toggleEmulatorPause = async () => {
@@ -316,7 +384,6 @@ export default function NativeGameBubble() {
     try {
       await bridge?.nativeEmulatorAction?.(current.processId, "pause_toggle");
       setEmulatorPaused((value) => !value);
-      setPaused((value) => !value);
       maximizeNativeSession();
     } catch (error: any) {
       toast({
@@ -560,9 +627,6 @@ export default function NativeGameBubble() {
         </div>
         <div className="flex shrink-0 items-center gap-1">
           {!launcherPanelMode && <Move className="h-3.5 w-3.5 text-white/35" />}
-          <Button data-native-action size="icon" variant="ghost" className="h-6 w-6" onClick={openEmulatorSettings} aria-label="Configuracion del emulador">
-            <Settings className="h-3.5 w-3.5" />
-          </Button>
           <Button data-native-action size="icon" variant="ghost" className="h-6 w-6" onClick={minimizeSession} aria-label="Minimizar sesion">
             <Minus className="h-3.5 w-3.5" />
           </Button>
@@ -600,6 +664,22 @@ export default function NativeGameBubble() {
             </span>
           </div>
           <p className="mt-1 truncate rounded border border-white/10 bg-black/35 px-2 py-1 text-[10px] text-white/75">{musicTitle}</p>
+          <label className="mt-2 flex h-9 items-center gap-2 rounded border border-white/10 bg-black/35 px-2">
+            <ListFilter className="h-3.5 w-3.5 shrink-0 text-neon-magenta" />
+            <select
+              data-native-action
+              value={selectedMusicOptionId}
+              onChange={(event) => changeMusicCategory(event.target.value)}
+              className="min-w-0 flex-1 bg-transparent text-[10px] text-white outline-none"
+              aria-label="Lista de reproduccion"
+            >
+              {musicOptions.map((option) => (
+                <option key={option.id} value={option.id} className="bg-[#160817] text-white">
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
           <div className="mt-2 grid grid-cols-3 gap-2">
             <Button size="sm" variant="outline" onClick={() => sendMusicCommand("prev")} className="h-9 border-white/10 bg-white/5" title="Anterior" aria-label="Anterior">
               <SkipBack className="h-4 w-4" />
@@ -659,21 +739,6 @@ export default function NativeGameBubble() {
           </div>
         )}
 
-        <div className="mt-2 flex items-center gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setPaused((value) => !value)}
-            className={cn("h-8 flex-1 border-white/10 bg-white/5 text-[10px]", paused && "border-neon-yellow/40 text-neon-yellow")}
-          >
-            {paused ? <Play className="mr-2 h-3.5 w-3.5" /> : <Pause className="mr-2 h-3.5 w-3.5" />}
-            {paused ? "STATS on" : "STATS off"}
-          </Button>
-          <Button size="sm" onClick={finishSession} className="h-8 flex-1 bg-neon-cyan/20 text-[10px] text-neon-cyan hover:bg-neon-cyan/30">
-            <Square className="mr-2 h-3.5 w-3.5" />
-            Guardar y cerrar
-          </Button>
-        </div>
         {supportsLocalSaveFiles && (
           <>
             <div className="mt-2 grid grid-cols-2 gap-2">

@@ -677,9 +677,18 @@ export default function ChillMusicPlayer() {
     }
   }, [current?.type, currentTime, duration, persistMusicSession]);
 
-  const runExternalMusicCommand = useCallback((command: string) => {
+  const runExternalMusicCommand = useCallback((payloadOrCommand: string | { command?: string; category?: string; playlistId?: string }) => {
+    const command = typeof payloadOrCommand === "string" ? payloadOrCommand : payloadOrCommand?.command;
     if (command === "playPause") {
       setIsPlaying((playing) => !playing);
+      return;
+    }
+    if (command === "play") {
+      setIsPlaying(true);
+      return;
+    }
+    if (command === "pause") {
+      setIsPlaying(false);
       return;
     }
     if (command === "volumeUp") {
@@ -700,8 +709,56 @@ export default function ChillMusicPlayer() {
     }
     if (command === "prev") {
       prev();
+      return;
     }
-  }, [next, prev]);
+    if (command === "category" && typeof payloadOrCommand !== "string") {
+      const requestedPlaylistId = payloadOrCommand.playlistId || "";
+      const requestedCategory = payloadOrCommand.category || "Todos";
+      const saved = requestedPlaylistId
+        ? savedPlaylists.find((playlist) => playlist.id === requestedPlaylistId)
+        : savedPlaylists.find((playlist) => playlist.name === requestedCategory);
+
+      if (saved) {
+        const songs = saved.songs.map((song) => ({ ...song, category: saved.name }));
+        setPlaylist(songs);
+        setCurrentCategory(saved.name);
+        setActivePersonalPlaylistId(saved.id);
+        setPlaylistName(saved.name);
+        setCurrentIndex(0);
+        setCurrentTime(0);
+        setSeekDisplayValue(0);
+        setDuration(0);
+        timeToRestoreRef.current = null;
+        setIsPlaying(true);
+        setShowCategoryMenu(false);
+        persistMusicSession({
+          category: saved.name,
+          index: 0,
+          songKey: songs[0] ? getSongOrderKey(songs[0]) : "",
+          time: 0,
+          playing: true,
+          personalPlaylistId: saved.id,
+          playlistName: saved.name,
+        });
+        return;
+      }
+
+      setCurrentCategory(requestedCategory);
+      setActivePersonalPlaylistId(null);
+      setPlaylistName("");
+      const songs = requestedCategory === "Todos"
+        ? applyStoredPlaylistOrder(allSongs, requestedCategory)
+        : applyStoredPlaylistOrder(allSongs.filter((song) => song.category === requestedCategory), requestedCategory);
+      setPlaylist(songs);
+      setCurrentIndex(0);
+      setCurrentTime(0);
+      setSeekDisplayValue(0);
+      setDuration(0);
+      timeToRestoreRef.current = null;
+      setIsPlaying(true);
+      setShowCategoryMenu(false);
+    }
+  }, [allSongs, next, persistMusicSession, prev, savedPlaylists]);
 
   useEffect(() => {
     if (typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
@@ -774,8 +831,9 @@ export default function ChillMusicPlayer() {
   useEffect(() => {
     const handlePayload = (payload: any) => {
       if (!payload || payload.type !== "forbiddens-music-command" || typeof payload.command !== "string") return;
-      runExternalMusicCommand(payload.command);
+      runExternalMusicCommand(payload);
     };
+    const handleDirectCommand = (event: Event) => handlePayload((event as CustomEvent).detail);
     const handleStorage = (event: StorageEvent) => {
       if (event.key !== "forbiddens_music_command" || !event.newValue) return;
       try {
@@ -784,9 +842,11 @@ export default function ChillMusicPlayer() {
     };
     const channel = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel("forbiddens_music_player") : null;
     channel?.addEventListener("message", (event) => handlePayload(event.data));
+    window.addEventListener("forbiddens-music-command", handleDirectCommand);
     window.addEventListener("storage", handleStorage);
     return () => {
       channel?.close();
+      window.removeEventListener("forbiddens-music-command", handleDirectCommand);
       window.removeEventListener("storage", handleStorage);
     };
   }, [runExternalMusicCommand]);
