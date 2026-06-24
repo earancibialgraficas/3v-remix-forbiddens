@@ -1,15 +1,15 @@
 {
-  "version": "0.1.17",
-  "notes": "Agrega reinstalacion/reparacion de emuladores nativos, fuerza el core correcto de RetroArch para SNES y mejora las pistas de aceleracion por hardware del launcher.",
-  "pub_date": "2026-06-23T04:45:46Z",
+  "version": "0.1.18",
+  "notes": "Corrige el pantallazo negro de la pagina de emuladores, agrega recuperacion ante errores de render y fuerza carga fresca del website en el launcher.",
+  "pub_date": "2026-06-24T01:58:52Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRRXZQQXVxYjV4VXR3eUh2YjRXY29oa1pPWTFlczhESmR5Z2ZyQkcrTkk2cnV5ZS9qZE9oeVFPVFpnS1lyaWl6Q282ZkdSdzhJSkNZK0pBNlFsazY2RXI1WmlrcStkNEE0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMTkzODg4CWZpbGU6Rk9SQklEREVOU18wLjEuMTdfeDY0LXNldHVwLmV4ZQpYVkNHaWRCelRDanRrZkVKMGw4L0lWNkV1ZStlTG03V3loMmpSbEZzRUM5S01KWVExNm90MGhGWjJ0anJyYmhQVUNaNjl0V0hyTkJwbDNnc1hkem5Bdz09Cg==",
-      "url": "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.17_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRRXZQQXVxYjV4VWhraVgvV2pxem1HaGZ3UG1IMFd0MHBnY2ErV1BuWjZOZW8yS2treUUxT05VWVhXYWpHWHZNb1BRa0dMTVJTSmFYWXFJUlIxbUt1MFBjSUpMeDE2NFF3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMjY2MzMyCWZpbGU6Rk9SQklEREVOU18wLjEuMThfeDY0LXNldHVwLmV4ZQp6czFUK3dqbThiZk1OblNQMnBZUFBJRDJ0K2JVOFdQK0plK1Z3c3g3LzJCNTFlU3RXc3hwbEluWUpIcXZYM2ZnRkxwWDNYaDRzTTFRY1BjVCtXM3NEdz09Cg==",
+      "url": "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.18_x64-setup.exe"
     },
     "windows-x86_64-pc-windows-msvc": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRRXZQQXVxYjV4VXR3eUh2YjRXY29oa1pPWTFlczhESmR5Z2ZyQkcrTkk2cnV5ZS9qZE9oeVFPVFpnS1lyaWl6Q282ZkdSdzhJSkNZK0pBNlFsazY2RXI1WmlrcStkNEE0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMTkzODg4CWZpbGU6Rk9SQklEREVOU18wLjEuMTdfeDY0LXNldHVwLmV4ZQpYVkNHaWRCelRDanRrZkVKMGw4L0lWNkV1ZStlTG03V3loMmpSbEZzRUM5S01KWVExNm90MGhGWjJ0anJyYmhQVUNaNjl0V0hyTkJwbDNnc1hkem5Bdz09Cg==",
-      "url": "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.17_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRRXZQQXVxYjV4VWhraVgvV2pxem1HaGZ3UG1IMFd0MHBnY2ErV1BuWjZOZW8yS2treUUxT05VWVhXYWpHWHZNb1BRa0dMTVJTSmFYWXFJUlIxbUt1MFBjSUpMeDE2NFF3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMjY2MzMyCWZpbGU6Rk9SQklEREVOU18wLjEuMThfeDY0LXNldHVwLmV4ZQp6czFUK3dqbThiZk1OblNQMnBZUFBJRDJ0K2JVOFdQK0plK1Z3c3g3LzJCNTFlU3RXc3hwbEluWUpIcXZYM2ZnRkxwWDNYaDRzTTFRY1BjVCtXM3NEdz09Cg==",
+      "url": "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.18_x64-setup.exe"
     }
   }
 }

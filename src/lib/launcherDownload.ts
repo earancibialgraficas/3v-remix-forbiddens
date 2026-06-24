@@ -1,4 +1,4 @@
-export const LAUNCHER_VERSION = "0.1.17";
+export const LAUNCHER_VERSION = "0.1.18";
 
 export const GITHUB_LAUNCHER_DOWNLOAD_URL =
   `https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_${LAUNCHER_VERSION}_x64-setup.exe`;
