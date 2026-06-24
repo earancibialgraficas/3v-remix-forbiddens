@@ -914,6 +914,28 @@ const handlePlayCloudGame = async (game: any) => {
     });
   };
 
+  const ensureDriveRomIsAccessible = async (game: any, accessToken: string) => {
+    const response = await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(game.id)}?fields=id,name,trashed`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    if (response.ok) return;
+
+    if (response.status === 404) {
+      throw new Error(`Google Drive no encontro "${game.name}". Puede que la ROM pertenezca a otra cuenta, haya sido movida/eliminada, o la biblioteca este usando una sincronizacion vieja. Vuelve a sincronizar Drive y selecciona la ROM nuevamente.`);
+    }
+
+    if (response.status === 401 || response.status === 403) {
+      localStorage.removeItem("drive_access_token");
+      localStorage.removeItem("drive_token_expiry");
+      sessionStorage.removeItem("drive_access_token");
+      sessionStorage.removeItem("drive_token_expiry");
+      throw new Error("Google Drive rechazo el permiso para esta ROM. Autoriza Drive otra vez con la misma cuenta donde esta la carpeta RetroRoms.");
+    }
+
+    throw new Error(`Google Drive no pudo validar "${game.name}" (${response.status}).`);
+  };
+
   const downloadSelectedDriveRomsForNative = async () => {
     const bridge = getLauncherBridge();
     if (!bridge?.downloadDriveRomForNative) {
@@ -935,6 +957,7 @@ const handlePlayCloudGame = async (game: any) => {
       for (const game of selectedDriveRoms) {
         setDownloadingDriveRomIds(prev => new Set(prev).add(game.id));
         try {
+          await ensureDriveRomIsAccessible(game, accessToken);
           await bridge.downloadDriveRomForNative({
             consoleId: game.console,
             fileId: game.id,
@@ -963,9 +986,14 @@ const handlePlayCloudGame = async (game: any) => {
       });
       if (completed > 0) setNativeDownloadMode(false);
     } catch (error: any) {
+      const message = formatLauncherBridgeError(error, "Hubo un error descargando las ROMs seleccionadas.");
+      if (/sincronizacion vieja|no encontro|cuenta correcta|misma cuenta|permiso/i.test(message)) {
+        setSelectedDriveRomIds(new Set());
+        void fetchDriveGames(true);
+      }
       toast({
         title: "No se pudieron descargar",
-        description: formatLauncherBridgeError(error, "Hubo un error descargando las ROMs seleccionadas."),
+        description: message,
         variant: "destructive",
       });
     } finally {

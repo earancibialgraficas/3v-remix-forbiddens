@@ -85,8 +85,8 @@ struct NativeEmulatorWindowStateEvent {
     state: String,
 }
 
-const WEBSITE_URL: &str = "https://forbiddens.net/?launcher_version=0.1.20";
-const LAUNCHER_DOWNLOAD_URL: &str = "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.20_x64-setup.exe";
+const WEBSITE_URL: &str = "https://forbiddens.net/?launcher_version=0.1.21";
+const LAUNCHER_DOWNLOAD_URL: &str = "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.21_x64-setup.exe";
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 const LAUNCHER_BRIDGE_SCRIPT: &str = r#"
 (function () {
@@ -1529,9 +1529,17 @@ fn download_drive_rom_for_native(
     let script = "$ErrorActionPreference='Stop'; \
       $ProgressPreference='SilentlyContinue'; \
       New-Item -ItemType Directory -Force -Path $env:FORBIDDENS_ROM_DIR | Out-Null; \
-      $headers = @{ Authorization = \"Bearer $env:FORBIDDENS_DRIVE_TOKEN\" }; \
-      $uri = \"https://www.googleapis.com/drive/v3/files/$env:FORBIDDENS_DRIVE_FILE_ID?alt=media\"; \
-      Invoke-WebRequest -Uri $uri -Headers $headers -OutFile $env:FORBIDDENS_ROM_PATH -UseBasicParsing";
+      $headers = @{ Authorization = \"Bearer $($env:FORBIDDENS_DRIVE_TOKEN)\" }; \
+      $uri = \"https://www.googleapis.com/drive/v3/files/$($env:FORBIDDENS_DRIVE_FILE_ID)?alt=media\"; \
+      try { \
+        Invoke-WebRequest -Uri $uri -Headers $headers -OutFile $env:FORBIDDENS_ROM_PATH -UseBasicParsing \
+      } catch { \
+        $status = 0; \
+        if ($_.Exception.Response -and $_.Exception.Response.StatusCode) { $status = [int]$_.Exception.Response.StatusCode } \
+        if ($status -eq 404) { throw 'Google Drive no encontro esta ROM. Vuelve a sincronizar Drive con la misma cuenta donde esta RetroRoms y selecciona la ROM nuevamente.' } \
+        if ($status -eq 401 -or $status -eq 403) { throw 'Google Drive rechazo el permiso de descarga. Autoriza Drive otra vez con la cuenta correcta.' } \
+        throw \
+      }";
 
     let mut command = powershell_command(script);
     command.env("FORBIDDENS_ROM_DIR", &cache_dir);
