@@ -120,8 +120,8 @@ struct NativeDownloadProgressEvent {
     error: Option<String>,
 }
 
-const WEBSITE_URL: &str = "https://forbiddens.net/?launcher_version=0.1.29";
-const LAUNCHER_DOWNLOAD_URL: &str = "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.29_x64-setup.exe";
+const WEBSITE_URL: &str = "https://forbiddens.net/?launcher_version=0.1.30";
+const LAUNCHER_DOWNLOAD_URL: &str = "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.30_x64-setup.exe";
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 const LAUNCHER_BRIDGE_SCRIPT: &str = r#"
 (function () {
@@ -198,6 +198,7 @@ const LAUNCHER_BRIDGE_SCRIPT: &str = r#"
     closeNativeEmulator: function (processId) { return invoke("close_native_emulator", { processId: processId }); },
     setNativeEmulatorState: function (processId, action) { return invoke("set_native_emulator_state", { processId: processId, action: action }); },
     nativeEmulatorAction: function (processId, action) { return invoke("native_emulator_action", { processId: processId, action: action }); },
+    setNativeEmulatorVolume: function (processId, volume) { return invoke("set_native_emulator_volume", { processId: processId, volume: volume }); },
     readNativeSaveFile: function (args) { return invoke("read_native_save_file", args || {}); },
     writeNativeSaveFile: function (args) { return invoke("write_native_save_file", args || {}); },
     exportNativeLocalSave: function (args) { return invoke("export_native_local_save", args || {}); },
@@ -1901,6 +1902,7 @@ fn native_emulator_action(process_id: u32, action: String) -> Result<(), String>
     };
 
     let script = "$ErrorActionPreference='SilentlyContinue'; \
+      Add-Type -AssemblyName System.Windows.Forms; \
       Add-Type 'using System; using System.Runtime.InteropServices; public class ForbiddensEmuInput { [DllImport(\"user32.dll\")] public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow); [DllImport(\"user32.dll\")] public static extern bool SetForegroundWindow(IntPtr hWnd); }'; \
       $processId = [int]$env:FORBIDDENS_EMU_PID; \
       $p = Get-Process -Id $processId -ErrorAction SilentlyContinue; \
@@ -1909,14 +1911,132 @@ fn native_emulator_action(process_id: u32, action: String) -> Result<(), String>
         [ForbiddensEmuInput]::ShowWindowAsync($p.MainWindowHandle, 9) | Out-Null; \
         [ForbiddensEmuInput]::SetForegroundWindow($p.MainWindowHandle) | Out-Null; \
       } \
-      Start-Sleep -Milliseconds 160; \
+      Start-Sleep -Milliseconds 260; \
       $shell = New-Object -ComObject WScript.Shell; \
       $shell.AppActivate($processId) | Out-Null; \
-      Start-Sleep -Milliseconds 80; \
-      $shell.SendKeys($env:FORBIDDENS_EMU_KEYS)";
+      Start-Sleep -Milliseconds 120; \
+      try { \
+        [System.Windows.Forms.SendKeys]::SendWait($env:FORBIDDENS_EMU_KEYS); \
+      } catch { \
+        $shell.SendKeys($env:FORBIDDENS_EMU_KEYS); \
+      }";
     let mut command = powershell_command(script);
     command.env("FORBIDDENS_EMU_PID", process_id.to_string());
     command.env("FORBIDDENS_EMU_KEYS", keys);
+    run_hidden(command)
+}
+
+#[tauri::command]
+fn set_native_emulator_volume(process_id: u32, volume: u8) -> Result<(), String> {
+    let clamped = volume.min(100);
+    let script = r#"
+$ErrorActionPreference = 'Stop'
+$source = @"
+using System;
+using System.Runtime.InteropServices;
+
+public enum EDataFlow { eRender, eCapture, eAll }
+public enum ERole { eConsole, eMultimedia, eCommunications }
+
+[ComImport]
+[Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")]
+public class MMDeviceEnumerator {}
+
+[Guid("A95664D2-9614-4F35-A746-DE8DB63617E6")]
+[InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+public interface IMMDeviceEnumerator {
+  int NotImpl1();
+  int GetDefaultAudioEndpoint(EDataFlow dataFlow, ERole role, out IMMDevice ppDevice);
+}
+
+[Guid("D666063F-1587-4E43-81F1-B948E807363F")]
+[InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+public interface IMMDevice {
+  int Activate(ref Guid iid, int dwClsCtx, IntPtr pActivationParams, out IAudioSessionManager2 ppInterface);
+}
+
+[Guid("77AA99A0-1BD6-484F-8BC7-2C654C9A9B6F")]
+[InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+public interface IAudioSessionManager2 {
+  int NotImpl1();
+  int NotImpl2();
+  int GetSessionEnumerator(out IAudioSessionEnumerator SessionEnum);
+}
+
+[Guid("E2F5BB11-0570-40CA-ACDD-3AA01277DEE8")]
+[InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+public interface IAudioSessionEnumerator {
+  int GetCount(out int SessionCount);
+  int GetSession(int SessionCount, out IAudioSessionControl Session);
+}
+
+[Guid("F4B1A599-7266-4319-A8CA-E70ACB11E8CD")]
+[InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+public interface IAudioSessionControl {
+  int NotImpl1();
+}
+
+[Guid("bfb7ff88-7239-4fc9-8fa2-07c950be9c6d")]
+[InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+public interface IAudioSessionControl2 {
+  int NotImpl1();
+  int NotImpl2();
+  int GetSessionIdentifier(out IntPtr retVal);
+  int GetSessionInstanceIdentifier(out IntPtr retVal);
+  int GetProcessId(out uint retVal);
+}
+
+[Guid("87CE5498-68D6-44E5-9215-6DA47EF883D8")]
+[InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+public interface ISimpleAudioVolume {
+  int SetMasterVolume(float fLevel, ref Guid EventContext);
+  int GetMasterVolume(out float pfLevel);
+  int SetMute(bool bMute, ref Guid EventContext);
+  int GetMute(out bool pbMute);
+}
+
+public static class ForbiddensProcessVolume {
+  public static bool Set(uint processId, float volume) {
+    IMMDeviceEnumerator enumerator = (IMMDeviceEnumerator)(new MMDeviceEnumerator());
+    IMMDevice device;
+    Marshal.ThrowExceptionForHR(enumerator.GetDefaultAudioEndpoint(EDataFlow.eRender, ERole.eMultimedia, out device));
+    Guid iid = typeof(IAudioSessionManager2).GUID;
+    IAudioSessionManager2 manager;
+    Marshal.ThrowExceptionForHR(device.Activate(ref iid, 23, IntPtr.Zero, out manager));
+    IAudioSessionEnumerator sessions;
+    Marshal.ThrowExceptionForHR(manager.GetSessionEnumerator(out sessions));
+    int count;
+    Marshal.ThrowExceptionForHR(sessions.GetCount(out count));
+    Guid context = Guid.Empty;
+    bool changed = false;
+    for (int i = 0; i < count; i++) {
+      IAudioSessionControl control;
+      Marshal.ThrowExceptionForHR(sessions.GetSession(i, out control));
+      IAudioSessionControl2 control2 = control as IAudioSessionControl2;
+      if (control2 == null) continue;
+      uint sessionPid;
+      Marshal.ThrowExceptionForHR(control2.GetProcessId(out sessionPid));
+      if (sessionPid != processId) continue;
+      ISimpleAudioVolume simple = control as ISimpleAudioVolume;
+      if (simple == null) continue;
+      Marshal.ThrowExceptionForHR(simple.SetMasterVolume(volume, ref context));
+      Marshal.ThrowExceptionForHR(simple.SetMute(volume <= 0.001f, ref context));
+      changed = true;
+    }
+    return changed;
+  }
+}
+"@
+if (-not ('ForbiddensProcessVolume' -as [type])) {
+  Add-Type -TypeDefinition $source
+}
+$pidValue = [uint32]$env:FORBIDDENS_EMU_PID
+$volumeValue = [Math]::Max(0, [Math]::Min(1, ([single]$env:FORBIDDENS_EMU_VOLUME / 100)))
+[ForbiddensProcessVolume]::Set($pidValue, $volumeValue) | Out-Null
+"#;
+    let mut command = powershell_command(script);
+    command.env("FORBIDDENS_EMU_PID", process_id.to_string());
+    command.env("FORBIDDENS_EMU_VOLUME", clamped.to_string());
     run_hidden(command)
 }
 
@@ -2456,6 +2576,7 @@ pub fn run() {
             close_native_emulator,
             set_native_emulator_state,
             native_emulator_action,
+            set_native_emulator_volume,
             read_native_save_file,
             write_native_save_file,
             export_native_local_save,

@@ -1,4 +1,4 @@
-export const LAUNCHER_VERSION = "0.1.29";
+export const LAUNCHER_VERSION = "0.1.30";
 
 export const LAUNCHER_LATEST_JSON_URL =
   "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/latest.json";

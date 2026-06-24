@@ -50,6 +50,7 @@ export default function NativeGameBubble() {
   const [musicPlaying, setMusicPlaying] = useState(false);
   const [musicCategory, setMusicCategory] = useState("Todos");
   const [musicOptions, setMusicOptions] = useState<MusicOption[]>(DEFAULT_MUSIC_OPTIONS);
+  const [nativeVolume, setNativeVolume] = useState(85);
   const launcherPanelMode = Boolean(getLauncherBridge());
   const latestSessionRef = useRef(session);
   const bubbleRef = useRef<HTMLDivElement>(null);
@@ -75,12 +76,22 @@ export default function NativeGameBubble() {
         setMusicCategory(session?.playlistName || session?.category || localStorage.getItem("forbiddens_music_category") || "Todos");
       } catch {}
     };
+    const syncMusicEvent = (event: Event) => {
+      const detail = (event as CustomEvent<any>).detail || {};
+      if (typeof detail.title === "string") setMusicTitle(detail.title);
+      if (typeof detail.volume === "number") setMusicVolume(detail.volume);
+      if (typeof detail.playing === "boolean") setMusicPlaying(detail.playing);
+      if (typeof detail.playlistName === "string" && detail.playlistName) setMusicCategory(detail.playlistName);
+      else if (typeof detail.category === "string" && detail.category) setMusicCategory(detail.category);
+    };
     syncMusicState();
     const timer = window.setInterval(syncMusicState, 700);
     window.addEventListener("storage", syncMusicState);
+    window.addEventListener("forbiddens-music-state", syncMusicEvent);
     return () => {
       window.clearInterval(timer);
       window.removeEventListener("storage", syncMusicState);
+      window.removeEventListener("forbiddens-music-state", syncMusicEvent);
     };
   }, []);
 
@@ -377,6 +388,16 @@ export default function NativeGameBubble() {
     });
   };
 
+  const changeNativeVolume = (value: number) => {
+    const nextVolume = Math.max(0, Math.min(100, Math.round(value)));
+    setNativeVolume(nextVolume);
+    const current = latestSessionRef.current;
+    if (!current?.processId) return;
+    getLauncherBridge()?.setNativeEmulatorVolume?.(current.processId, nextVolume).catch((error) => {
+      console.warn("No se pudo ajustar volumen nativo", error);
+    });
+  };
+
   const toggleEmulatorPause = async () => {
     const current = latestSessionRef.current;
     if (!current?.processId) return;
@@ -458,14 +479,23 @@ export default function NativeGameBubble() {
     const syncFromLauncherVisibility = () => {
       const bridge = getLauncherBridge();
       if (!bridge?.setNativeEmulatorState) return;
+      if (!document.hidden) {
+        maximizeNativeSession();
+      }
       bridge
         .setNativeEmulatorState(processId, document.hidden ? "minimize" : "restore")
         .catch(() => {});
     };
 
+    window.addEventListener("focus", syncFromLauncherVisibility);
+    window.addEventListener("pageshow", syncFromLauncherVisibility);
     document.addEventListener("visibilitychange", syncFromLauncherVisibility);
-    return () => document.removeEventListener("visibilitychange", syncFromLauncherVisibility);
-  }, [session?.processId]);
+    return () => {
+      window.removeEventListener("focus", syncFromLauncherVisibility);
+      window.removeEventListener("pageshow", syncFromLauncherVisibility);
+      document.removeEventListener("visibilitychange", syncFromLauncherVisibility);
+    };
+  }, [maximizeNativeSession, session?.processId]);
 
   const finishSession = async () => {
     const current = latestSessionRef.current;
@@ -663,7 +693,10 @@ export default function NativeGameBubble() {
               {musicVolume}%
             </span>
           </div>
-          <p className="mt-1 truncate rounded border border-white/10 bg-black/35 px-2 py-1 text-[10px] text-white/75">{musicTitle}</p>
+          <div className="mt-1 rounded border border-white/10 bg-black/35 px-2 py-1.5">
+            <p className="truncate font-pixel text-[8px] uppercase text-neon-magenta/80">{musicCategory || "Todos"}</p>
+            <p className="mt-0.5 truncate text-[11px] font-semibold text-white">{musicTitle}</p>
+          </div>
           <label className="mt-2 flex h-9 items-center gap-2 rounded border border-white/10 bg-black/35 px-2">
             <ListFilter className="h-3.5 w-3.5 shrink-0 text-neon-magenta" />
             <select
@@ -697,6 +730,28 @@ export default function NativeGameBubble() {
               {musicVolume <= 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
             </Button>
             <Button size="sm" variant="outline" onClick={() => sendMusicCommand("volumeUp")} className="h-8 border-white/10 bg-white/5 text-[12px]" title="Subir volumen" aria-label="Subir volumen">+</Button>
+          </div>
+        </div>
+
+        <div className="rounded border border-neon-cyan/20 bg-neon-cyan/10 p-2">
+          <div className="flex items-center justify-between gap-2">
+            <p className="font-pixel text-[8px] uppercase text-neon-cyan">Volumen emulador</p>
+            <span className="text-[10px] font-semibold text-white/75">{nativeVolume}%</span>
+          </div>
+          <div className="mt-2 flex items-center gap-2">
+            <VolumeX className="h-3.5 w-3.5 shrink-0 text-neon-cyan/70" />
+            <input
+              data-native-action
+              type="range"
+              min={0}
+              max={100}
+              step={1}
+              value={nativeVolume}
+              onChange={(event) => changeNativeVolume(Number(event.target.value))}
+              className="h-2 min-w-0 flex-1 accent-cyan-300"
+              aria-label="Volumen del emulador nativo"
+            />
+            <Volume2 className="h-3.5 w-3.5 shrink-0 text-neon-cyan/70" />
           </div>
         </div>
 

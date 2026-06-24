@@ -2098,30 +2098,29 @@ const handlePlayCloudGame = async (game: any) => {
       <MultiplayerGameBubble game={selectedMultiGame} onClose={() => setSelectedMultiGame(null)} />
 
       {nativeDownloadJobs.length > 0 && (
-        <div className="fixed bottom-3 left-1/2 z-[260] w-[min(560px,calc(100vw-24px))] -translate-x-1/2 space-y-2">
+        <div className="fixed bottom-2 left-1/2 z-[260] w-[min(380px,calc(100vw-16px))] -translate-x-1/2 space-y-1 pointer-events-none">
           {nativeDownloadJobs.map((job) => (
-            <div key={job.jobId} className="rounded-lg border border-neon-cyan/30 bg-black/88 p-3 shadow-[0_12px_34px_rgba(0,0,0,0.55),0_0_24px_rgba(34,211,238,0.18)] backdrop-blur-xl">
-              <div className="flex items-start gap-2">
-                <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded border border-neon-cyan/35 bg-neon-cyan/10 text-neon-cyan">
-                  {job.status === "downloading" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : job.status === "completed" ? <Check className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}
+            <div key={job.jobId} className="pointer-events-auto overflow-hidden rounded-md border border-neon-cyan/25 bg-black/86 px-2 py-1.5 shadow-[0_6px_18px_rgba(0,0,0,0.45),0_0_12px_rgba(34,211,238,0.14)] backdrop-blur-xl">
+              <div className="flex items-center gap-1.5">
+                <span className="grid h-5 w-5 shrink-0 place-items-center rounded border border-neon-cyan/30 bg-neon-cyan/10 text-neon-cyan">
+                  {job.status === "downloading" ? <Loader2 className="h-3 w-3 animate-spin" /> : job.status === "completed" ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="truncate font-pixel text-[8px] uppercase tracking-widest text-neon-cyan">
-                      {job.status === "downloading" ? "Descargando ROM nativa" : job.status === "completed" ? "ROM lista" : "Error de descarga"}
-                    </p>
-                    <span className="shrink-0 font-pixel text-[8px] text-white/65">{Math.round(job.progress || 0)}%</span>
+                  <div className="flex items-center gap-1.5">
+                    <p className="min-w-0 flex-1 truncate text-[10px] font-semibold leading-none text-white/85">{job.gameName}</p>
+                    <span className="shrink-0 font-pixel text-[7px] text-neon-cyan">{Math.round(job.progress || 0)}%</span>
                   </div>
-                  <p className="mt-0.5 truncate text-[11px] text-white/80">{job.gameName}</p>
-                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
+                  <div className="mt-1 h-1 overflow-hidden rounded-full bg-white/10">
                     <div
                       className={cn("h-full rounded-full transition-all duration-300", job.status === "error" ? "bg-neon-red" : "bg-neon-cyan")}
                       style={{ width: `${Math.max(4, Math.min(100, job.progress || 0))}%` }}
                     />
                   </div>
-                  <div className="mt-1 flex items-center justify-between gap-2 text-[9px] text-white/45">
-                    <span>{job.total > 0 ? `${formatDownloadBytes(job.downloaded)} / ${formatDownloadBytes(job.total)}` : "Preparando descarga..."}</span>
-                    <span className="truncate">{job.error || (job.status === "completed" ? "Abriendo emulador..." : "Puedes seguir usando el launcher")}</span>
+                  <div className="mt-0.5 flex items-center justify-between gap-2 text-[8px] leading-none text-white/42">
+                    <span className="truncate">
+                      {job.status === "downloading" ? "Descargando" : job.status === "completed" ? "Lista" : "Error"}
+                    </span>
+                    <span className="shrink-0">{job.total > 0 ? `${formatDownloadBytes(job.downloaded)} / ${formatDownloadBytes(job.total)}` : "Preparando..."}</span>
                   </div>
                 </div>
                 <button
@@ -2133,11 +2132,11 @@ const handlePlayCloudGame = async (game: any) => {
                       return next;
                     });
                   }}
-                  className="grid h-6 w-6 shrink-0 place-items-center rounded text-white/45 transition-colors hover:bg-white/10 hover:text-white"
+                  className="grid h-5 w-5 shrink-0 place-items-center rounded text-white/40 transition-colors hover:bg-white/10 hover:text-white"
                   aria-label="Ocultar descarga"
                   title="Ocultar"
                 >
-                  <X className="h-3.5 w-3.5" />
+                  <X className="h-3 w-3" />
                 </button>
               </div>
             </div>

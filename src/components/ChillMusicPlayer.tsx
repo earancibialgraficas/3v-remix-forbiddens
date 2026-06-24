@@ -280,6 +280,7 @@ export default function ChillMusicPlayer() {
       category: currentCategory,
       index: currentIndex,
       songKey: activeSong ? getSongOrderKey(activeSong) : "",
+      title: activeSong?.title || "FORBIDDENS Player",
       time: Math.max(0, Number(actualTimeRef.current || currentTime || 0)),
       playing: isPlaying,
       volume,
@@ -316,8 +317,19 @@ export default function ChillMusicPlayer() {
   const lastNotifiedRef = useRef<string | null>(null);
   useEffect(() => {
     if (typeof window === "undefined") return;
-    localStorage.setItem("forbiddens_music_current_title", current?.title || "FORBIDDENS Player");
-  }, [current?.title]);
+    const payload = {
+      type: "forbiddens-music-state",
+      title: current?.title || "FORBIDDENS Player",
+      category: playlistName || currentCategory,
+      playing: isPlaying,
+      volume,
+      playlistName,
+      personalPlaylistId: activePersonalPlaylistId,
+      at: Date.now(),
+    };
+    localStorage.setItem("forbiddens_music_current_title", payload.title);
+    window.dispatchEvent(new CustomEvent("forbiddens-music-state", { detail: payload }));
+  }, [activePersonalPlaylistId, current?.title, currentCategory, isPlaying, playlistName, volume]);
 
   useEffect(() => {
     if (!inEmulator) return;
@@ -743,6 +755,46 @@ export default function ChillMusicPlayer() {
         return;
       }
 
+      if (requestedPlaylistId && user) {
+        void (async () => {
+          try {
+            const { data, error } = await (supabase as any)
+              .from("user_music_playlists")
+              .select("id,name,songs")
+              .eq("user_id", user.id)
+              .eq("id", requestedPlaylistId)
+              .maybeSingle();
+            if (error || !data) return;
+            const songs = normalizeSavedYoutubeSongs(data.songs);
+            if (!songs.length) return;
+            setPlaylist(songs);
+            setCurrentCategory(data.name);
+            setActivePersonalPlaylistId(data.id);
+            setPlaylistName(data.name);
+            setCurrentIndex(0);
+            setCurrentTime(0);
+            setSeekDisplayValue(0);
+            setDuration(0);
+            timeToRestoreRef.current = null;
+            setIsPlaying(true);
+            setShowCategoryMenu(false);
+            persistMusicSession({
+              category: data.name,
+              index: 0,
+              songKey: songs[0] ? getSongOrderKey(songs[0]) : "",
+              title: songs[0]?.title || "FORBIDDENS Player",
+              time: 0,
+              playing: true,
+              personalPlaylistId: data.id,
+              playlistName: data.name,
+            });
+          } catch (error) {
+            console.warn("No se pudo cargar la playlist personal desde el companion", error);
+          }
+        })();
+        return;
+      }
+
       setCurrentCategory(requestedCategory);
       setActivePersonalPlaylistId(null);
       setPlaylistName("");
@@ -758,7 +810,7 @@ export default function ChillMusicPlayer() {
       setIsPlaying(true);
       setShowCategoryMenu(false);
     }
-  }, [allSongs, next, persistMusicSession, prev, savedPlaylists]);
+  }, [allSongs, next, persistMusicSession, prev, savedPlaylists, user]);
 
   useEffect(() => {
     if (typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
