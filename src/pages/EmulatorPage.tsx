@@ -1121,7 +1121,7 @@ export default function EmulatorPage() {
                        nativeBusy && "cursor-wait opacity-70",
                      )}
                    >
-                     {nativeBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin text-neon-yellow" /> : <RefreshCw className="h-3.5 w-3.5 text-neon-yellow" />}
+                     {nativeBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin text-neon-yellow" /> : <Download className="h-3.5 w-3.5 text-neon-yellow" />}
                      <span className="font-pixel text-[clamp(0.48rem,1.55vw,0.58rem)] uppercase tracking-widest text-neon-yellow whitespace-nowrap">
                        {`Reinstalar ${nativeStatus.engine_name}`}
                      </span>
