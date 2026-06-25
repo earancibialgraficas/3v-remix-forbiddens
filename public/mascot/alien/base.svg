@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Mascota Alien">
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="34%" r="70%">
+      <stop offset="0" stop-color="#d8fff3"/>
+      <stop offset="0.48" stop-color="#52d6bd"/>
+      <stop offset="1" stop-color="#174449"/>
+    </radialGradient>
+    <linearGradient id="bg" x1="30" x2="226" y1="22" y2="234">
+      <stop stop-color="#111f32"/>
+      <stop offset="1" stop-color="#05070d"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="38" fill="url(#bg)"/>
+  <circle cx="128" cy="130" r="88" fill="#42ffc7" opacity=".12"/>
+  <path d="M76 118c0-49 24-82 52-82s52 33 52 82c0 58-28 94-52 94s-52-36-52-94Z" fill="url(#glow)" stroke="#d7fff4" stroke-width="5"/>
+  <path d="M72 72 48 36M184 72l24-36" fill="none" stroke="#a8ffe9" stroke-width="9" stroke-linecap="round"/>
+  <circle cx="45" cy="31" r="12" fill="#d8fff3"/>
+  <circle cx="211" cy="31" r="12" fill="#d8fff3"/>
+  <ellipse cx="103" cy="116" rx="20" ry="27" fill="#071014"/>
+  <ellipse cx="153" cy="116" rx="20" ry="27" fill="#071014"/>
+  <circle cx="96" cy="107" r="5" fill="#dffff7"/>
+  <circle cx="146" cy="107" r="5" fill="#dffff7"/>
+  <path d="M105 163c14 11 31 11 46 0" fill="none" stroke="#082326" stroke-width="8" stroke-linecap="round"/>
+  <path d="M68 184c33 27 88 27 120 0" fill="none" stroke="#8dffe1" stroke-width="6" stroke-linecap="round" opacity=".75"/>
+</svg>

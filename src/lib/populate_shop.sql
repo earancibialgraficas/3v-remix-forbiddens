@@ -196,6 +196,16 @@ VALUES
     'launcher_mascot',
     'lite',
     '/mascot/avocado/base.png'
+  ),
+  (
+    'alien_animal',
+    'Mascota Alien 3D',
+    'Mascota alienigena 3D para el launcher nativo, con modelo riggeado y animaciones reales de idle, caminar, correr y reaccionar.',
+    14000,
+    'fcoins',
+    'launcher_mascot',
+    'lite',
+    '/mascot/alien/base.svg'
   )
 ON CONFLICT (slug) DO UPDATE SET
   name = EXCLUDED.name,

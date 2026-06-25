@@ -1,4 +1,4 @@
-export type LauncherMascotSlug = 'dragon_noxito' | 'avocado_palta';
+export type LauncherMascotSlug = 'dragon_noxito' | 'avocado_palta' | 'alien_animal';
 
 export type LauncherMascotTheme = {
   slug: LauncherMascotSlug;
@@ -44,6 +44,21 @@ export const LAUNCHER_MASCOTS: Record<LauncherMascotSlug, LauncherMascotTheme> =
       baseUrl: '/mascot/avocado',
       config: 'avocadoMascot3D',
       modelUrl: '/mascot/avocado/avocado_mascot.glb',
+    },
+  },
+  alien_animal: {
+    slug: 'alien_animal',
+    name: 'Mascota Alien 3D',
+    description: 'Mascota alienigena 3D para el launcher nativo, con modelo riggeado y animaciones reales de idle, caminar, correr y reaccionar.',
+    thumbnailUrl: '/mascot/alien/base.svg',
+    price: 14000,
+    priceType: 'fcoins',
+    tierRequirement: 'lite',
+    companionOnly: true,
+    assets: {
+      baseUrl: '/mascot/alien',
+      config: 'alienMascot3D',
+      modelUrl: '/mascot/alien/alien_animal.glb',
     },
   },
 };
