@@ -165,15 +165,29 @@ floor = bpy.data.objects.get("Plane")
 if floor is not None:
     bpy.data.objects.remove(floor, do_unlink=True)
 
+limbs = bpy.data.objects.get("Cylinder.001")
+if limbs is not None:
+    inverse = limbs.matrix_world.inverted()
+    for vertex in limbs.data.vertices:
+        world = limbs.matrix_world @ vertex.co
+        side = 1 if world.x >= 0 else -1
+        distance = abs(world.x) - 0.62
+        if distance > 0 and world.z > 1.22:
+            lowered = min(distance, 1.35)
+            world.x = side * (0.62 + lowered * 0.32)
+            world.z = 1.46 - lowered * 0.72
+            vertex.co = inverse @ world
+    limbs.data.update()
+
 camera = bpy.data.objects.get("Camera") or bpy.data.objects.new("Camera", bpy.data.cameras.new("Camera"))
 if not camera.users_collection:
     bpy.context.scene.collection.objects.link(camera)
 camera.location = (0, -6.2, -0.45)
-target = Vector((0, 0.12, -0.55))
+target = Vector((0, 0.12, 0.2))
 direction = target - Vector(camera.location)
 camera.rotation_euler = direction.to_track_quat("-Z", "Y").to_euler()
 camera.data.type = "ORTHO"
-camera.data.ortho_scale = 4.25
+camera.data.ortho_scale = 4.65
 bpy.context.scene.camera = camera
 
 for light in [obj for obj in bpy.data.objects if obj.type == "LIGHT"]:

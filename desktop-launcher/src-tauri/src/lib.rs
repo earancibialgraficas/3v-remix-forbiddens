@@ -1482,8 +1482,27 @@ fn screen_layout(app: &AppHandle) -> Option<(i32, i32, u32, u32, u32, u32)> {
     let monitor_center_y = position.y + (size.height / 2) as i32;
     let (x, y, width, height) = windows_work_area_for_point(monitor_center_x, monitor_center_y)
         .unwrap_or((position.x, position.y, size.width, size.height));
-    let minimum_companion_width = 340.min(width);
-    let companion_width = (width / 5).max(minimum_companion_width);
+    let desired_companion_width = if width < 1100 {
+        width.saturating_mul(36) / 100
+    } else {
+        width.saturating_mul(28) / 100
+    };
+    let minimum_companion_width = if width < 900 { 300 } else { 380 }.min(width);
+    let maximum_companion_width = if width < 1100 {
+        width.saturating_mul(45) / 100
+    } else {
+        520
+    }
+    .min(width);
+    let minimum_emulator_width = if width >= 720 { 420 } else { width / 2 };
+    let companion_limit = width
+        .saturating_sub(minimum_emulator_width)
+        .max((width / 3).min(width));
+    let companion_width = desired_companion_width
+        .max(minimum_companion_width)
+        .min(maximum_companion_width)
+        .min(companion_limit)
+        .max(260.min(width));
     let emulator_width = width.saturating_sub(companion_width);
     Some((
         x,
@@ -1514,6 +1533,7 @@ fn enter_native_companion_layout(app: &AppHandle) -> Result<(), String> {
     window
         .set_size(PhysicalSize::new(companion_width, screen_height))
         .map_err(|error| error.to_string())?;
+    let _ = window.set_always_on_top(true);
     let _ = window.unminimize();
     let _ = window.set_focus();
     Ok(())
@@ -1523,6 +1543,7 @@ fn restore_launcher_layout(app: &AppHandle) {
     let Some(window) = app.get_webview_window("main") else {
         return;
     };
+    let _ = window.set_always_on_top(false);
     let _ = window.set_min_size(Some(PhysicalSize::new(1024, 650)));
     let _ = window.unminimize();
     let _ = window.maximize();
