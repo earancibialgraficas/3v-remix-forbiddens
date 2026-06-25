@@ -18,7 +18,20 @@ type MascotPosition = {
   y: number;
 };
 
-type AvocadoAnimation = "idle" | "walk" | "talk" | "happy" | "sad" | "sleep" | "drag";
+type AvocadoAnimation =
+  | "idle"
+  | "walk"
+  | "talk"
+  | "happy"
+  | "sad"
+  | "sleep"
+  | "drag"
+  | "wave"
+  | "jump"
+  | "dance"
+  | "look"
+  | "stretch"
+  | "surprised";
 
 const MASCOT_EVENT = "forbiddens:dragon-mascot";
 const MASCOT_WIDTH = 236;
@@ -27,15 +40,15 @@ const GROUND_GAP = 2;
 
 const eventAnimation: Record<DragonMascotEventType, AvocadoAnimation> = {
   greeting: "happy",
-  play: "happy",
+  play: "jump",
   pause: "sleep",
-  save: "happy",
+  save: "wave",
   load: "talk",
-  settings: "talk",
-  reset: "happy",
+  settings: "look",
+  reset: "jump",
   mute: "talk",
   unmute: "happy",
-  music: "talk",
+  music: "dance",
   error: "sad",
   idle: "idle",
   click: "happy",
@@ -77,6 +90,19 @@ const makeLimb = (height: number, radius: number, color: number) => {
   mesh.castShadow = true;
   pivot.add(mesh);
   return pivot;
+};
+
+const makeRoundedPart = (radius: number, color: number) => {
+  const mesh = new THREE.Mesh(
+    new THREE.SphereGeometry(radius, 22, 18),
+    new THREE.MeshStandardMaterial({
+      color,
+      roughness: 0.54,
+      metalness: 0.05,
+    }),
+  );
+  mesh.castShadow = true;
+  return mesh;
 };
 
 const makeAvocadoModel = () => {
@@ -142,6 +168,16 @@ const makeAvocadoModel = () => {
   rightSpark.position.set(0.253, -0.292, 0.302);
   body.add(leftSpark, rightSpark);
 
+  const mouthGroup = new THREE.Group();
+  const openMouth = new THREE.Mesh(
+    new THREE.SphereGeometry(0.095, 24, 16),
+    new THREE.MeshStandardMaterial({ color: 0x130d08, roughness: 0.42 }),
+  );
+  openMouth.position.set(0, -0.52, 0.298);
+  openMouth.scale.set(1.08, 0.18, 0.38);
+  openMouth.visible = false;
+  mouthGroup.add(openMouth);
+
   const smileCurve = new THREE.QuadraticBezierCurve3(
     new THREE.Vector3(-0.13, -0.48, 0.285),
     new THREE.Vector3(0, -0.59, 0.32),
@@ -151,20 +187,37 @@ const makeAvocadoModel = () => {
     new THREE.TubeGeometry(smileCurve, 24, 0.012, 8, false),
     new THREE.MeshStandardMaterial({ color: 0x151009, roughness: 0.5 }),
   );
-  body.add(smile);
+  mouthGroup.add(smile);
+  body.add(mouthGroup);
 
   const leftArm = makeLimb(0.82, 0.038, 0x8a6b30);
   const rightArm = makeLimb(0.82, 0.038, 0x8a6b30);
-  leftArm.position.set(-0.58, -0.42, 0.01);
-  rightArm.position.set(0.58, -0.42, 0.01);
-  leftArm.rotation.z = 0.48;
-  rightArm.rotation.z = -0.48;
+  const leftHand = makeRoundedPart(0.07, 0x9d7c39);
+  const rightHand = makeRoundedPart(0.07, 0x9d7c39);
+  leftHand.position.set(0, -0.84, 0.035);
+  rightHand.position.set(0, -0.84, 0.035);
+  leftHand.scale.set(1.05, 0.86, 0.82);
+  rightHand.scale.set(1.05, 0.86, 0.82);
+  leftArm.add(leftHand);
+  rightArm.add(rightHand);
+  leftArm.position.set(-0.58, -0.4, 0.31);
+  rightArm.position.set(0.58, -0.4, 0.31);
+  leftArm.rotation.z = 0.55;
+  rightArm.rotation.z = -0.55;
   body.add(leftArm, rightArm);
 
   const leftLeg = makeLimb(0.64, 0.045, 0x7f622d);
   const rightLeg = makeLimb(0.64, 0.045, 0x7f622d);
-  leftLeg.position.set(-0.26, -1.13, -0.01);
-  rightLeg.position.set(0.26, -1.13, -0.01);
+  const leftFoot = makeRoundedPart(0.085, 0x8d7135);
+  const rightFoot = makeRoundedPart(0.085, 0x8d7135);
+  leftFoot.position.set(0.045, -0.64, 0.04);
+  rightFoot.position.set(-0.045, -0.64, 0.04);
+  leftFoot.scale.set(1.35, 0.58, 0.84);
+  rightFoot.scale.set(1.35, 0.58, 0.84);
+  leftLeg.add(leftFoot);
+  rightLeg.add(rightFoot);
+  leftLeg.position.set(-0.26, -1.13, 0.12);
+  rightLeg.position.set(0.26, -1.13, 0.12);
   body.add(leftLeg, rightLeg);
 
   const parts = {
@@ -177,7 +230,15 @@ const makeAvocadoModel = () => {
     rightLeg,
     leftEye,
     rightEye,
+    leftSpark,
+    rightSpark,
+    mouthGroup,
     smile,
+    openMouth,
+    leftHand,
+    rightHand,
+    leftFoot,
+    rightFoot,
   };
   return parts;
 };
@@ -320,30 +381,119 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
       const state = animationNameRef.current;
       const avocado = modelRef.current;
       if (avocado) {
-        const isDrag = state === "drag";
-        const isHappy = state === "happy";
-        const isTalk = state === "talk";
-        const isSleep = state === "sleep";
-        const isWalk = state === "walk";
-        const bounce = Math.sin(elapsed * (isTalk ? 9.5 : isWalk ? 10.5 : 2.4));
-        const sway = Math.sin(elapsed * (isTalk ? 8.5 : isHappy ? 7.8 : isWalk ? 9 : 1.9));
+        const mode = state;
+        const walkCycle = Math.sin(elapsed * 11);
+        const fastCycle = Math.sin(elapsed * 12.5);
+        const breathe = Math.sin(elapsed * 2.1);
+        const blink = mode === "sleep" ? 0.16 : Math.sin(elapsed * 3.7) > 0.965 ? 0.18 : 1;
+        const mouthPulse = Math.abs(Math.sin(elapsed * 14));
 
-        avocado.root.position.y = isSleep ? -0.2 + Math.sin(elapsed * 1.7) * 0.025 : bounce * (isTalk ? 0.12 : isWalk ? 0.13 : 0.075) + (isDrag ? 0.16 : 0);
-        avocado.root.rotation.z = isSleep ? -0.24 + Math.sin(elapsed * 1.4) * 0.02 : sway * (isTalk ? 0.075 : isHappy ? 0.14 : isWalk ? 0.11 : 0.045);
-        avocado.root.rotation.y = -0.08 + Math.sin(elapsed * 1.15) * 0.1;
-        avocado.body.scale.set(
-          isTalk ? 1 + Math.sin(elapsed * 13) * 0.035 : isHappy ? 1.04 : 1,
-          isTalk ? 1 - Math.sin(elapsed * 13) * 0.03 : isHappy ? 0.98 : 1,
-          1,
-        );
+        avocado.openMouth.visible = mode === "talk" || mode === "surprised";
+        avocado.smile.visible = !avocado.openMouth.visible;
+        avocado.openMouth.scale.set(1.08, mode === "surprised" ? 0.72 : 0.22 + mouthPulse * 0.5, 0.38);
+        avocado.leftEye.scale.y = mode === "surprised" ? 1.28 : blink;
+        avocado.rightEye.scale.y = mode === "surprised" ? 1.28 : blink;
+        avocado.leftSpark.visible = mode !== "sleep";
+        avocado.rightSpark.visible = mode !== "sleep";
 
-        avocado.seed.position.y = -0.12 + (isTalk ? Math.sin(elapsed * 12) * 0.018 : 0);
-        avocado.leftArm.rotation.z = 0.48 + (isTalk ? Math.sin(elapsed * 11) * 0.32 : isHappy ? -0.46 + Math.sin(elapsed * 9) * 0.18 : isWalk ? Math.sin(elapsed * 10.5) * 0.42 : Math.sin(elapsed * 2.1) * 0.08);
-        avocado.rightArm.rotation.z = -0.48 + (isTalk ? -Math.sin(elapsed * 11) * 0.32 : isHappy ? 0.46 - Math.sin(elapsed * 9) * 0.18 : isWalk ? -Math.sin(elapsed * 10.5) * 0.42 : -Math.sin(elapsed * 2.1) * 0.08);
-        avocado.leftLeg.rotation.z = isSleep ? 0.12 : isWalk ? Math.sin(elapsed * 10.5) * 0.26 : Math.sin(elapsed * 2.1) * 0.035;
-        avocado.rightLeg.rotation.z = isSleep ? -0.12 : isWalk ? -Math.sin(elapsed * 10.5) * 0.26 : -Math.sin(elapsed * 2.1) * 0.035;
-        avocado.leftEye.scale.y = isSleep ? 0.18 : 1;
-        avocado.rightEye.scale.y = isSleep ? 0.18 : 1;
+        avocado.root.position.set(0, 0, 0);
+        avocado.root.rotation.set(0, -0.08 + Math.sin(elapsed * 1.2) * 0.08, breathe * 0.04);
+        avocado.body.scale.set(1 + breathe * 0.012, 1 - breathe * 0.014, 1);
+        avocado.seed.position.set(0, -0.12 + breathe * 0.012, 0.26);
+        avocado.leftArm.rotation.set(0, 0, 0.55 + breathe * 0.07);
+        avocado.rightArm.rotation.set(0, 0, -0.55 - breathe * 0.07);
+        avocado.leftLeg.rotation.set(0, 0, breathe * 0.035);
+        avocado.rightLeg.rotation.set(0, 0, -breathe * 0.035);
+        avocado.leftHand.scale.set(1.05, 0.86, 0.82);
+        avocado.rightHand.scale.set(1.05, 0.86, 0.82);
+        avocado.leftFoot.scale.set(1.35, 0.58, 0.84);
+        avocado.rightFoot.scale.set(1.35, 0.58, 0.84);
+
+        if (mode === "talk") {
+          avocado.root.position.y = fastCycle * 0.045;
+          avocado.root.rotation.z = Math.sin(elapsed * 7.5) * 0.065;
+          avocado.body.scale.set(1 + fastCycle * 0.025, 1 - fastCycle * 0.025, 1);
+          avocado.seed.position.y = -0.12 + fastCycle * 0.02;
+          avocado.leftArm.rotation.z = 0.42 + Math.sin(elapsed * 10.5) * 0.28;
+          avocado.rightArm.rotation.z = -0.42 - Math.sin(elapsed * 9.7) * 0.28;
+        } else if (mode === "walk") {
+          avocado.root.position.y = Math.abs(walkCycle) * 0.12;
+          avocado.root.rotation.z = Math.sin(elapsed * 7) * 0.095;
+          avocado.leftArm.rotation.z = 0.58 + walkCycle * 0.48;
+          avocado.rightArm.rotation.z = -0.58 - walkCycle * 0.48;
+          avocado.leftLeg.rotation.z = walkCycle * 0.32;
+          avocado.rightLeg.rotation.z = -walkCycle * 0.32;
+        } else if (mode === "happy") {
+          avocado.root.position.y = Math.abs(Math.sin(elapsed * 8.5)) * 0.16;
+          avocado.root.rotation.z = Math.sin(elapsed * 8.5) * 0.16;
+          avocado.body.scale.set(1.05 + fastCycle * 0.02, 0.96 - fastCycle * 0.012, 1);
+          avocado.leftArm.rotation.z = 0.1 + Math.sin(elapsed * 11) * 0.2;
+          avocado.rightArm.rotation.z = -0.1 - Math.sin(elapsed * 11) * 0.2;
+        } else if (mode === "wave") {
+          avocado.root.rotation.z = Math.sin(elapsed * 4.8) * 0.055;
+          avocado.leftArm.rotation.z = 0.48 + breathe * 0.05;
+          avocado.rightArm.rotation.z = -1.95 + Math.sin(elapsed * 12.5) * 0.38;
+          avocado.rightArm.rotation.y = -0.38;
+          avocado.rightHand.scale.set(1.15, 0.92 + Math.abs(fastCycle) * 0.14, 0.86);
+        } else if (mode === "jump") {
+          const hop = Math.abs(Math.sin(elapsed * 7.2));
+          avocado.root.position.y = hop * 0.32;
+          avocado.root.rotation.z = Math.sin(elapsed * 7.2) * 0.11;
+          avocado.body.scale.set(1.04 - hop * 0.045, 0.95 + hop * 0.08, 1);
+          avocado.leftArm.rotation.z = -0.1 + Math.sin(elapsed * 10) * 0.12;
+          avocado.rightArm.rotation.z = 0.1 - Math.sin(elapsed * 10) * 0.12;
+          avocado.leftLeg.rotation.z = -0.22 - hop * 0.28;
+          avocado.rightLeg.rotation.z = 0.22 + hop * 0.28;
+        } else if (mode === "dance") {
+          avocado.root.position.y = Math.abs(Math.sin(elapsed * 6.5)) * 0.13;
+          avocado.root.rotation.z = Math.sin(elapsed * 6.5) * 0.22;
+          avocado.root.rotation.y = Math.sin(elapsed * 3.8) * 0.26;
+          avocado.leftArm.rotation.z = 0.24 + Math.sin(elapsed * 9.5) * 0.55;
+          avocado.rightArm.rotation.z = -0.24 + Math.sin(elapsed * 9.5 + Math.PI) * 0.55;
+          avocado.leftLeg.rotation.z = Math.sin(elapsed * 9.5 + Math.PI) * 0.24;
+          avocado.rightLeg.rotation.z = Math.sin(elapsed * 9.5) * 0.24;
+        } else if (mode === "look") {
+          avocado.root.rotation.y = Math.sin(elapsed * 2.6) * 0.32;
+          avocado.root.rotation.z = Math.sin(elapsed * 1.7) * 0.035;
+          avocado.leftArm.rotation.z = 0.35 + Math.sin(elapsed * 2.4) * 0.08;
+          avocado.rightArm.rotation.z = -1.18 + Math.sin(elapsed * 4) * 0.12;
+        } else if (mode === "stretch") {
+          avocado.root.position.y = 0.08 + Math.sin(elapsed * 2.4) * 0.04;
+          avocado.body.scale.set(0.95, 1.08 + Math.sin(elapsed * 2.4) * 0.025, 1);
+          avocado.leftArm.rotation.z = 1.96 + Math.sin(elapsed * 2.4) * 0.08;
+          avocado.rightArm.rotation.z = -1.96 - Math.sin(elapsed * 2.4) * 0.08;
+          avocado.leftLeg.rotation.z = -0.12;
+          avocado.rightLeg.rotation.z = 0.12;
+        } else if (mode === "surprised") {
+          avocado.root.position.y = 0.1 + Math.abs(fastCycle) * 0.05;
+          avocado.root.rotation.z = Math.sin(elapsed * 14) * 0.025;
+          avocado.leftArm.rotation.z = 1.65 + Math.sin(elapsed * 14) * 0.12;
+          avocado.rightArm.rotation.z = -1.65 - Math.sin(elapsed * 14) * 0.12;
+        } else if (mode === "sad") {
+          avocado.root.position.y = -0.1 + Math.sin(elapsed * 1.8) * 0.025;
+          avocado.root.rotation.z = -0.16 + Math.sin(elapsed * 1.6) * 0.025;
+          avocado.body.scale.set(0.97, 0.98, 1);
+          avocado.leftArm.rotation.z = 0.82;
+          avocado.rightArm.rotation.z = -0.82;
+          avocado.leftEye.scale.y = 0.62;
+          avocado.rightEye.scale.y = 0.62;
+        } else if (mode === "sleep") {
+          avocado.root.position.y = -0.18 + Math.sin(elapsed * 1.5) * 0.025;
+          avocado.root.rotation.z = -0.34 + Math.sin(elapsed * 1.3) * 0.018;
+          avocado.body.scale.set(1.04, 0.92, 1);
+          avocado.leftArm.rotation.z = 0.9 + Math.sin(elapsed * 1.4) * 0.035;
+          avocado.rightArm.rotation.z = -0.9 - Math.sin(elapsed * 1.4) * 0.035;
+          avocado.leftLeg.rotation.z = 0.16;
+          avocado.rightLeg.rotation.z = -0.16;
+        } else if (mode === "drag") {
+          avocado.root.position.y = 0.18 + Math.sin(elapsed * 8) * 0.035;
+          avocado.root.rotation.z = Math.sin(elapsed * 7) * 0.13;
+          avocado.body.scale.set(0.96, 1.05, 1);
+          avocado.leftArm.rotation.z = 1.05 + Math.sin(elapsed * 9) * 0.08;
+          avocado.rightArm.rotation.z = -1.05 - Math.sin(elapsed * 9) * 0.08;
+          avocado.leftLeg.rotation.z = 0.3 + Math.sin(elapsed * 10) * 0.18;
+          avocado.rightLeg.rotation.z = -0.3 - Math.sin(elapsed * 10) * 0.18;
+        }
       }
       renderer.render(scene, camera);
       animationFrameRef.current = window.requestAnimationFrame(render);
@@ -406,25 +556,35 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
           return;
         }
         const roll = Math.random();
-        if (roll < 0.3) {
+        if (roll < 0.28) {
           const stage = stageRef.current;
           if (stage) {
             const maxX = Math.max(4, stage.clientWidth - MASCOT_WIDTH - 4);
-            const nextX = clamp(position.x + (Math.random() < 0.5 ? -1 : 1) * (60 + Math.random() * 88), 4, maxX);
+            const nextX = clamp(position.x + (Math.random() < 0.5 ? -1 : 1) * (80 + Math.random() * 118), 4, maxX);
             setAnimationName("walk");
             setPosition((current) => clampPosition(nextX, current.y));
-            window.setTimeout(() => setAnimationName("idle"), 1500);
+            window.setTimeout(() => setAnimationName("idle"), 1700);
           }
-        } else if (roll < 0.42) {
+        } else if (roll < 0.4) {
           setAnimationName("sleep");
-        } else if (roll < 0.58) {
+        } else if (roll < 0.52) {
+          setAnimationName("stretch");
+          window.setTimeout(() => setAnimationName("idle"), 1800);
+        } else if (roll < 0.66) {
+          setAnimationName("wave");
+          window.setTimeout(() => setAnimationName("idle"), 1600);
+        } else if (roll < 0.8) {
+          setAnimationName("dance");
+          window.setTimeout(() => setAnimationName("idle"), 1900);
+        } else if (roll < 0.92) {
           setAnimationName("happy");
-          window.setTimeout(() => setAnimationName("idle"), 900);
+          window.setTimeout(() => setAnimationName("idle"), 1200);
         } else {
-          setAnimationName("idle");
+          setAnimationName("look");
+          window.setTimeout(() => setAnimationName("idle"), 1800);
         }
         schedule();
-      }, 7_000 + Math.random() * 9_000);
+      }, 4_800 + Math.random() * 7_400);
     };
     schedule();
     return () => {
