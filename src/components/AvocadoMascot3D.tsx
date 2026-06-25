@@ -131,7 +131,7 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
       oscillator.frequency.setValueAtTime(pitch, context.currentTime);
       oscillator.frequency.exponentialRampToValueAtTime(Math.max(260, pitch * 0.76), context.currentTime + 0.052);
       gain.gain.setValueAtTime(0.0001, context.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.022, context.currentTime + 0.006);
+      gain.gain.exponentialRampToValueAtTime(0.044, context.currentTime + 0.006);
       gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.058);
       oscillator.connect(gain);
       gain.connect(context.destination);
@@ -415,16 +415,16 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
     <div ref={stageRef} className={cn("pointer-events-none absolute inset-0 overflow-hidden", className)} data-native-action>
       {bubbleVisible && (
         <div
-          className="pointer-events-none absolute z-[110] max-w-[min(300px,78vw)] rounded-lg border border-lime-200/55 bg-[#10140a]/92 px-3 py-2 shadow-[0_16px_34px_rgba(0,0,0,0.42)] backdrop-blur-sm"
+          className="pointer-events-none absolute z-[110] max-w-[min(300px,78vw)] rounded-[18px] border-2 border-[#22380d] bg-[#f7ffd8] px-3.5 py-2.5 shadow-[5px_6px_0_rgba(34,56,13,0.55)]"
           style={{
             left: clamp(position.x - 76, 10, Math.max(10, (stageRef.current?.clientWidth || 360) - 308)),
             top: Math.max(8, position.y - 74),
           }}
         >
-          <div className="absolute -bottom-2 left-1/2 h-4 w-4 -translate-x-1/2 rotate-45 border-b border-r border-lime-200/55 bg-[#10140a]" />
-          <p className="relative z-10 min-h-[2rem] text-[11px] font-semibold leading-snug text-lime-50">
+          <div className="absolute -bottom-[11px] left-1/2 h-5 w-5 -translate-x-1/2 rotate-45 border-b-2 border-r-2 border-[#22380d] bg-[#f7ffd8]" />
+          <p className="relative z-10 min-h-[2rem] text-[11px] font-black leading-snug text-[#22380d]">
             {typedMessage}
-            <span className="ml-0.5 inline-block h-3 w-1 animate-pulse bg-lime-100 align-[-2px]" />
+            <span className="ml-0.5 inline-block h-3 w-1 animate-pulse bg-[#22380d] align-[-2px]" />
           </p>
         </div>
       )}
