@@ -4,10 +4,12 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useUserActiveMascot } from "@/hooks/useUserActiveMascot";
 import { cn } from "@/lib/utils";
 import { useNativeSession } from "@/contexts/NativeSessionContext";
 import { getLauncherBridge } from "@/lib/launcherBridge";
 import { getNativeCloudSaveKind, isNativeCloudSaveSupported, restoreNativeCloudSave, syncNativeCloudSave } from "@/lib/nativeCloudSaves";
+import DragonMascot, { emitDragonMascotEvent } from "@/components/DragonMascot";
 
 const POINTS_INTERVAL_MS = 10_000;
 const POINTS_PER_INTERVAL = 10;
@@ -48,6 +50,7 @@ export default function NativeGameBubble() {
   const { user, profile } = useAuth();
   const { toast } = useToast();
   const { sessions, currentSessionIndex, minimized, updateNativeSession, closeNativeSession, minimizeNativeSession, maximizeNativeSession } = useNativeSession();
+  const { activeMascot } = useUserActiveMascot(user?.id);
   const session = sessions[currentSessionIndex];
   const [paused, setPaused] = useState(false);
   const [position, setPosition] = useState(initialPosition);
@@ -341,6 +344,7 @@ export default function NativeGameBubble() {
     if (!current) return;
     try {
       const synced = await syncCurrentNativeSave();
+      emitDragonMascotEvent(synced ? "save" : "error");
       toast({
         title: synced ? "Partida guardada" : "Sin save detectable",
         description: synced
@@ -367,6 +371,7 @@ export default function NativeGameBubble() {
         romPath: current.romPath,
       });
       if (!restored) {
+        emitDragonMascotEvent("error");
         toast({
           title: "No hay save en la nube",
           description: "Todavia no existe una partida nativa guardada para este juego.",
@@ -376,9 +381,11 @@ export default function NativeGameBubble() {
       }
       if (getNativeCloudSaveKind(current.consoleName) === "savestate" && current.processId) {
         await getLauncherBridge()?.nativeEmulatorAction?.(current.processId, "load_state").catch(() => {});
+        emitDragonMascotEvent("load");
         toast({ title: "Partida cargada", description: "Se cargo el savestate nativo desde la nube." });
         return;
       }
+      emitDragonMascotEvent("load");
       toast({
         title: "Save preparado",
         description: "Reinicia el juego nativo para que el emulador lea el save restaurado.",
@@ -408,6 +415,7 @@ export default function NativeGameBubble() {
 
   const sendMusicCommand = (command: "prev" | "playPause" | "next" | "volumeUp" | "volumeDown" | "mute") => {
     sendMusicPayload({ command });
+    emitDragonMascotEvent("music");
   };
 
   const changeMusicCategory = (optionId: string) => {
@@ -418,11 +426,13 @@ export default function NativeGameBubble() {
       category: option.category,
       playlistId: option.playlistId || "",
     });
+    emitDragonMascotEvent("music");
   };
 
   const toggleNativeMute = () => {
     const nextMuted = !nativeMuted;
     setNativeMuted(nextMuted);
+    emitDragonMascotEvent(nextMuted ? "mute" : "unmute");
     const current = latestSessionRef.current;
     if (!current?.processId) return;
     getLauncherBridge()?.setNativeEmulatorVolume?.(current.processId, nextMuted ? 0 : 100).catch((error) => {
@@ -437,7 +447,10 @@ export default function NativeGameBubble() {
     const bridge = getLauncherBridge();
     try {
       await bridge?.nativeEmulatorAction?.(current.processId, "pause_toggle");
-      setEmulatorPaused((value) => !value);
+      setEmulatorPaused((value) => {
+        emitDragonMascotEvent(value ? "play" : "pause");
+        return !value;
+      });
       maximizeNativeSession();
     } catch (error: any) {
       toast({
@@ -587,7 +600,9 @@ export default function NativeGameBubble() {
         });
       }
       maximizeNativeSession();
+      emitDragonMascotEvent("settings");
     } catch (error: any) {
+      emitDragonMascotEvent("error");
       toast({
         title: "No se pudo abrir configuracion",
         description: error?.message || "Vuelve a enfocar el emulador e intenta otra vez.",
@@ -630,6 +645,7 @@ export default function NativeGameBubble() {
           await bridge.nativeEmulatorAction(current.processId, "reset");
           maximizeNativeSession();
           if (!options?.silent) {
+            emitDragonMascotEvent("reset");
             toast({
               title: "Consola reiniciada",
               description: "El juego se reinicio sin cerrar el companion.",
@@ -665,6 +681,7 @@ export default function NativeGameBubble() {
       }
       maximizeNativeSession();
       if (!options?.silent) {
+        emitDragonMascotEvent("reset");
         toast({
           title: "Consola reiniciada",
           description: "El emulador nativo se volvio a abrir con el juego actual.",
@@ -673,6 +690,7 @@ export default function NativeGameBubble() {
       return true;
     } catch (error: any) {
       if (!options?.silent) {
+        emitDragonMascotEvent("error");
         toast({
           title: "No se pudo reiniciar",
           description: error?.message || "No se pudo volver a abrir el emulador nativo.",
@@ -707,6 +725,7 @@ export default function NativeGameBubble() {
         romPath: current.romPath || null,
       });
       if (!exportedPath) return;
+      emitDragonMascotEvent("save");
       toast({
         title: "Save exportado",
         description: consoleName === "psp"
@@ -718,6 +737,7 @@ export default function NativeGameBubble() {
               : "Se guardo el savestate local del juego.",
       });
     } catch (error: any) {
+      emitDragonMascotEvent("error");
       toast({
         title: "No se pudo exportar",
         description: error?.message || "Aun no hay save local para esta consola.",
@@ -759,6 +779,7 @@ export default function NativeGameBubble() {
       } else if (needsRestartAfterImport) {
         await restartNativeConsole({ silent: true, skipClose: true });
       }
+      emitDragonMascotEvent("load");
       toast({
         title: "Save cargado",
         description: consoleName === "ps1" || consoleName === "psp" || consoleName === "ps2"
@@ -766,6 +787,7 @@ export default function NativeGameBubble() {
           : "Se cargo el savestate local en el emulador.",
       });
     } catch (error: any) {
+      emitDragonMascotEvent("error");
       toast({
         title: "No se pudo cargar",
         description: error?.message || "El archivo seleccionado no se pudo aplicar.",
@@ -846,6 +868,12 @@ export default function NativeGameBubble() {
             </div>
           </div>
         </div>
+
+        {launcherPanelMode && activeMascot?.slug === "dragon_noxito" && (
+          <div className={cn(nativePanelClass, "p-2")} style={skinPanelStyle}>
+            <DragonMascot gameName={session.gameName} />
+          </div>
+        )}
 
         <div className={cn(nativePanelClass, "p-2")} style={skinPanelStyle}>
           <div className="flex items-center justify-between gap-2">

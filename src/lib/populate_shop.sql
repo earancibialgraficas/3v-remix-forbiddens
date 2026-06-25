@@ -174,6 +174,28 @@ ON CONFLICT (slug) DO UPDATE SET
   tier_requirement = EXCLUDED.tier_requirement,
   image_url = EXCLUDED.image_url;
 
+-- Mascotas del launcher nativo
+INSERT INTO shop_items (slug, name, description, price, price_type, category, tier_requirement, image_url)
+VALUES
+  (
+    'dragon_noxito',
+    'Mascota Dragon Noxito',
+    'Companero animado para el launcher nativo con burbuja de texto, sonido estilo juego cozy y reacciones al jugar.',
+    10000,
+    'fcoins',
+    'launcher_mascot',
+    'lite',
+    '/mascot/dragon/base.png'
+  )
+ON CONFLICT (slug) DO UPDATE SET
+  name = EXCLUDED.name,
+  description = EXCLUDED.description,
+  price = EXCLUDED.price,
+  price_type = EXCLUDED.price_type,
+  category = EXCLUDED.category,
+  tier_requirement = EXCLUDED.tier_requirement,
+  image_url = EXCLUDED.image_url;
+
 -- Ejemplo de otros items que puedes agregar:
 -- 📦 Cofres de Juegos
 INSERT INTO shop_items (slug, name, description, price, price_type, category, tier_requirement, image_url)

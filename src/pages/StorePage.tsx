@@ -10,6 +10,7 @@ import { ALL_SKINS, getSkinThumbnailUrl } from "@/lib/skinThemes";
 import { AVATAR_FRAME_SHOP_ITEMS, getAvatarFrame, isAvatarFrameSlug } from "@/lib/avatarFrames";
 import { PROFILE_TRANSITION_SHOP_ITEMS, getProfileTransition, isProfileTransitionSlug } from "@/lib/profileTransitions";
 import { EMULATOR_SHELL_SHOP_ITEMS, getEmulatorShell, isEmulatorShellSlug } from "@/lib/emulatorShells";
+import { LAUNCHER_MASCOT_SHOP_ITEMS, getLauncherMascot, isLauncherMascotSlug } from "@/lib/launcherMascots";
 import { VaritaMagicaIcon } from "@/components/icons/VaritaMagicaIcon";
 
 interface ShopItem {
@@ -104,6 +105,13 @@ const shopVisuals = {
     badge: "NES",
     background:
       "radial-gradient(circle at 50% 42%, rgba(255,255,255,.46), transparent 34%), linear-gradient(135deg, #ffd6ef, #ff86cc 54%, #c93d8a)",
+  },
+  launcher_mascot: {
+    frame: "border-fuchsia-200/80 bg-[#fff0fb]",
+    icon: "text-fuchsia-800",
+    badge: "MASCOTA",
+    background:
+      "radial-gradient(circle at 50% 42%, rgba(255,255,255,.55), transparent 34%), linear-gradient(135deg, #ffe5f5, #ff9bd6 55%, #9b4dd4)",
   },
   varita_magica: {
     frame: "border-pink-300/80 bg-pink-100",
@@ -205,9 +213,14 @@ export default function StorePage() {
               mergedItems.push(shellItem as ShopItem);
             }
           });
+          LAUNCHER_MASCOT_SHOP_ITEMS.forEach((mascotItem) => {
+            if (!mergedItems.some((item: ShopItem) => item.slug === mascotItem.slug)) {
+              mergedItems.push(mascotItem as ShopItem);
+            }
+          });
           setShopItems(mergedItems);
         } else {
-          setShopItems([...AVATAR_FRAME_SHOP_ITEMS, ...PROFILE_TRANSITION_SHOP_ITEMS, ...EMULATOR_SHELL_SHOP_ITEMS] as ShopItem[]);
+          setShopItems([...AVATAR_FRAME_SHOP_ITEMS, ...PROFILE_TRANSITION_SHOP_ITEMS, ...EMULATOR_SHELL_SHOP_ITEMS, ...LAUNCHER_MASCOT_SHOP_ITEMS] as ShopItem[]);
         }
 
         // Obtener inventario del usuario
@@ -326,12 +339,14 @@ export default function StorePage() {
   const isAvatarFrameItem = (item: ShopItem) => isAvatarFrameSlug(item?.slug);
   const isProfileTransitionItem = (item: ShopItem) => isProfileTransitionSlug(item?.slug);
   const isEmulatorShellItem = (item: ShopItem) => isEmulatorShellSlug(item?.slug);
-  const isReadyItem = (item: ShopItem) => item.slug === "angelical" || item.slug === "mi_melodia_rosa" || item.slug === "demoniaco" || item.slug === "mercenario_bocasas" || isAvatarFrameItem(item) || isProfileTransitionItem(item) || isEmulatorShellItem(item);
+  const isLauncherMascotItem = (item: ShopItem) => isLauncherMascotSlug(item?.slug);
+  const isReadyItem = (item: ShopItem) => item.slug === "angelical" || item.slug === "mi_melodia_rosa" || item.slug === "demoniaco" || item.slug === "mercenario_bocasas" || isAvatarFrameItem(item) || isProfileTransitionItem(item) || isEmulatorShellItem(item) || isLauncherMascotItem(item);
   const getShopVisual = (item: ShopItem) => {
     if ((shopVisuals as any)[item.slug]) return (shopVisuals as any)[item.slug];
     if (isAvatarFrameItem(item)) return shopVisuals.avatar_frame;
     if (isProfileTransitionItem(item)) return shopVisuals.profile_transition;
     if (isEmulatorShellItem(item)) return shopVisuals.emulator_shell;
+    if (isLauncherMascotItem(item)) return shopVisuals.launcher_mascot;
     if (isMembershipItem(item)) return shopVisuals.membership;
     if (isEventTicketItem(item)) return shopVisuals.ticket;
     if (item.category === "game_chest") return shopVisuals.game_chest;
@@ -344,6 +359,7 @@ export default function StorePage() {
     if (isAvatarFrameItem(item)) return getAvatarFrame(item.slug)?.thumbnailUrl || null;
     if (isProfileTransitionItem(item)) return getProfileTransition(item.slug)?.thumbnailUrl || null;
     if (isEmulatorShellItem(item)) return getEmulatorShell(item.slug)?.thumbnailUrl || null;
+    if (isLauncherMascotItem(item)) return getLauncherMascot(item.slug)?.thumbnailUrl || null;
     if (isBoosterItem(item)) return "/cosmetics/boosters/boost-x3.svg?v=20260621-2";
     return null;
   };
@@ -360,6 +376,8 @@ export default function StorePage() {
         : item.slug === "varita_magica" ? <VaritaMagicaIcon className={className} /> : item.slug?.startsWith("boomshacka") ? <Bomb className={className} /> : <Flame className={className} />
       : isEmulatorShellItem(item)
       ? <img src={getEmulatorShell(item.slug)?.thumbnailUrl} alt="" className={cn("h-full w-full rounded-sm object-contain", className)} />
+      : isLauncherMascotItem(item)
+      ? <img src={getLauncherMascot(item.slug)?.thumbnailUrl} alt="" className={cn("h-full w-full rounded-sm object-contain", className)} />
       : isMembershipItem(item)
       ? <Crown className={className} />
       : isEventTicketItem(item)
@@ -380,7 +398,7 @@ export default function StorePage() {
     if (!isReadyItem(item)) {
       toast({
         title: "Item en desarrollo",
-        description: "Por ahora solo las skins listas, los marcos de avatar, las transiciones y la consola Rosita NES estan disponibles para comprar.",
+        description: "Por ahora solo las skins listas, los marcos de avatar, las transiciones, las consolas web y las mascotas del launcher estan disponibles para comprar.",
         variant: "destructive",
       });
       return;
@@ -463,21 +481,23 @@ export default function StorePage() {
 
   categoryLabels.avatar_frame = 'Marcos Avatar';
   categoryLabels.emulator_shell = 'Consolas Web';
+  categoryLabels.launcher_mascot = 'Mascotas Launcher';
 
-  const categories = ['all', 'launcher_skin', 'avatar_frame', 'emulator_shell', 'agario_skin', 'game_chest', 'cosmetic'];
+  const categories = ['all', 'launcher_skin', 'avatar_frame', 'emulator_shell', 'launcher_mascot', 'agario_skin', 'game_chest', 'cosmetic'];
 
   const getShopItemTypeRank = (item: ShopItem) => {
     if (isSkinItem(item)) return 0;
     if (isAvatarFrameItem(item)) return 1;
     if (isEmulatorShellItem(item)) return 2;
-    if (isProfileTransitionItem(item)) return 3;
-    if (isBoosterItem(item)) return 4;
-    if (isMembershipItem(item)) return 5;
-    if (isEventTicketItem(item)) return 6;
-    if (item.category === "agario_skin") return 7;
-    if (item.category === "game_chest") return 8;
-    if (item.category === "cosmetic") return 9;
-    return 10;
+    if (isLauncherMascotItem(item)) return 3;
+    if (isProfileTransitionItem(item)) return 4;
+    if (isBoosterItem(item)) return 5;
+    if (isMembershipItem(item)) return 6;
+    if (isEventTicketItem(item)) return 7;
+    if (item.category === "agario_skin") return 8;
+    if (item.category === "game_chest") return 9;
+    if (item.category === "cosmetic") return 10;
+    return 11;
   };
 
   const sortShopItems = (items: ShopItem[]) => [...items].sort((a, b) => {
@@ -593,7 +613,7 @@ export default function StorePage() {
             const visual = getShopVisual(item);
             const artworkThumbnail = getShopThumbnailUrl(item);
             const hasArtworkThumbnail = Boolean(artworkThumbnail);
-            const artworkBackdrop = item.slug === "mi_melodia_rosa" || item.slug === "angelical" || isAvatarFrameItem(item) || isEmulatorShellItem(item)
+            const artworkBackdrop = item.slug === "mi_melodia_rosa" || item.slug === "angelical" || isAvatarFrameItem(item) || isEmulatorShellItem(item) || isLauncherMascotItem(item)
               ? "linear-gradient(135deg, rgba(255,251,253,.96), rgba(255,224,240,.9) 58%, rgba(219,91,151,.22))"
               : "linear-gradient(135deg, rgba(20,7,11,.92), rgba(74,18,34,.72) 55%, rgba(10,4,6,.94))";
 
@@ -628,6 +648,7 @@ export default function StorePage() {
                       isAvatarFrameItem(item) && "h-20 w-20 border-pink-200/70 bg-black/15 shadow-[0_0_24px_rgba(244,114,182,0.28)]",
                       isProfileTransitionItem(item) && "h-20 w-20 overflow-hidden border-orange-300/70 bg-black/40 shadow-[0_0_24px_rgba(249,115,22,0.28)]",
                       isEmulatorShellItem(item) && "h-20 w-20 overflow-hidden border-pink-200/80 bg-pink-100 shadow-[0_0_24px_rgba(244,114,182,0.28)]",
+                      isLauncherMascotItem(item) && "h-24 w-24 overflow-visible border-fuchsia-200/80 bg-pink-50 shadow-[0_0_24px_rgba(217,70,239,0.24)]",
                       hasArtworkThumbnail && "h-28 w-28 border-0 bg-transparent shadow-none",
                       item.slug === "varita_magica" && "border-pink-300/80 bg-pink-100 shadow-[0_0_24px_rgba(244,114,182,0.3)]",
                       item.slug?.startsWith("boomshacka") && "border-red-300/80 bg-[#250805] shadow-[0_0_24px_rgba(248,113,113,0.28)]",
@@ -678,7 +699,7 @@ export default function StorePage() {
                   )}
                   {!ready && (
                     <p className="rounded border border-yellow-300/25 bg-yellow-300/10 px-2 py-1 text-[10px] text-yellow-100">
-                      Este item todavia no esta listo. Solo Rosa Pastel, Skin Demoniaco, Skin Mercenario Bocasas, los marcos de avatar, las transiciones y la consola Rosita NES estan disponibles por ahora.
+                      Este item todavia no esta listo. Solo Rosa Pastel, Skin Demoniaco, Skin Mercenario Bocasas, los marcos de avatar, las transiciones, las consolas web y las mascotas del launcher estan disponibles por ahora.
                     </p>
                   )}
 

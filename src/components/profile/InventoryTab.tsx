@@ -14,6 +14,7 @@ import { ALL_SKINS, getSkinThumbnailUrl } from "@/lib/skinThemes";
 import { AVATAR_FRAMES, getAvatarFrame, isAvatarFrameSlug } from "@/lib/avatarFrames";
 import { PROFILE_TRANSITIONS, getProfileTransition, isProfileTransitionSlug } from "@/lib/profileTransitions";
 import { EMULATOR_SHELLS, getEmulatorShell, isEmulatorShellSlug } from "@/lib/emulatorShells";
+import { LAUNCHER_MASCOTS, getLauncherMascot, isLauncherMascotSlug } from "@/lib/launcherMascots";
 import { STAT_BOOST_REFRESH_EVENT, STAT_BOOST_SLUG, getStatBoostActiveUntil, isStatBoostActive, isStatBoostExpired } from "@/hooks/useActiveStatBoost";
 import { VaritaMagicaIcon } from "@/components/icons/VaritaMagicaIcon";
 
@@ -107,6 +108,8 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
   const activeAvatarFrame = getAvatarFrame(activeAvatarFrameSlug);
   const activeProfileTransitionSlug = activeSkins.profile_transition;
   const activeProfileTransition = getProfileTransition(activeProfileTransitionSlug);
+  const activeMascotSlug = activeSkins.launcher_mascot;
+  const activeMascot = getLauncherMascot(activeMascotSlug);
   const activeEmulatorShellEntries = useMemo(
     () => Object.entries(activeSkins)
       .filter(([skinType]) => skinType === 'emulator_shell' || skinType.startsWith('emulator_shell:'))
@@ -217,6 +220,9 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
       });
       Object.values(EMULATOR_SHELLS).forEach((shell) => {
         if (!map[shell.slug]) map[shell.slug] = { price: shell.price, type: shell.priceType };
+      });
+      Object.values(LAUNCHER_MASCOTS).forEach((mascot) => {
+        if (!map[mascot.slug]) map[mascot.slug] = { price: mascot.price, type: mascot.priceType };
       });
       setPriceMap(map);
     }
@@ -929,6 +935,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
   const isAvatarFrameItem = (item: any) => isAvatarFrameSlug(item?.item_slug);
   const isProfileTransitionItem = (item: any) => isProfileTransitionSlug(item?.item_slug);
   const isEmulatorShellItem = (item: any) => isEmulatorShellSlug(item?.item_slug);
+  const isLauncherMascotItem = (item: any) => isLauncherMascotSlug(item?.item_slug);
   const itemActiveUntil = (item: any) => getStatBoostActiveUntil(item);
   const itemIsActive = (item: any) => isStatBoostActive(item);
   const boosterUsedByMe = (item: any) => Array.isArray(item?.metadata?.used_by_users) && item.metadata.used_by_users.includes(userId);
@@ -962,6 +969,8 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
         : item?.item_slug === "varita_magica" ? <VaritaMagicaIcon className={className} /> : item?.item_slug?.startsWith("boomshacka") ? <Bomb className={className} /> : <Flame className={className} />
       : isEmulatorShellItem(item)
       ? <img src={getEmulatorShell(item.item_slug)?.thumbnailUrl} alt="" className={cn("h-full w-full rounded-sm object-contain", className)} />
+      : isLauncherMascotItem(item)
+      ? <img src={getLauncherMascot(item.item_slug)?.thumbnailUrl} alt="" className={cn("h-full w-full rounded-sm object-contain", className)} />
       : isMembershipItem(item)
       ? <Crown className={className} />
       : isEventTicketItem(item)
@@ -1290,12 +1299,12 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
   const isSkinItem = (item: any) => item?.item_slug && (ALL_SKINS as any)[item.item_slug];
   const activeEquipmentEntries = useMemo(() => {
     const skinEntries = Object.entries(activeSkins)
-      .filter(([skinType]) => skinType !== 'avatar_frame' && skinType !== 'profile_transition' && skinType !== 'emulator_shell')
+      .filter(([skinType]) => skinType !== 'avatar_frame' && skinType !== 'profile_transition' && skinType !== 'emulator_shell' && skinType !== 'launcher_mascot')
       .map(([skinType, skinSlug]) => {
         const skin = (ALL_SKINS as any)[skinSlug];
         return skin ? { kind: 'skin' as const, skinType, slug: skinSlug, name: skin.name } : null;
       })
-      .filter(Boolean) as { kind: 'skin' | 'avatar_frame' | 'profile_transition' | 'emulator_shell'; skinType: string; slug: string; name: string }[];
+      .filter(Boolean) as { kind: 'skin' | 'avatar_frame' | 'profile_transition' | 'emulator_shell' | 'launcher_mascot'; skinType: string; slug: string; name: string }[];
     if (activeAvatarFrame) {
       skinEntries.push({
         kind: 'avatar_frame',
@@ -1320,12 +1329,21 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
         name: shell.name,
       });
     });
+    if (activeMascot) {
+      skinEntries.push({
+        kind: 'launcher_mascot',
+        skinType: 'launcher_mascot',
+        slug: activeMascot.slug,
+        name: activeMascot.name,
+      });
+    }
     return skinEntries.slice(0, 5);
-  }, [activeAvatarFrame, activeEmulatorShellEntries, activeProfileTransition, activeSkins]);
+  }, [activeAvatarFrame, activeEmulatorShellEntries, activeMascot, activeProfileTransition, activeSkins]);
   const getEquipmentBadgeText = (entry: (typeof activeEquipmentEntries)[number]) => {
     if (entry.kind === 'avatar_frame') return 'Marco';
     if (entry.kind === 'profile_transition') return 'Transicion';
     if (entry.kind === 'emulator_shell') return 'Consola';
+    if (entry.kind === 'launcher_mascot') return 'Mascota';
     return 'Launcher';
   };
   const activeSkinEntries = useMemo(
@@ -1406,6 +1424,9 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
       } else if (skinType === 'emulator_shell' || emulatorConsoleId) {
         window.dispatchEvent(new CustomEvent('forbiddens:active-emulator-shell-updated', { detail: { userId, consoleId: emulatorConsoleId || undefined, shellSlug: null } }));
         toast({ title: "Consola desequipada", description: "Los emuladores web volveran al marco original." });
+      } else if (skinType === 'launcher_mascot') {
+        window.dispatchEvent(new CustomEvent('forbiddens:active-mascot-updated', { detail: { userId, mascotSlug: null } }));
+        toast({ title: "Mascota desequipada", description: "El companion del launcher volvera sin mascota." });
       } else {
         toast({ title: "âœ… Skin Desequipada", description: "Has vuelto al diseÃ±o original" });
       }
@@ -1538,8 +1559,46 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
     }
   };
 
+  const handleActivateMascot = async (mascotSlug: string) => {
+    const mascot = getLauncherMascot(mascotSlug);
+    if (!mascot) return false;
+    setContextMenu(null);
+    setBusy(true);
+    try {
+      const { data: existing } = await (supabase as any)
+        .from('user_active_skins')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('skin_type', 'launcher_mascot')
+        .maybeSingle();
+
+      if (existing) {
+        const { error } = await (supabase as any)
+          .from('user_active_skins')
+          .update({ skin_slug: mascotSlug })
+          .eq('id', existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase as any)
+          .from('user_active_skins')
+          .insert({ user_id: userId, skin_type: 'launcher_mascot', skin_slug: mascotSlug });
+        if (error) throw error;
+      }
+
+      setActiveSkins((prev) => ({ ...prev, launcher_mascot: mascotSlug }));
+      window.dispatchEvent(new CustomEvent('forbiddens:active-mascot-updated', { detail: { userId, mascotSlug } }));
+      toast({ title: "Mascota equipada", description: `${mascot.name} aparecera en el companion del launcher.` });
+      return true;
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.message || "No se pudo equipar la mascota", variant: "destructive" });
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const canEquipStack = (item: any) =>
-    Boolean(item && (isSkinItem(item) || isAvatarFrameItem(item) || isProfileTransitionItem(item) || isEmulatorShellItem(item)));
+    Boolean(item && (isSkinItem(item) || isAvatarFrameItem(item) || isProfileTransitionItem(item) || isEmulatorShellItem(item) || isLauncherMascotItem(item)));
 
   const equipStack = async (item: any) => {
     if (!item?.item_slug) return false;
@@ -1547,6 +1606,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
     if (isAvatarFrameItem(item)) return handleActivateAvatarFrame(item.item_slug);
     if (isProfileTransitionItem(item)) return handleActivateProfileTransition(item.item_slug);
     if (isEmulatorShellItem(item)) return handleActivateEmulatorShell(item.item_slug);
+    if (isLauncherMascotItem(item)) return handleActivateMascot(item.item_slug);
     return false;
   };
 
@@ -1572,6 +1632,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
     if (isAvatarFrameItem(item)) return activeAvatarFrameSlug === item.item_slug;
     if (isProfileTransitionItem(item)) return activeProfileTransitionSlug === item.item_slug;
     if (isEmulatorShellItem(item)) return activeEmulatorShellSlugs.has(item.item_slug);
+    if (isLauncherMascotItem(item)) return activeMascotSlug === item.item_slug;
     if (isBoosterItem(item)) return itemIsActive(item);
     return false;
   };
@@ -1908,6 +1969,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                       dragTouched.includes(index ?? -1) && "ring-2 ring-neon-cyan",
                       item && isSkinItem(item) && activeSkins[(ALL_SKINS as any)[item.item_slug!]?.type || 'launcher'] === item.item_slug && "ring-2 ring-neon-green shadow-[0_0_12px_rgba(34,197,94,0.7)]",
                       item && isEmulatorShellItem(item) && activeEmulatorShellSlugs.has(item.item_slug) && "ring-2 ring-neon-green shadow-[0_0_12px_rgba(34,197,94,0.7)]",
+                      item && isLauncherMascotItem(item) && activeMascotSlug === item.item_slug && "ring-2 ring-neon-green shadow-[0_0_12px_rgba(34,197,94,0.7)]",
                     )}
                     title={item ? `${itemLabel(item)} - click izquierdo recoge. Click derecho divide. Shift+click envia a trueque.` : "Slot vacio"}
                   >
@@ -1925,6 +1987,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                           isAvatarFrameItem(item) && "overflow-hidden border-pink-300/70 bg-[#3a1730]",
                           isProfileTransitionItem(item) && "overflow-hidden border-orange-300/70 bg-[#2b1006]",
                           isEmulatorShellItem(item) && "overflow-hidden border-pink-300/80 bg-pink-100",
+                          isLauncherMascotItem(item) && "overflow-hidden border-fuchsia-300/80 bg-pink-50",
                           isBoosterItem(item) && "overflow-hidden border-yellow-300/70 bg-[#3b2d21]",
                           isMembershipItem(item)
                             ? "border-neon-magenta/70 bg-[#4a235e]"
@@ -1937,12 +2000,12 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                         )}>
                           <div className={cn(
                             "absolute inset-1 rounded-sm border border-black/30 bg-[linear-gradient(135deg,rgba(255,255,255,0.16),transparent_45%)]",
-                            (isSkinItem(item) && getSkinThumbnailUrl(item.item_slug) || isAvatarFrameItem(item) || isProfileTransitionItem(item) || isEmulatorShellItem(item) || isBoosterItem(item)) && "hidden",
+                            (isSkinItem(item) && getSkinThumbnailUrl(item.item_slug) || isAvatarFrameItem(item) || isProfileTransitionItem(item) || isEmulatorShellItem(item) || isLauncherMascotItem(item) || isBoosterItem(item)) && "hidden",
                           )} />
                           <ItemIcon
                             item={item}
                             className={cn(
-                              isSkinItem(item) && getSkinThumbnailUrl(item.item_slug) || isAvatarFrameItem(item) || isProfileTransitionItem(item) || isEmulatorShellItem(item) || isBoosterItem(item) ? "relative h-full w-full" : "relative h-5 w-5 drop-shadow-[0_0_8px_rgba(250,204,21,0.7)]",
+                              isSkinItem(item) && getSkinThumbnailUrl(item.item_slug) || isAvatarFrameItem(item) || isProfileTransitionItem(item) || isEmulatorShellItem(item) || isLauncherMascotItem(item) || isBoosterItem(item) ? "relative h-full w-full" : "relative h-5 w-5 drop-shadow-[0_0_8px_rgba(250,204,21,0.7)]",
                               itemBoosterExpired
                                 ? "text-zinc-400 grayscale opacity-70 drop-shadow-none"
                                 : isProfileTransitionItem(item) ? item?.item_slug?.startsWith("boomshacka") ? "text-red-200 drop-shadow-[0_0_10px_rgba(248,113,113,0.75)]" : "text-orange-300 drop-shadow-[0_0_10px_rgba(249,115,22,0.75)]" : isMembershipItem(item) ? "text-neon-magenta" : isEventTicketItem(item) ? "text-neon-cyan" : "text-neon-yellow",
@@ -2067,6 +2130,8 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                         )
                       ) : entry.kind === "emulator_shell" ? (
                         <img src={getEmulatorShell(entry.slug)?.thumbnailUrl} alt="" className="h-[82%] w-[82%] rounded-sm object-contain drop-shadow-[0_0_8px_rgba(244,114,182,0.65)]" />
+                      ) : entry.kind === "launcher_mascot" ? (
+                        <img src={getLauncherMascot(entry.slug)?.thumbnailUrl} alt="" className="h-[88%] w-[88%] rounded-sm object-contain drop-shadow-[0_0_10px_rgba(217,70,239,0.65)]" />
                       ) : getSkinThumbnailUrl(entry.slug) ? (
                         <img src={getSkinThumbnailUrl(entry.slug) || ""} alt="" className="h-[72%] w-[72%] rounded-sm object-contain drop-shadow-[0_0_8px_rgba(34,197,94,0.65)]" />
                       ) : (
@@ -2457,6 +2522,27 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                   onClick={() => handleActivateEmulatorShell(contextMenu.item.item_slug)}
                 >
                   Equipar consola
+                </button>
+              )}
+            </>
+          )}
+          {isLauncherMascotItem(contextMenu.item) && (
+            <>
+              {activeMascotSlug === contextMenu.item.item_slug ? (
+                <button
+                  className="block w-full rounded px-2 py-1.5 text-left hover:bg-[#d6b16f]/15 disabled:opacity-45"
+                  disabled={busy}
+                  onClick={() => handleDeactivateSkin('launcher_mascot')}
+                >
+                  Desequipar mascota
+                </button>
+              ) : (
+                <button
+                  className="block w-full rounded px-2 py-1.5 text-left hover:bg-[#d6b16f]/15 disabled:opacity-45"
+                  disabled={busy}
+                  onClick={() => handleActivateMascot(contextMenu.item.item_slug)}
+                >
+                  Equipar mascota
                 </button>
               )}
             </>
