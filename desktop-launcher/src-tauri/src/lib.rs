@@ -87,6 +87,11 @@ struct NativeEmulatorWindowStateEvent {
     state: String,
 }
 
+#[derive(Serialize, Clone)]
+struct LauncherWindowStateEvent {
+    state: String,
+}
+
 #[derive(Serialize)]
 struct NativeSaveFilePayload {
     console_id: String,
@@ -120,8 +125,8 @@ struct NativeDownloadProgressEvent {
     error: Option<String>,
 }
 
-const WEBSITE_URL: &str = "https://forbiddens.net/?launcher_version=0.1.32";
-const LAUNCHER_DOWNLOAD_URL: &str = "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.32_x64-setup.exe";
+const WEBSITE_URL: &str = "https://forbiddens.net/?launcher_version=0.1.34";
+const LAUNCHER_DOWNLOAD_URL: &str = "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.34_x64-setup.exe";
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 const LAUNCHER_BRIDGE_SCRIPT: &str = r#"
 (function () {
@@ -343,6 +348,10 @@ fn launcher_window_action(app: AppHandle, action: String) -> Result<(), String> 
 
     match action.trim().to_lowercase().as_str() {
         "minimize" => window.minimize().map_err(|error| error.to_string()),
+        "restore" | "show" => {
+            let _ = window.unminimize();
+            window.set_focus().map_err(|error| error.to_string())
+        }
         "toggle_maximize" | "maximize" => {
             if window.is_maximized().map_err(|error| error.to_string())? {
                 window.unmaximize().map_err(|error| error.to_string())
@@ -353,6 +362,32 @@ fn launcher_window_action(app: AppHandle, action: String) -> Result<(), String> 
         "close" => window.close().map_err(|error| error.to_string()),
         _ => Err("Accion de ventana no soportada.".to_string()),
     }
+}
+
+fn monitor_launcher_window_state(app: AppHandle) {
+    thread::spawn(move || {
+        let mut last_minimized: Option<bool> = None;
+        loop {
+            thread::sleep(Duration::from_millis(450));
+            let Some(window) = app.get_webview_window("main") else {
+                break;
+            };
+            let Ok(is_minimized) = window.is_minimized() else {
+                continue;
+            };
+            if last_minimized == Some(is_minimized) {
+                continue;
+            }
+            last_minimized = Some(is_minimized);
+            let state = if is_minimized { "minimized" } else { "restored" };
+            let _ = app.emit(
+                "forbiddens-launcher-window-state",
+                LauncherWindowStateEvent {
+                    state: state.to_string(),
+                },
+            );
+        }
+    });
 }
 
 fn check_update_on_start(app: AppHandle) {
@@ -873,7 +908,7 @@ fn ensure_retroarch_save_config(console_id: &str) -> Result<PathBuf, String> {
     let saves = saves_dir.to_string_lossy().replace('\\', "/");
     let states = states_dir.to_string_lossy().replace('\\', "/");
     let content = format!(
-        "savefile_directory = \"{}\"\nsavestate_directory = \"{}\"\n",
+        "savefile_directory = \"{}\"\nsavestate_directory = \"{}\"\nsavestate_auto_index = \"false\"\nsavestate_slot = \"0\"\n",
         saves, states
     );
     fs::write(&config_path, content).map_err(|error| error.to_string())?;
@@ -894,6 +929,46 @@ fn native_save_path(console_id: &str, rom_path: &str, requested_kind: Option<&st
         states_dir.join(format!("{}.state", base_name))
     };
     Some((kind, path))
+}
+
+fn native_savestate_candidates(console_id: &str, rom_path: &str) -> Vec<PathBuf> {
+    let normalized = console_id.trim().to_lowercase();
+    let (_, states_dir) = native_save_dirs(&normalized);
+    let base_name = native_save_base_name(rom_path);
+    let mut candidates = vec![
+        states_dir.join(format!("{}.state", base_name)),
+        states_dir.join(format!("{}.state0", base_name)),
+    ];
+
+    if let Ok(entries) = fs::read_dir(&states_dir) {
+        let prefix = format!("{}.state", base_name).to_lowercase();
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if !path.is_file() {
+                continue;
+            }
+            let matches = path
+                .file_name()
+                .map(|name| name.to_string_lossy().to_lowercase().starts_with(&prefix))
+                .unwrap_or(false);
+            if matches && !candidates.iter().any(|candidate| candidate == &path) {
+                candidates.push(path);
+            }
+        }
+    }
+
+    candidates.sort_by(|a, b| {
+        let a_time = a.metadata().and_then(|meta| meta.modified()).unwrap_or(UNIX_EPOCH);
+        let b_time = b.metadata().and_then(|meta| meta.modified()).unwrap_or(UNIX_EPOCH);
+        b_time.cmp(&a_time)
+    });
+    candidates
+}
+
+fn newest_native_savestate(console_id: &str, rom_path: &str) -> Option<PathBuf> {
+    native_savestate_candidates(console_id, rom_path)
+        .into_iter()
+        .find(|path| path.exists() && path.is_file())
 }
 
 fn find_nested_executable_with_depth(root: &Path, executable_name: &str, max_depth: usize) -> Option<PathBuf> {
@@ -2019,13 +2094,21 @@ public static class ForbiddensProcessVolume {
     for (int i = 0; i < count; i++) {
       IAudioSessionControl control;
       Marshal.ThrowExceptionForHR(sessions.GetSession(i, out control));
-      IAudioSessionControl2 control2 = control as IAudioSessionControl2;
-      if (control2 == null) continue;
+      IAudioSessionControl2 control2;
+      try {
+        control2 = (IAudioSessionControl2)control;
+      } catch {
+        continue;
+      }
       uint sessionPid;
       Marshal.ThrowExceptionForHR(control2.GetProcessId(out sessionPid));
       if (sessionPid != processId) continue;
-      ISimpleAudioVolume simple = control as ISimpleAudioVolume;
-      if (simple == null) continue;
+      ISimpleAudioVolume simple;
+      try {
+        simple = (ISimpleAudioVolume)control;
+      } catch {
+        continue;
+      }
       Marshal.ThrowExceptionForHR(simple.SetMasterVolume(volume, ref context));
       Marshal.ThrowExceptionForHR(simple.SetMute(volume <= 0.001f, ref context));
       changed = true;
@@ -2040,12 +2123,20 @@ if (-not ('ForbiddensProcessVolume' -as [type])) {
 $volumeValue = [Math]::Max(0, [Math]::Min(1, ([single]$env:FORBIDDENS_EMU_VOLUME / 100)))
 $rootPid = [uint32]$env:FORBIDDENS_EMU_PID
 $processIds = @($rootPid)
-try {
-  $children = Get-CimInstance Win32_Process -Filter "ParentProcessId=$rootPid" -ErrorAction SilentlyContinue
-  foreach ($child in $children) {
-    if ($child.ProcessId) { $processIds += [uint32]$child.ProcessId }
+function Add-ChildProcessIds([uint32]$parentPid) {
+  try {
+    $children = Get-CimInstance Win32_Process -Filter "ParentProcessId=$parentPid" -ErrorAction SilentlyContinue
+    foreach ($child in $children) {
+      if ($child.ProcessId) {
+        $childPid = [uint32]$child.ProcessId
+        $script:processIds += $childPid
+        Add-ChildProcessIds $childPid
+      }
+    }
+  } catch {
   }
-} catch {}
+}
+Add-ChildProcessIds $rootPid
 $changed = $false
 foreach ($pidValue in ($processIds | Select-Object -Unique)) {
   if ([ForbiddensProcessVolume]::Set($pidValue, $volumeValue)) { $changed = $true }
@@ -2125,8 +2216,13 @@ fn read_native_save_file(
     if retroarch_core_file_name(&normalized).is_none() {
         return Ok(None);
     };
-    let Some((save_kind, path)) = native_save_path(&normalized, &rom_path, kind.as_deref()) else {
+    let Some((save_kind, default_path)) = native_save_path(&normalized, &rom_path, kind.as_deref()) else {
         return Ok(None);
+    };
+    let path = if save_kind == "savestate" {
+        newest_native_savestate(&normalized, &rom_path).unwrap_or(default_path)
+    } else {
+        default_path
     };
     if !path.exists() || !path.is_file() {
         return Ok(None);
@@ -2440,12 +2536,9 @@ fn export_native_local_save(
             .map(str::trim)
             .filter(|path| !path.is_empty())
             .ok_or_else(|| "No se encontro la ruta de la ROM para guardar el savestate local.".to_string())?;
-        let Some((_, source)) = native_save_path(&normalized, rom_path, Some("savestate")) else {
-            return Ok(None);
-        };
-        if !source.exists() || !source.is_file() {
+        let Some(source) = newest_native_savestate(&normalized, rom_path) else {
             return Err("Aun no existe un savestate local para este juego.".to_string());
-        }
+        };
         let target = app.dialog().file()
             .add_filter("Savestate RetroArch", &["state"])
             .set_file_name(&local_save_file_name(&game_name, &normalized, "state"))
@@ -2860,6 +2953,7 @@ pub fn run() {
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.set_title("FORBIDDENS");
             }
+            monitor_launcher_window_state(app.handle().clone());
             check_update_on_start(app.handle().clone());
             Ok(())
         })

@@ -17,7 +17,7 @@ interface NativeSessionContextType {
   currentSessionIndex: number;
   minimized: boolean;
   launchNativeSession: (session: Omit<NativeSession, "id" | "score" | "playTime" | "startedAt">) => void;
-  updateNativeSession: (id: string, updates: Partial<Pick<NativeSession, "score" | "playTime">>) => void;
+  updateNativeSession: (id: string, updates: Partial<NativeSession>) => void;
   closeNativeSession: (id: string) => void;
   minimizeNativeSession: () => void;
   maximizeNativeSession: (index?: number) => void;
@@ -62,7 +62,7 @@ export function NativeSessionProvider({ children }: { children: React.ReactNode 
     setMinimized(false);
   }, []);
 
-  const updateNativeSession = useCallback((id: string, updates: Partial<Pick<NativeSession, "score" | "playTime">>) => {
+  const updateNativeSession = useCallback((id: string, updates: Partial<NativeSession>) => {
     setSessions((prev) => prev.map((item) => (item.id === id ? { ...item, ...updates } : item)));
   }, []);
 

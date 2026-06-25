@@ -1021,7 +1021,7 @@ checksum = "77ce24cb58228fbb8aa041425bb1050850ac19177686ea6e0f41a70416f56fdb"
 
 [[package]]
 name = "forbiddens_desktop_launcher"
-version = "0.1.32"
+version = "0.1.34"
 dependencies = [
  "base64 0.22.1",
  "serde",

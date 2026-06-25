@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CloudDownload, CloudUpload, Cpu, Download, ListFilter, Minus, Move, Pause, Play, Settings, SkipBack, SkipForward, Trophy, Upload, Volume2, VolumeX, X } from "lucide-react";
+import { CloudDownload, CloudUpload, Cpu, Download, ListFilter, Minus, Move, Pause, Play, RotateCcw, Settings, SkipBack, SkipForward, Trophy, Upload, Volume2, VolumeX, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -53,6 +53,7 @@ export default function NativeGameBubble() {
   const [nativeVolume, setNativeVolume] = useState(85);
   const launcherPanelMode = Boolean(getLauncherBridge());
   const latestSessionRef = useRef(session);
+  const suppressNextExitProcessRef = useRef<number | null>(null);
   const bubbleRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef({ startX: 0, startY: 0, startPosX: 0, startPosY: 0 });
 
@@ -424,7 +425,12 @@ export default function NativeGameBubble() {
       const current = latestSessionRef.current;
       const payload = event?.payload || {};
       if (!current) return;
-      const sameProcess = payload.process_id && current.processId && Number(payload.process_id) === Number(current.processId);
+      const payloadProcessId = payload.process_id ? Number(payload.process_id) : null;
+      if (payloadProcessId && suppressNextExitProcessRef.current === payloadProcessId) {
+        suppressNextExitProcessRef.current = null;
+        return;
+      }
+      const sameProcess = payloadProcessId && current.processId && payloadProcessId === Number(current.processId);
       const sameRom = payload.rom_path && current.romPath && String(payload.rom_path) === String(current.romPath);
       const sameConsole = payload.console_id && String(payload.console_id).toLowerCase() === current.consoleName.toLowerCase();
       if (!sameProcess && !sameRom && !sameConsole) return;
@@ -456,11 +462,44 @@ export default function NativeGameBubble() {
 
       if (payload.state === "minimized") {
         minimizeNativeSession();
+        getLauncherBridge()?.launcherWindowAction?.("minimize").catch(() => {});
         return;
       }
 
       if (payload.state === "restored") {
         maximizeNativeSession();
+        getLauncherBridge()?.launcherWindowAction?.("restore").catch(() => {});
+      }
+    })
+      .then((cleanup: () => void) => {
+        unlisten = cleanup;
+      })
+      .catch(() => {});
+
+    return () => {
+      unlisten?.();
+    };
+  }, [maximizeNativeSession, minimizeNativeSession]);
+
+  useEffect(() => {
+    const listen = (window as any).__TAURI__?.event?.listen;
+    if (typeof listen !== "function") return;
+
+    let unlisten: (() => void) | null = null;
+    listen("forbiddens-launcher-window-state", async (event: any) => {
+      const current = latestSessionRef.current;
+      const payload = event?.payload || {};
+      if (!current?.processId) return;
+
+      if (payload.state === "minimized") {
+        minimizeNativeSession();
+        await getLauncherBridge()?.setNativeEmulatorState?.(current.processId, "minimize").catch(() => {});
+        return;
+      }
+
+      if (payload.state === "restored") {
+        maximizeNativeSession();
+        await getLauncherBridge()?.setNativeEmulatorState?.(current.processId, "restore").catch(() => {});
       }
     })
       .then((cleanup: () => void) => {
@@ -497,9 +536,11 @@ export default function NativeGameBubble() {
 
   const restoreSession = async (index?: number) => {
     const current = latestSessionRef.current;
+    const bridge = getLauncherBridge();
     if (current?.processId) {
-      await getLauncherBridge()?.setNativeEmulatorState?.(current.processId, "restore").catch(() => {});
+      await bridge?.setNativeEmulatorState?.(current.processId, "restore").catch(() => {});
     }
+    await bridge?.launcherWindowAction?.("restore").catch(() => {});
     maximizeNativeSession(index);
   };
 
@@ -527,6 +568,63 @@ export default function NativeGameBubble() {
     }
   };
 
+  const restartNativeConsole = async (options?: { silent?: boolean; skipClose?: boolean }) => {
+    const current = latestSessionRef.current;
+    if (!current?.romPath) {
+      if (!options?.silent) {
+        toast({
+          title: "No se pudo reiniciar",
+          description: "No se encontro la ruta de la ROM para reabrir el emulador.",
+          variant: "destructive",
+        });
+      }
+      return false;
+    }
+    const bridge = getLauncherBridge();
+    if (!bridge?.openNativeEmulator) {
+      if (!options?.silent) {
+        toast({
+          title: "Actualiza el launcher",
+          description: "Reiniciar la consola necesita el launcher nuevo.",
+          variant: "destructive",
+        });
+      }
+      return false;
+    }
+    try {
+      if (current.processId && !options?.skipClose) {
+        suppressNextExitProcessRef.current = Number(current.processId);
+        await bridge.closeNativeEmulator?.(current.processId).catch(() => {});
+        await new Promise((resolve) => window.setTimeout(resolve, 400));
+      }
+      const result = await bridge.openNativeEmulator(current.consoleName, current.romPath);
+      const processId = result && typeof result === "object" && "process_id" in result
+        ? Number((result as any).process_id) || null
+        : null;
+      const romPath = result && typeof result === "object" && "rom_path" in result
+        ? String((result as any).rom_path || current.romPath)
+        : current.romPath;
+      updateNativeSession(current.id, { processId, romPath });
+      maximizeNativeSession();
+      if (!options?.silent) {
+        toast({
+          title: "Consola reiniciada",
+          description: "El emulador nativo se volvio a abrir con el juego actual.",
+        });
+      }
+      return true;
+    } catch (error: any) {
+      if (!options?.silent) {
+        toast({
+          title: "No se pudo reiniciar",
+          description: error?.message || "No se pudo volver a abrir el emulador nativo.",
+          variant: "destructive",
+        });
+      }
+      return false;
+    }
+  };
+
   const exportLocalSave = async () => {
     const current = latestSessionRef.current;
     if (!current) return;
@@ -541,9 +639,9 @@ export default function NativeGameBubble() {
     }
     try {
       const consoleName = current.consoleName.toLowerCase();
-      if (current.processId && !["ps1", "psp", "ps2"].includes(consoleName) && isNativeCloudSaveSupported(consoleName)) {
+      if (current.processId && isNativeCloudSaveSupported(consoleName)) {
         await bridge.nativeEmulatorAction?.(current.processId, "save_state").catch(() => {});
-        await new Promise((resolve) => window.setTimeout(resolve, 700));
+        await new Promise((resolve) => window.setTimeout(resolve, 900));
       }
       const exportedPath = await bridge.exportNativeLocalSave({
         consoleId: current.consoleName,
@@ -583,19 +681,30 @@ export default function NativeGameBubble() {
       return;
     }
     try {
+      const consoleName = current.consoleName.toLowerCase();
+      const needsRestartAfterImport = ["ps1", "psp", "ps2"].includes(consoleName);
+      if (needsRestartAfterImport && current.processId) {
+        suppressNextExitProcessRef.current = Number(current.processId);
+        await bridge.closeNativeEmulator?.(current.processId).catch(() => {});
+        await new Promise((resolve) => window.setTimeout(resolve, 500));
+      }
       const importedPath = await bridge.importNativeLocalSave({
         consoleId: current.consoleName,
         romPath: current.romPath || null,
       });
-      if (!importedPath) return;
-      const consoleName = current.consoleName.toLowerCase();
+      if (!importedPath) {
+        if (needsRestartAfterImport) await restartNativeConsole({ silent: true, skipClose: true });
+        return;
+      }
       if (current.processId && !["ps1", "psp", "ps2"].includes(consoleName) && isNativeCloudSaveSupported(consoleName)) {
         await bridge.nativeEmulatorAction?.(current.processId, "load_state").catch(() => {});
+      } else if (needsRestartAfterImport) {
+        await restartNativeConsole({ silent: true, skipClose: true });
       }
       toast({
         title: "Save cargado",
         description: consoleName === "ps1" || consoleName === "psp" || consoleName === "ps2"
-          ? "Reinicia el juego nativo si ya estaba abierto para que el emulador lea el archivo."
+          ? "Se cargo el save local y se reinicio la consola para que el emulador lo lea."
           : "Se cargo el savestate local en el emulador.",
       });
     } catch (error: any) {
@@ -750,7 +859,7 @@ export default function NativeGameBubble() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           <Button
             size="sm"
             variant="outline"
@@ -763,6 +872,10 @@ export default function NativeGameBubble() {
           <Button size="sm" variant="outline" onClick={openEmulatorSettings} className="h-9 border-white/10 bg-white/5 text-[10px]">
             <Settings className="mr-2 h-3.5 w-3.5" />
             Config
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => restartNativeConsole()} className="h-9 border-white/10 bg-white/5 text-[10px]">
+            <RotateCcw className="mr-2 h-3.5 w-3.5" />
+            Reset
           </Button>
         </div>
 
