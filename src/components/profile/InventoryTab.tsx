@@ -99,10 +99,6 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
   const inventoryPageCount = Math.max(1, Math.ceil(slotItems.length / inventorySlotsPerPage));
   const currentInventoryPage = Math.min(inventoryPage, inventoryPageCount - 1);
   const visibleInventoryStart = currentInventoryPage * inventorySlotsPerPage;
-  const visibleSlotItems = useMemo(
-    () => slotItems.slice(visibleInventoryStart, visibleInventoryStart + inventorySlotsPerPage),
-    [slotItems, visibleInventoryStart, inventorySlotsPerPage],
-  );
   const activeSkinSlugs = useMemo(() => new Set(Object.values(activeSkins).filter(Boolean)), [activeSkins]);
   const activeAvatarFrameSlug = activeSkins.avatar_frame;
   const activeAvatarFrame = getAvatarFrame(activeAvatarFrameSlug);
@@ -120,6 +116,25 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
   const activeEmulatorShellSlugs = useMemo(
     () => new Set(activeEmulatorShellEntries.map((entry) => entry.shell.slug)),
     [activeEmulatorShellEntries],
+  );
+  const isEquippedInventoryItem = useCallback((item: any) => {
+    const slug = item?.item_slug;
+    if (!slug) return false;
+    if ((ALL_SKINS as any)[slug]) {
+      const skinType = (ALL_SKINS as any)[slug]?.type || 'launcher';
+      return activeSkins[skinType] === slug;
+    }
+    if (isAvatarFrameSlug(slug)) return activeAvatarFrameSlug === slug;
+    if (isProfileTransitionSlug(slug)) return activeProfileTransitionSlug === slug;
+    if (isEmulatorShellSlug(slug)) return activeEmulatorShellSlugs.has(slug);
+    if (isLauncherMascotSlug(slug)) return activeMascotSlug === slug;
+    return false;
+  }, [activeAvatarFrameSlug, activeEmulatorShellSlugs, activeMascotSlug, activeProfileTransitionSlug, activeSkins]);
+  const visibleSlotItems = useMemo(
+    () => slotItems
+      .slice(visibleInventoryStart, visibleInventoryStart + inventorySlotsPerPage)
+      .map((item) => isEquippedInventoryItem(item) ? null : item),
+    [isEquippedInventoryItem, slotItems, visibleInventoryStart, inventorySlotsPerPage],
   );
 
   useEffect(() => {
@@ -1932,18 +1947,31 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
           >
             {visibleSlotItems.map((item, pageIndex) => {
               const index = visibleInventoryStart + pageIndex;
+              const rawSlotItem = slotItems[index];
+              const slotBlockedByEquippedItem = Boolean(rawSlotItem && !item);
               return (
               <Tooltip key={index}>
                 <TooltipTrigger asChild>
                   <div
-                    onClick={(event) => handleSlotLeftClick(index, event)}
-                    onDoubleClick={() => handleSlotDoubleClick(index)}
+                    onClick={(event) => {
+                      if (!slotBlockedByEquippedItem) handleSlotLeftClick(index, event);
+                    }}
+                    onDoubleClick={() => {
+                      if (!slotBlockedByEquippedItem) handleSlotDoubleClick(index);
+                    }}
                     onMouseDown={(event) => {
+                      if (slotBlockedByEquippedItem) return;
                       if (event.button === 0 && cursorItem) beginDistribution(index, "even", event);
                       if (event.button === 2 && cursorItem) beginDistribution(index, "single", event);
                     }}
-                    onMouseEnter={() => touchDistributionSlot(index)}
+                    onMouseEnter={() => {
+                      if (!slotBlockedByEquippedItem) touchDistributionSlot(index);
+                    }}
                     onContextMenu={(event) => {
+                      if (slotBlockedByEquippedItem) {
+                        event.preventDefault();
+                        return;
+                      }
                       handleSlotRightClick(index, event);
                     }}
                     draggable={Boolean(item && canEquipStack(item))}
@@ -1971,7 +1999,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                       item && isEmulatorShellItem(item) && activeEmulatorShellSlugs.has(item.item_slug) && "ring-2 ring-neon-green shadow-[0_0_12px_rgba(34,197,94,0.7)]",
                       item && isLauncherMascotItem(item) && activeMascotSlug === item.item_slug && "ring-2 ring-neon-green shadow-[0_0_12px_rgba(34,197,94,0.7)]",
                     )}
-                    title={item ? `${itemLabel(item)} - click izquierdo recoge. Click derecho divide. Shift+click envia a trueque.` : "Slot vacio"}
+                    title={slotBlockedByEquippedItem ? "Item equipado" : item ? `${itemLabel(item)} - click izquierdo recoge. Click derecho divide. Shift+click envia a trueque.` : "Slot vacio"}
                   >
 
                     {item && (() => {

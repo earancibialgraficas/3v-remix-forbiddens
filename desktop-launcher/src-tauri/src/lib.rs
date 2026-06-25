@@ -1434,34 +1434,73 @@ fn powershell_command(script: &str) -> Command {
 }
 
 #[cfg(windows)]
+#[repr(C)]
+#[derive(Clone, Copy)]
+struct NativePoint {
+    x: i32,
+    y: i32,
+}
+
+#[cfg(windows)]
+#[repr(C)]
+#[derive(Clone, Copy)]
+struct NativeRect {
+    left: i32,
+    top: i32,
+    right: i32,
+    bottom: i32,
+}
+
+#[cfg(windows)]
+#[repr(C)]
+struct NativeMonitorInfo {
+    cb_size: u32,
+    rc_monitor: NativeRect,
+    rc_work: NativeRect,
+    dw_flags: u32,
+}
+
+#[cfg(windows)]
+fn rect_size(rect: NativeRect) -> Option<(u32, u32)> {
+    let width = rect.right.checked_sub(rect.left)?;
+    let height = rect.bottom.checked_sub(rect.top)?;
+    if width <= 0 || height <= 0 {
+        return None;
+    }
+    Some((width as u32, height as u32))
+}
+
+#[cfg(windows)]
 fn windows_work_area_for_point(x: i32, y: i32) -> Option<(i32, i32, u32, u32)> {
-    let script = r#"
-Add-Type -AssemblyName System.Windows.Forms
-Add-Type -AssemblyName System.Drawing
-$point = New-Object System.Drawing.Point([int]$env:FORBIDDENS_MONITOR_X, [int]$env:FORBIDDENS_MONITOR_Y)
-$area = [System.Windows.Forms.Screen]::FromPoint($point).WorkingArea
-Write-Output "$($area.X),$($area.Y),$($area.Width),$($area.Height)"
-"#;
-    let mut command = powershell_command(script);
-    command.env("FORBIDDENS_MONITOR_X", x.to_string());
-    command.env("FORBIDDENS_MONITOR_Y", y.to_string());
-    let output = command.output().ok()?;
-    if !output.status.success() {
+    const MONITOR_DEFAULTTONEAREST: u32 = 0x00000002;
+    let monitor = unsafe { MonitorFromPoint(NativePoint { x, y }, MONITOR_DEFAULTTONEAREST) };
+    if monitor == 0 {
         return None;
     }
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let parts: Vec<&str> = stdout.trim().split(',').collect();
-    if parts.len() != 4 {
+    let mut info = NativeMonitorInfo {
+        cb_size: std::mem::size_of::<NativeMonitorInfo>() as u32,
+        rc_monitor: NativeRect {
+            left: 0,
+            top: 0,
+            right: 0,
+            bottom: 0,
+        },
+        rc_work: NativeRect {
+            left: 0,
+            top: 0,
+            right: 0,
+            bottom: 0,
+        },
+        dw_flags: 0,
+    };
+    if unsafe { GetMonitorInfoW(monitor, &mut info as *mut NativeMonitorInfo) } == 0 {
         return None;
     }
-    let area_x = parts[0].trim().parse::<i32>().ok()?;
-    let area_y = parts[1].trim().parse::<i32>().ok()?;
-    let width = parts[2].trim().parse::<u32>().ok()?;
-    let height = parts[3].trim().parse::<u32>().ok()?;
+    let (width, height) = rect_size(info.rc_work)?;
     if width == 0 || height == 0 {
         return None;
     }
-    Some((area_x, area_y, width, height))
+    Some((info.rc_work.left, info.rc_work.top, width, height))
 }
 
 #[cfg(not(windows))]
@@ -1580,6 +1619,8 @@ extern "system" {
     fn IsIconic(hwnd: isize) -> i32;
     fn IsWindowVisible(hwnd: isize) -> i32;
     fn keybd_event(b_vk: u8, b_scan: u8, dw_flags: u32, dw_extra_info: usize);
+    fn MonitorFromPoint(pt: NativePoint, dw_flags: u32) -> isize;
+    fn GetMonitorInfoW(h_monitor: isize, lpmi: *mut NativeMonitorInfo) -> i32;
     fn SetForegroundWindow(hwnd: isize) -> i32;
     fn ShowWindowAsync(hwnd: isize, cmd_show: i32) -> i32;
 }

@@ -22,7 +22,7 @@ type MascotPosition = {
 type AvocadoAnimation = "idle" | "walk" | "talk" | "happy" | "sad" | "sleep" | "drag";
 
 const MASCOT_EVENT = "forbiddens:dragon-mascot";
-const MODEL_URL = "/mascot/avocado/avocado_mascot.glb";
+const MODEL_URL = "/mascot/avocado/avocado_mascot.glb?v=20260625-2";
 const MASCOT_WIDTH = 226;
 const MASCOT_HEIGHT = 236;
 const GROUND_GAP = 0;
@@ -70,7 +70,7 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
   const stageRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mixerRef = useRef<THREE.AnimationMixer | null>(null);
-  const modelRef = useRef<THREE.Group | null>(null);
+  const modelRootRef = useRef<THREE.Group | null>(null);
   const modelBaseScaleRef = useRef(1);
   const actionsRef = useRef<Record<string, THREE.AnimationAction>>({});
   const activeActionRef = useRef<THREE.AnimationAction | null>(null);
@@ -206,13 +206,15 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
       const center = box.getCenter(new THREE.Vector3());
       const size = box.getSize(new THREE.Vector3());
       const maxAxis = Math.max(size.x, size.y, size.z) || 1;
-      model.position.sub(center);
+      model.position.set(-center.x, -center.y, -center.z);
       const baseScale = 2.28 / maxAxis;
-      model.scale.setScalar(baseScale);
+      const root = new THREE.Group();
+      root.scale.setScalar(baseScale);
+      root.add(model);
       modelBaseScaleRef.current = baseScale;
-      model.rotation.y = -0.05;
-      scene.add(model);
-      modelRef.current = model;
+      root.rotation.y = -0.05;
+      scene.add(root);
+      modelRootRef.current = root;
 
       const mixer = new THREE.AnimationMixer(model);
       mixerRef.current = mixer;
@@ -235,8 +237,8 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
       const delta = clock.getDelta();
       const elapsed = clock.elapsedTime;
       mixerRef.current?.update(delta);
-      const model = modelRef.current;
-      if (model) {
+      const modelRoot = modelRootRef.current;
+      if (modelRoot) {
         const baseScale = modelBaseScaleRef.current || 1;
         const state = animationNameRef.current;
         const isDrag = state === "drag";
@@ -244,15 +246,15 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
         const isTalk = state === "talk";
         const isSleep = state === "sleep";
         const isWalk = state === "walk";
-        model.position.y = isSleep
+        modelRoot.position.y = isSleep
           ? -0.2 + Math.sin(elapsed * 1.8) * 0.018
           : Math.sin(elapsed * (isTalk ? 8.5 : isWalk ? 9.2 : 2.2)) * (isTalk ? 0.08 : isWalk ? 0.1 : 0.045) + (isDrag ? 0.16 : 0);
-        model.rotation.z = isSleep
+        modelRoot.rotation.z = isSleep
           ? -0.42
           : Math.sin(elapsed * (isTalk ? 7.5 : isHappy ? 6.8 : isWalk ? 8 : 1.8)) * (isTalk ? 0.08 : isHappy ? 0.12 : isWalk ? 0.1 : 0.035);
-        model.rotation.y = -0.05 + Math.sin(elapsed * 1.3) * 0.045;
+        modelRoot.rotation.y = -0.05 + Math.sin(elapsed * 1.3) * 0.045;
         const squash = isTalk ? Math.sin(elapsed * 13) * 0.035 : isHappy ? Math.sin(elapsed * 9) * 0.045 : 0;
-        model.scale.set(
+        modelRoot.scale.set(
           baseScale * (1 - squash * 0.45),
           baseScale * (1 + squash),
           baseScale,
@@ -277,7 +279,7 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
       renderer.dispose();
       rendererRef.current = null;
       mixerRef.current = null;
-      modelRef.current = null;
+      modelRootRef.current = null;
       actionsRef.current = {};
       activeActionRef.current = null;
     };
