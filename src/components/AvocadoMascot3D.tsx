@@ -94,25 +94,27 @@ const makeAvocadoGeometry = (scale = 1) => {
   return geometry;
 };
 
-const makeCylinderPart = (height: number, radius: number, color: number) => {
+const makeCylinderPart = (height: number, radius: number, color: number, forceFront = false) => {
   const geometry = new THREE.CylinderGeometry(radius, radius * 0.9, height, 18);
   geometry.translate(0, -height / 2, 0);
   const material = new THREE.MeshStandardMaterial({
     color,
     roughness: 0.58,
     metalness: 0.05,
+    depthTest: !forceFront,
   });
   const mesh = new THREE.Mesh(geometry, material);
   mesh.castShadow = true;
+  if (forceFront) mesh.renderOrder = 30;
   return mesh;
 };
 
-const makeJointedLimb = (upperLength: number, lowerLength: number, radius: number, color: number) => {
+const makeJointedLimb = (upperLength: number, lowerLength: number, radius: number, color: number, forceFront = false) => {
   const pivot = new THREE.Group();
-  const upper = makeCylinderPart(upperLength, radius, color);
+  const upper = makeCylinderPart(upperLength, radius, color, forceFront);
   const joint = new THREE.Group();
-  const jointBall = makeRoundedPart(radius * 1.36, color);
-  const lower = makeCylinderPart(lowerLength, radius * 0.92, color);
+  const jointBall = makeRoundedPart(radius * 1.36, color, forceFront);
+  const lower = makeCylinderPart(lowerLength, radius * 0.92, color, forceFront);
   const end = new THREE.Group();
 
   joint.position.set(0, -upperLength, 0);
@@ -124,16 +126,18 @@ const makeJointedLimb = (upperLength: number, lowerLength: number, radius: numbe
   return { pivot, joint, end, jointBall };
 };
 
-const makeRoundedPart = (radius: number, color: number) => {
+const makeRoundedPart = (radius: number, color: number, forceFront = false) => {
   const mesh = new THREE.Mesh(
     new THREE.SphereGeometry(radius, 22, 18),
     new THREE.MeshStandardMaterial({
       color,
       roughness: 0.54,
       metalness: 0.05,
+      depthTest: !forceFront,
     }),
   );
   mesh.castShadow = true;
+  if (forceFront) mesh.renderOrder = 30;
   return mesh;
 };
 
@@ -222,12 +226,12 @@ const makeAvocadoModel = () => {
   mouthGroup.add(smile);
   body.add(mouthGroup);
 
-  const leftArmRig = makeJointedLimb(0.38, 0.44, 0.038, 0x8a6b30);
-  const rightArmRig = makeJointedLimb(0.38, 0.44, 0.038, 0x8a6b30);
+  const leftArmRig = makeJointedLimb(0.38, 0.44, 0.038, 0x8a6b30, true);
+  const rightArmRig = makeJointedLimb(0.38, 0.44, 0.038, 0x8a6b30, true);
   const leftArm = leftArmRig.pivot;
   const rightArm = rightArmRig.pivot;
-  const leftHand = makeRoundedPart(0.07, 0x9d7c39);
-  const rightHand = makeRoundedPart(0.07, 0x9d7c39);
+  const leftHand = makeRoundedPart(0.07, 0x9d7c39, true);
+  const rightHand = makeRoundedPart(0.07, 0x9d7c39, true);
   leftHand.position.set(0, -0.02, 0.035);
   rightHand.position.set(0, -0.02, 0.035);
   leftHand.scale.set(1.05, 0.86, 0.82);
@@ -294,6 +298,7 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
   const typingTimerRef = useRef<number | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const dragRef = useRef({ pointerId: -1, offsetX: 0, offsetY: 0 });
+  const dragTargetRef = useRef({ x: 0, y: 1.05 });
   const animationNameRef = useRef<AvocadoAnimation>("idle");
 
   const [position, setPosition] = useState<MascotPosition>({ x: 0, y: 0 });
@@ -415,6 +420,26 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
     scene.add(model.root);
     modelRef.current = model;
 
+    const aimArmAt = (
+      arm: THREE.Group,
+      elbow: THREE.Group,
+      shoulder: THREE.Vector3,
+      target: THREE.Vector2,
+      side: -1 | 1,
+    ) => {
+      const upperLength = 0.38;
+      const lowerLength = 0.44;
+      const dx = target.x - shoulder.x;
+      const dy = target.y - shoulder.y;
+      const distance = clamp(Math.hypot(dx, dy), 0.2, upperLength + lowerLength - 0.02);
+      const baseAngle = Math.atan2(dy, dx) - Math.PI / 2;
+      const shoulderBend = Math.acos(clamp((upperLength * upperLength + distance * distance - lowerLength * lowerLength) / (2 * upperLength * distance), -1, 1));
+      const elbowBend = Math.PI - Math.acos(clamp((upperLength * upperLength + lowerLength * lowerLength - distance * distance) / (2 * upperLength * lowerLength), -1, 1));
+      arm.rotation.set(0, 0, baseAngle + shoulderBend * side);
+      elbow.rotation.set(0, 0, -elbowBend * side);
+      arm.position.z = 0.48;
+    };
+
     const clock = new THREE.Clock();
     const render = () => {
       const elapsed = clock.getElapsedTime();
@@ -440,6 +465,8 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
         avocado.root.rotation.set(0, -0.08 + Math.sin(elapsed * 1.2) * 0.08, breathe * 0.04);
         avocado.body.scale.set(1 + breathe * 0.012, 1 - breathe * 0.014, 1);
         avocado.seed.position.set(0, -0.12 + breathe * 0.012, 0.26);
+        avocado.leftArm.position.z = 0.33;
+        avocado.rightArm.position.z = 0.33;
         avocado.leftArm.rotation.set(0, 0, 0.55 + breathe * 0.07);
         avocado.rightArm.rotation.set(0, 0, -0.55 - breathe * 0.07);
         avocado.leftElbow.rotation.set(0, 0, -0.28 + breathe * 0.035);
@@ -562,13 +589,15 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
           avocado.leftKnee.rotation.z = 0.34;
           avocado.rightKnee.rotation.z = -0.34;
         } else if (mode === "drag") {
+          const dragTarget = dragTargetRef.current;
+          const target = new THREE.Vector2(clamp(dragTarget.x, -1.15, 1.15), clamp(dragTarget.y, -1.0, 1.28));
+          const leftShoulder = new THREE.Vector3(avocado.leftArm.position.x, avocado.leftArm.position.y, avocado.leftArm.position.z);
+          const rightShoulder = new THREE.Vector3(avocado.rightArm.position.x, avocado.rightArm.position.y, avocado.rightArm.position.z);
           avocado.root.position.y = 0.18 + Math.sin(elapsed * 8) * 0.035;
           avocado.root.rotation.z = Math.sin(elapsed * 7) * 0.13;
           avocado.body.scale.set(0.96, 1.05, 1);
-          avocado.leftArm.rotation.z = 2.48 + Math.sin(elapsed * 9) * 0.05;
-          avocado.rightArm.rotation.z = -2.48 - Math.sin(elapsed * 9) * 0.05;
-          avocado.leftElbow.rotation.z = -0.72 + Math.sin(elapsed * 8) * 0.08;
-          avocado.rightElbow.rotation.z = 0.72 - Math.sin(elapsed * 8) * 0.08;
+          aimArmAt(avocado.leftArm, avocado.leftElbow, leftShoulder, target, -1);
+          aimArmAt(avocado.rightArm, avocado.rightElbow, rightShoulder, target, 1);
           avocado.leftHand.scale.set(1.22, 1.0, 0.9);
           avocado.rightHand.scale.set(1.22, 1.0, 0.9);
           avocado.leftLeg.rotation.z = 0.3 + Math.sin(elapsed * 10) * 0.18;
@@ -694,11 +723,22 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
     }, 520);
   }, [clampPosition, dragging, groundY]);
 
+  const updateDragTarget = (event: React.PointerEvent<HTMLButtonElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const localX = clamp(event.clientX - rect.left, 0, rect.width);
+    const localY = clamp(event.clientY - rect.top, 0, rect.height);
+    dragTargetRef.current = {
+      x: (localX / rect.width - 0.5) * 3.5,
+      y: (0.5 - localY / rect.height) * 3.9,
+    };
+  };
+
   const startDrag = (event: React.PointerEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
     const stageRect = stageRef.current?.getBoundingClientRect();
     if (!stageRect) return;
+    updateDragTarget(event);
     dragRef.current = {
       pointerId: event.pointerId,
       offsetX: event.clientX - stageRect.left - position.x,
@@ -715,6 +755,7 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
     if (!dragging || event.pointerId !== dragRef.current.pointerId) return;
     const stageRect = stageRef.current?.getBoundingClientRect();
     if (!stageRect) return;
+    updateDragTarget(event);
     const x = event.clientX - stageRect.left - dragRef.current.offsetX;
     const y = event.clientY - stageRect.top - dragRef.current.offsetY;
     setPosition(clampPosition(x, y));
@@ -772,8 +813,6 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
         title={title}
         aria-label={title}
       >
-        <span className="pointer-events-none absolute bottom-1 left-1/2 h-4 w-[66%] -translate-x-1/2 rounded-full bg-black/35 blur-sm" />
-        <span className="pointer-events-none absolute bottom-3 left-1/2 h-px w-[54%] -translate-x-1/2 bg-lime-100/20" />
         <canvas
           ref={canvasRef}
           width={MASCOT_WIDTH}
