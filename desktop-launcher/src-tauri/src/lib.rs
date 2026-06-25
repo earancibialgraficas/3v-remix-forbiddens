@@ -1,10 +1,14 @@
 use std::{
+    collections::HashSet,
     env, fs,
     io::{self, BufRead, BufReader},
     net::UdpSocket,
     path::{Path, PathBuf},
     process::{Command, Stdio},
-    sync::atomic::{AtomicU32, Ordering},
+    sync::{
+        atomic::{AtomicU32, Ordering},
+        Mutex, OnceLock,
+    },
     thread,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
@@ -127,10 +131,35 @@ struct NativeDownloadProgressEvent {
     error: Option<String>,
 }
 
-const WEBSITE_URL: &str = "https://forbiddens.net/?launcher_version=0.1.37";
-const LAUNCHER_DOWNLOAD_URL: &str = "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.37_x64-setup.exe";
+const WEBSITE_URL: &str = "https://forbiddens.net/?launcher_version=0.1.38";
+const LAUNCHER_DOWNLOAD_URL: &str = "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.38_x64-setup.exe";
 static ACTIVE_NATIVE_PROCESS_ID: AtomicU32 = AtomicU32::new(0);
+static SUPPRESSED_NATIVE_EXIT_PROCESS_IDS: OnceLock<Mutex<HashSet<u32>>> = OnceLock::new();
 const CREATE_NO_WINDOW: u32 = 0x08000000;
+
+fn suppressed_native_exit_process_ids() -> &'static Mutex<HashSet<u32>> {
+    SUPPRESSED_NATIVE_EXIT_PROCESS_IDS.get_or_init(|| Mutex::new(HashSet::new()))
+}
+
+fn suppress_native_exit(process_id: u32) {
+    if let Ok(mut process_ids) = suppressed_native_exit_process_ids().lock() {
+        process_ids.insert(process_id);
+    }
+}
+
+fn unsuppress_native_exit(process_id: u32) {
+    if let Ok(mut process_ids) = suppressed_native_exit_process_ids().lock() {
+        process_ids.remove(&process_id);
+    }
+}
+
+fn consume_suppressed_native_exit(process_id: u32) -> bool {
+    suppressed_native_exit_process_ids()
+        .lock()
+        .map(|mut process_ids| process_ids.remove(&process_id))
+        .unwrap_or(false)
+}
+
 const LAUNCHER_BRIDGE_SCRIPT: &str = r#"
 (function () {
   if (window.__FORBIDDENS_LAUNCHER_BRIDGE__) return;
@@ -204,6 +233,7 @@ const LAUNCHER_BRIDGE_SCRIPT: &str = r#"
     pickNativeRom: function (consoleId) { return invoke("pick_native_rom", { consoleId: consoleId }); },
     openNativeEmulator: function (consoleId, romPath) { return invoke("open_native_emulator", { consoleId: consoleId, romPath: romPath || null }); },
     closeNativeEmulator: function (processId) { return invoke("close_native_emulator", { processId: processId }); },
+    restartNativeEmulator: function (processId, consoleId, romPath) { return invoke("restart_native_emulator", { processId: processId, consoleId: consoleId, romPath: romPath }); },
     setNativeEmulatorState: function (processId, action) { return invoke("set_native_emulator_state", { processId: processId, action: action }); },
     nativeEmulatorAction: function (processId, action) { return invoke("native_emulator_action", { processId: processId, action: action }); },
     setNativeEmulatorVolume: function (processId, volume) { return invoke("set_native_emulator_volume", { processId: processId, volume: volume }); },
@@ -2014,6 +2044,9 @@ fn open_native_emulator(
             Ordering::SeqCst,
             Ordering::SeqCst,
         ).ok();
+        if consume_suppressed_native_exit(process_id) {
+            return;
+        }
         let mut payload = event_payload.clone();
         payload.success = success;
         let _ = event_app.emit("forbiddens-native-emulator-exit", payload);
@@ -2030,6 +2063,10 @@ fn open_native_emulator(
 
 #[tauri::command]
 fn close_native_emulator(process_id: u32) -> Result<(), String> {
+    close_native_emulator_process(process_id)
+}
+
+fn close_native_emulator_process(process_id: u32) -> Result<(), String> {
     let script = "$ErrorActionPreference='SilentlyContinue'; \
       $processId = [int]$env:FORBIDDENS_EMU_PID; \
       $ids = New-Object System.Collections.Generic.List[int]; \
@@ -2058,6 +2095,27 @@ fn close_native_emulator(process_id: u32) -> Result<(), String> {
         Ordering::SeqCst,
     ).ok();
     result
+}
+
+#[tauri::command]
+fn restart_native_emulator(
+    app: AppHandle,
+    process_id: u32,
+    console_id: String,
+    rom_path: String,
+) -> Result<NativeEmulatorLaunchResult, String> {
+    let trimmed_rom_path = rom_path.trim();
+    if trimmed_rom_path.is_empty() {
+        return Err("No se encontro la ruta de la ROM para reiniciar.".to_string());
+    }
+
+    suppress_native_exit(process_id);
+    if let Err(error) = close_native_emulator_process(process_id) {
+        unsuppress_native_exit(process_id);
+        return Err(error);
+    }
+
+    open_native_emulator(app, console_id, Some(trimmed_rom_path.to_string()))
 }
 
 #[tauri::command]
@@ -3083,6 +3141,7 @@ pub fn run() {
             pick_native_rom,
             open_native_emulator,
             close_native_emulator,
+            restart_native_emulator,
             set_native_emulator_state,
             sync_native_companion_layout,
             native_emulator_action,

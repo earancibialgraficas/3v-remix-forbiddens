@@ -18,6 +18,7 @@ commands.allow = [
   "pick_native_rom",
   "open_native_emulator",
   "close_native_emulator",
+  "restart_native_emulator",
   "set_native_emulator_state",
   "native_emulator_action",
   "set_native_emulator_volume",

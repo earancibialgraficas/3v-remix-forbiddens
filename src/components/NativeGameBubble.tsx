@@ -619,12 +619,17 @@ export default function NativeGameBubble() {
       return false;
     }
     try {
-      if (current.processId && !options?.skipClose) {
-        suppressNextExitProcessRef.current = Number(current.processId);
-        await bridge.closeNativeEmulator?.(current.processId).catch(() => {});
-        await new Promise((resolve) => window.setTimeout(resolve, 400));
+      let result: any = null;
+      if (current.processId && !options?.skipClose && bridge.restartNativeEmulator) {
+        result = await bridge.restartNativeEmulator(current.processId, current.consoleName, current.romPath);
+      } else {
+        if (current.processId && !options?.skipClose) {
+          suppressNextExitProcessRef.current = Number(current.processId);
+          await bridge.closeNativeEmulator?.(current.processId).catch(() => {});
+          await new Promise((resolve) => window.setTimeout(resolve, 400));
+        }
+        result = await bridge.openNativeEmulator(current.consoleName, current.romPath);
       }
-      const result = await bridge.openNativeEmulator(current.consoleName, current.romPath);
       const processId = result && typeof result === "object" && "process_id" in result
         ? Number((result as any).process_id) || null
         : null;

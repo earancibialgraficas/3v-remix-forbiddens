@@ -79,6 +79,7 @@ type LauncherBridge = {
   pickNativeRom?: (consoleId: string) => Promise<string | null>;
   openNativeEmulator?: (consoleId: string, romPath?: string | null) => Promise<NativeEmulatorLaunchResult | string>;
   closeNativeEmulator?: (processId: number) => Promise<void>;
+  restartNativeEmulator?: (processId: number, consoleId: string, romPath: string) => Promise<NativeEmulatorLaunchResult | string>;
   setNativeEmulatorState?: (processId: number, action: "minimize" | "restore" | "show" | "maximize") => Promise<void>;
   nativeEmulatorAction?: (processId: number, action: "menu" | "save_state" | "load_state" | "pause_toggle") => Promise<void>;
   setNativeEmulatorVolume?: (processId: number, volume: number) => Promise<void>;
@@ -167,6 +168,7 @@ const buildBridgeFromTauri = (): LauncherBridge | null => {
     pickNativeRom: (consoleId: string) => invoke("pick_native_rom", { consoleId }),
     openNativeEmulator: (consoleId: string, romPath?: string | null) => invoke("open_native_emulator", { consoleId, romPath: romPath || null }),
     closeNativeEmulator: (processId: number) => invoke("close_native_emulator", { processId }),
+    restartNativeEmulator: (processId: number, consoleId: string, romPath: string) => invoke("restart_native_emulator", { processId, consoleId, romPath }),
     setNativeEmulatorState: (processId: number, action: "minimize" | "restore" | "show" | "maximize") => invoke("set_native_emulator_state", { processId, action }),
     nativeEmulatorAction: (processId: number, action: "menu" | "save_state" | "load_state" | "pause_toggle") => invoke("native_emulator_action", { processId, action }),
     setNativeEmulatorVolume: (processId: number, volume: number) => invoke("set_native_emulator_volume", { processId, volume }),
@@ -196,6 +198,7 @@ export const getLauncherBridge = (): LauncherBridge | null => {
     hasTauriInvoke &&
       existing &&
       (!existing.openNativeEmulator ||
+        !existing.restartNativeEmulator ||
         !existing.nativeEmulatorAction ||
         !existing.setNativeEmulatorVolume ||
         !existing.syncNativeCompanionLayout ||
