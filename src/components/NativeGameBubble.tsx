@@ -869,12 +869,6 @@ export default function NativeGameBubble() {
           </div>
         </div>
 
-        {launcherPanelMode && activeMascot?.slug === "dragon_noxito" && (
-          <div className={cn(nativePanelClass, "p-2")} style={skinPanelStyle}>
-            <DragonMascot gameName={session.gameName} />
-          </div>
-        )}
-
         <div className={cn(nativePanelClass, "p-2")} style={skinPanelStyle}>
           <div className="flex items-center justify-between gap-2">
             <p className="font-pixel text-[8px] uppercase text-neon-magenta">Mini reproductor</p>
@@ -1019,6 +1013,9 @@ export default function NativeGameBubble() {
         )}
         <p className="mt-1.5 text-center text-[9px] text-white/40">El emulador corre nativo; esta ventana registra la sesion.</p>
       </div>
+      {launcherPanelMode && activeMascot?.slug === "dragon_noxito" && (
+        <DragonMascot gameName={session.gameName} className="z-[95]" />
+      )}
     </div>
   );
 }

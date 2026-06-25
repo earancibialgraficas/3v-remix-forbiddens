@@ -9,7 +9,8 @@ export type DragonMascotAnimationId =
   | "laugh"
   | "tongue"
   | "fart"
-  | "sleep";
+  | "sleep"
+  | "drag";
 
 export type DragonMascotEventType =
   | "greeting"
@@ -40,7 +41,7 @@ const frames = (prefix: string, count: number) =>
   Array.from({ length: count }, (_, index) => `${base}/${prefix}_${String(index + 1).padStart(2, "0")}.png`);
 
 export const dragonMascotAnimations: Record<DragonMascotAnimationId, DragonMascotAnimation> = {
-  idle: { id: "idle", frames: frames("idle", 5), fps: 5, loop: true },
+  idle: { id: "idle", frames: [`${base}/idle_01.png`], fps: 1, loop: true },
   blink: { id: "blink", frames: frames("blink", 4), fps: 8, loop: false, fallback: "idle" },
   walk: { id: "walk", frames: frames("walk_right", 5), fps: 8, loop: false, fallback: "idle" },
   talk: { id: "talk", frames: frames("talk", 5), fps: 10, loop: true },
@@ -51,6 +52,7 @@ export const dragonMascotAnimations: Record<DragonMascotAnimationId, DragonMasco
   tongue: { id: "tongue", frames: frames("tongue", 3), fps: 7, loop: false, fallback: "idle" },
   fart: { id: "fart", frames: frames("fart", 5), fps: 8, loop: false, fallback: "idle" },
   sleep: { id: "sleep", frames: frames("sleep", 2), fps: 2, loop: true },
+  drag: { id: "drag", frames: [`${base}/drag_held_01.png`], fps: 1, loop: true },
 };
 
 export const dragonMascotEventAnimation: Record<DragonMascotEventType, DragonMascotAnimationId> = {

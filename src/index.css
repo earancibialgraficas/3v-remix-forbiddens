@@ -7,6 +7,15 @@
 @tailwind components;
 @tailwind utilities;
 
+@keyframes dragon-held-wiggle {
+  0%, 100% {
+    transform: translateY(10px) rotate(-5deg) scaleY(0.96);
+  }
+  50% {
+    transform: translateY(13px) rotate(4deg) scaleY(0.94);
+  }
+}
+
 @layer base {
   :root {
     --background: 240 15% 6%;
