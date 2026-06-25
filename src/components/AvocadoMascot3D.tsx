@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import * as THREE from "three";
 import type { DragonMascotEventType } from "@/mascot/dragonMascotConfig";
 import { cn } from "@/lib/utils";
 
@@ -20,9 +21,8 @@ type MascotPosition = {
 type AvocadoAnimation = "idle" | "walk" | "talk" | "happy" | "sad" | "sleep" | "drag";
 
 const MASCOT_EVENT = "forbiddens:dragon-mascot";
-const AVOCADO_IMAGE_URL = "/mascot/avocado/base.png?v=20260625-4";
-const MASCOT_WIDTH = 210;
-const MASCOT_HEIGHT = 210;
+const MASCOT_WIDTH = 236;
+const MASCOT_HEIGHT = 268;
 const GROUND_GAP = 2;
 
 const eventAnimation: Record<DragonMascotEventType, AvocadoAnimation> = {
@@ -64,15 +64,134 @@ const pickLine = (type: DragonMascotEventType) => {
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
+const makeLimb = (height: number, radius: number, color: number) => {
+  const geometry = new THREE.CylinderGeometry(radius, radius * 0.92, height, 18);
+  geometry.translate(0, -height / 2, 0);
+  const material = new THREE.MeshStandardMaterial({
+    color,
+    roughness: 0.58,
+    metalness: 0.05,
+  });
+  const pivot = new THREE.Group();
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.castShadow = true;
+  pivot.add(mesh);
+  return pivot;
+};
+
+const makeAvocadoModel = () => {
+  const root = new THREE.Group();
+  const body = new THREE.Group();
+  root.add(body);
+
+  const outer = new THREE.Mesh(
+    new THREE.SphereGeometry(1, 48, 48),
+    new THREE.MeshStandardMaterial({
+      color: 0x2f7d3a,
+      roughness: 0.72,
+      metalness: 0.03,
+    }),
+  );
+  outer.scale.set(0.92, 1.28, 0.22);
+  outer.castShadow = true;
+  body.add(outer);
+
+  const flesh = new THREE.Mesh(
+    new THREE.SphereGeometry(1, 48, 48),
+    new THREE.MeshStandardMaterial({
+      color: 0xd8e88e,
+      roughness: 0.82,
+      metalness: 0.02,
+    }),
+  );
+  flesh.position.set(0, -0.02, 0.075);
+  flesh.scale.set(0.78, 1.08, 0.16);
+  flesh.castShadow = true;
+  body.add(flesh);
+
+  const seed = new THREE.Mesh(
+    new THREE.SphereGeometry(0.28, 32, 32),
+    new THREE.MeshStandardMaterial({
+      color: 0x7a5a35,
+      roughness: 0.5,
+      metalness: 0.08,
+    }),
+  );
+  seed.position.set(0, -0.12, 0.26);
+  seed.scale.set(1.0, 1.08, 0.72);
+  seed.castShadow = true;
+  body.add(seed);
+
+  const eyeMaterial = new THREE.MeshStandardMaterial({
+    color: 0x050506,
+    roughness: 0.25,
+    metalness: 0.08,
+  });
+  const eyeHighlightMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.055, 18, 18), eyeMaterial);
+  const rightEye = leftEye.clone();
+  leftEye.position.set(-0.27, -0.31, 0.265);
+  rightEye.position.set(0.27, -0.31, 0.265);
+  leftEye.scale.set(1, 1, 0.55);
+  rightEye.scale.set(1, 1, 0.55);
+  body.add(leftEye, rightEye);
+
+  const leftSpark = new THREE.Mesh(new THREE.SphereGeometry(0.014, 10, 10), eyeHighlightMaterial);
+  const rightSpark = leftSpark.clone();
+  leftSpark.position.set(-0.287, -0.292, 0.302);
+  rightSpark.position.set(0.253, -0.292, 0.302);
+  body.add(leftSpark, rightSpark);
+
+  const smileCurve = new THREE.QuadraticBezierCurve3(
+    new THREE.Vector3(-0.13, -0.48, 0.285),
+    new THREE.Vector3(0, -0.59, 0.32),
+    new THREE.Vector3(0.13, -0.48, 0.285),
+  );
+  const smile = new THREE.Mesh(
+    new THREE.TubeGeometry(smileCurve, 24, 0.012, 8, false),
+    new THREE.MeshStandardMaterial({ color: 0x151009, roughness: 0.5 }),
+  );
+  body.add(smile);
+
+  const leftArm = makeLimb(0.82, 0.038, 0x8a6b30);
+  const rightArm = makeLimb(0.82, 0.038, 0x8a6b30);
+  leftArm.position.set(-0.58, -0.42, 0.01);
+  rightArm.position.set(0.58, -0.42, 0.01);
+  leftArm.rotation.z = 0.48;
+  rightArm.rotation.z = -0.48;
+  body.add(leftArm, rightArm);
+
+  const leftLeg = makeLimb(0.64, 0.045, 0x7f622d);
+  const rightLeg = makeLimb(0.64, 0.045, 0x7f622d);
+  leftLeg.position.set(-0.26, -1.13, -0.01);
+  rightLeg.position.set(0.26, -1.13, -0.01);
+  body.add(leftLeg, rightLeg);
+
+  const parts = {
+    root,
+    body,
+    seed,
+    leftArm,
+    rightArm,
+    leftLeg,
+    rightLeg,
+    leftEye,
+    rightEye,
+    smile,
+  };
+  return parts;
+};
+
 export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3DProps) {
   const stageRef = useRef<HTMLDivElement>(null);
-  const mascotRef = useRef<HTMLButtonElement>(null);
-  const motionRef = useRef<HTMLSpanElement>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+  const modelRef = useRef<ReturnType<typeof makeAvocadoModel> | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const idleTimerRef = useRef<number | null>(null);
   const hideBubbleTimerRef = useRef<number | null>(null);
   const typingTimerRef = useRef<number | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
   const dragRef = useRef({ pointerId: -1, offsetX: 0, offsetY: 0 });
   const animationNameRef = useRef<AvocadoAnimation>("idle");
 
@@ -168,34 +287,81 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
   }, [clampPosition, groundY]);
 
   useEffect(() => {
-    let startedAt = performance.now();
-    const render = (now: number) => {
-      const elapsed = (now - startedAt) / 1000;
-      const motion = motionRef.current;
-      if (motion) {
-        const state = animationNameRef.current;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    renderer.setClearColor(0x000000, 0);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setSize(MASCOT_WIDTH, MASCOT_HEIGHT, false);
+    rendererRef.current = renderer;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.OrthographicCamera(-1.75, 1.75, 1.95, -1.95, 0.1, 100);
+    camera.position.set(0, 0.1, 5.2);
+    camera.lookAt(0, -0.25, 0);
+
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x42321d, 1.65));
+    const keyLight = new THREE.DirectionalLight(0xfff1cc, 2.4);
+    keyLight.position.set(2.4, 3.8, 4.2);
+    scene.add(keyLight);
+    const rimLight = new THREE.DirectionalLight(0xb8ff8a, 0.8);
+    rimLight.position.set(-2.6, 1.6, 2.4);
+    scene.add(rimLight);
+
+    const model = makeAvocadoModel();
+    model.root.scale.setScalar(1.05);
+    scene.add(model.root);
+    modelRef.current = model;
+
+    const clock = new THREE.Clock();
+    const render = () => {
+      const elapsed = clock.getElapsedTime();
+      const state = animationNameRef.current;
+      const avocado = modelRef.current;
+      if (avocado) {
         const isDrag = state === "drag";
         const isHappy = state === "happy";
         const isTalk = state === "talk";
         const isSleep = state === "sleep";
         const isWalk = state === "walk";
-        const y = isSleep
-          ? 12 + Math.sin(elapsed * 1.8) * 2
-          : Math.sin(elapsed * (isTalk ? 9.5 : isWalk ? 10.5 : 2.4)) * (isTalk ? 13 : isWalk ? 15 : 9) + (isDrag ? 14 : 0);
-        const rotation = isSleep
-          ? -13 + Math.sin(elapsed * 1.4) * 1.4
-          : Math.sin(elapsed * (isTalk ? 8.5 : isHappy ? 7.8 : isWalk ? 9 : 1.9)) * (isTalk ? 5 : isHappy ? 9 : isWalk ? 7 : 2.8);
-        const scaleX = isTalk ? 1 + Math.sin(elapsed * 14) * 0.035 : isHappy ? 1.04 : 1;
-        const scaleY = isTalk ? 1 - Math.sin(elapsed * 14) * 0.03 : isHappy ? 0.98 : 1;
-        motion.style.transform = `translateY(${y}px) rotate(${rotation}deg) scale(${scaleX}, ${scaleY})`;
+        const bounce = Math.sin(elapsed * (isTalk ? 9.5 : isWalk ? 10.5 : 2.4));
+        const sway = Math.sin(elapsed * (isTalk ? 8.5 : isHappy ? 7.8 : isWalk ? 9 : 1.9));
+
+        avocado.root.position.y = isSleep ? -0.2 + Math.sin(elapsed * 1.7) * 0.025 : bounce * (isTalk ? 0.12 : isWalk ? 0.13 : 0.075) + (isDrag ? 0.16 : 0);
+        avocado.root.rotation.z = isSleep ? -0.24 + Math.sin(elapsed * 1.4) * 0.02 : sway * (isTalk ? 0.075 : isHappy ? 0.14 : isWalk ? 0.11 : 0.045);
+        avocado.root.rotation.y = -0.08 + Math.sin(elapsed * 1.15) * 0.1;
+        avocado.body.scale.set(
+          isTalk ? 1 + Math.sin(elapsed * 13) * 0.035 : isHappy ? 1.04 : 1,
+          isTalk ? 1 - Math.sin(elapsed * 13) * 0.03 : isHappy ? 0.98 : 1,
+          1,
+        );
+
+        avocado.seed.position.y = -0.12 + (isTalk ? Math.sin(elapsed * 12) * 0.018 : 0);
+        avocado.leftArm.rotation.z = 0.48 + (isTalk ? Math.sin(elapsed * 11) * 0.32 : isHappy ? -0.46 + Math.sin(elapsed * 9) * 0.18 : isWalk ? Math.sin(elapsed * 10.5) * 0.42 : Math.sin(elapsed * 2.1) * 0.08);
+        avocado.rightArm.rotation.z = -0.48 + (isTalk ? -Math.sin(elapsed * 11) * 0.32 : isHappy ? 0.46 - Math.sin(elapsed * 9) * 0.18 : isWalk ? -Math.sin(elapsed * 10.5) * 0.42 : -Math.sin(elapsed * 2.1) * 0.08);
+        avocado.leftLeg.rotation.z = isSleep ? 0.12 : isWalk ? Math.sin(elapsed * 10.5) * 0.26 : Math.sin(elapsed * 2.1) * 0.035;
+        avocado.rightLeg.rotation.z = isSleep ? -0.12 : isWalk ? -Math.sin(elapsed * 10.5) * 0.26 : -Math.sin(elapsed * 2.1) * 0.035;
+        avocado.leftEye.scale.y = isSleep ? 0.18 : 1;
+        avocado.rightEye.scale.y = isSleep ? 0.18 : 1;
       }
+      renderer.render(scene, camera);
       animationFrameRef.current = window.requestAnimationFrame(render);
     };
 
-    animationFrameRef.current = window.requestAnimationFrame(render);
+    render();
     return () => {
-      startedAt = 0;
       if (animationFrameRef.current) window.cancelAnimationFrame(animationFrameRef.current);
+      scene.traverse((child) => {
+        const mesh = child as THREE.Mesh;
+        mesh.geometry?.dispose?.();
+        const material = mesh.material as THREE.Material | THREE.Material[] | undefined;
+        if (Array.isArray(material)) material.forEach((item) => item.dispose());
+        else material?.dispose?.();
+      });
+      renderer.dispose();
+      rendererRef.current = null;
+      modelRef.current = null;
     };
   }, []);
 
@@ -350,7 +516,6 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
       )}
 
       <button
-        ref={mascotRef}
         type="button"
         onClick={handleClick}
         onPointerDown={startDrag}
@@ -365,19 +530,14 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
         title={title}
         aria-label={title}
       >
-        <span className="pointer-events-none absolute bottom-3 left-1/2 h-5 w-[58%] -translate-x-1/2 rounded-full bg-black/30 blur-md" />
-        <span
-          ref={motionRef}
-          className="pointer-events-none relative z-10 block h-full w-full will-change-transform"
-          style={{ transformOrigin: "50% 82%", transform: "translateY(0) rotate(0deg) scale(1)" }}
-        >
-          <img
-            src={AVOCADO_IMAGE_URL}
-            alt=""
-            draggable={false}
-            className="h-full w-full object-contain drop-shadow-[0_12px_18px_rgba(0,0,0,0.52)]"
-          />
-        </span>
+        <span className="pointer-events-none absolute bottom-2 left-1/2 h-5 w-[58%] -translate-x-1/2 rounded-full bg-black/30 blur-md" />
+        <canvas
+          ref={canvasRef}
+          width={MASCOT_WIDTH}
+          height={MASCOT_HEIGHT}
+          draggable={false}
+          className="pointer-events-none relative z-10 h-full w-full drop-shadow-[0_12px_18px_rgba(0,0,0,0.52)]"
+        />
       </button>
     </div>
   );
