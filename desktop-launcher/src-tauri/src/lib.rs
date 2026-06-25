@@ -131,8 +131,8 @@ struct NativeDownloadProgressEvent {
     error: Option<String>,
 }
 
-const WEBSITE_URL: &str = "https://forbiddens.net/?launcher_version=0.1.38";
-const LAUNCHER_DOWNLOAD_URL: &str = "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.38_x64-setup.exe";
+const WEBSITE_URL: &str = "https://forbiddens.net/?launcher_version=0.1.39";
+const LAUNCHER_DOWNLOAD_URL: &str = "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.39_x64-setup.exe";
 static ACTIVE_NATIVE_PROCESS_ID: AtomicU32 = AtomicU32::new(0);
 static SUPPRESSED_NATIVE_EXIT_PROCESS_IDS: OnceLock<Mutex<HashSet<u32>>> = OnceLock::new();
 const CREATE_NO_WINDOW: u32 = 0x08000000;
@@ -2188,12 +2188,17 @@ fn native_emulator_action(process_id: u32, action: String) -> Result<(), String>
         "save_state" | "savestate" => ("SAVE_STATE", 0x71),
         "load_state" => ("LOAD_STATE", 0x73),
         "pause" | "pause_toggle" | "play_pause" => ("PAUSE_TOGGLE", 0x50),
+        "reset" | "restart" => ("RESET", 0),
         _ => return Err("Accion del emulador no soportada.".to_string()),
     };
 
     let sent_retroarch_command = send_retroarch_network_command(retroarch_command);
-    if sent_retroarch_command && matches!(normalized.as_str(), "menu" | "settings" | "config" | "pause" | "pause_toggle" | "play_pause") {
+    if sent_retroarch_command && matches!(normalized.as_str(), "menu" | "settings" | "config" | "pause" | "pause_toggle" | "play_pause" | "reset" | "restart") {
         return Ok(());
+    }
+
+    if virtual_key == 0 {
+        return Err("No se pudo enviar el reinicio al emulador.".to_string());
     }
 
     #[cfg(windows)]

@@ -17,6 +17,7 @@ const DEFAULT_MUSIC_OPTIONS = [
   { id: "Rap", label: "Rap", category: "Rap" },
   { id: "Lofi Hip-Hop", label: "Lofi Hip-Hop", category: "Lofi Hip-Hop" },
 ];
+const RETROARCH_RESET_CONSOLES = new Set(["nes", "snes", "gba", "gbc", "sega", "n64", "arcade"]);
 
 const nativeButtonClass =
   "relative overflow-hidden rounded-md border text-[10px] font-semibold transition duration-150 hover:-translate-y-0.5 hover:brightness-110 active:translate-y-px";
@@ -619,6 +620,27 @@ export default function NativeGameBubble() {
       return false;
     }
     try {
+      const canUseRetroarchReset =
+        current.processId &&
+        !options?.skipClose &&
+        bridge.nativeEmulatorAction &&
+        RETROARCH_RESET_CONSOLES.has(current.consoleName.toLowerCase());
+      if (canUseRetroarchReset) {
+        try {
+          await bridge.nativeEmulatorAction(current.processId, "reset");
+          maximizeNativeSession();
+          if (!options?.silent) {
+            toast({
+              title: "Consola reiniciada",
+              description: "El juego se reinicio sin cerrar el companion.",
+            });
+          }
+          return true;
+        } catch {
+          // Older launchers do not know the reset command yet; fall back to relaunching.
+        }
+      }
+
       let result: any = null;
       if (current.processId && !options?.skipClose && bridge.restartNativeEmulator) {
         result = await bridge.restartNativeEmulator(current.processId, current.consoleName, current.romPath);
