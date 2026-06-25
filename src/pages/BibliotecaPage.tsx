@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import VaultHint from "@/components/VaultHint";
 import { Gamepad2, Trophy, Play, User, Lightbulb, Send, Search, Cloud, Lock, Loader2, RefreshCw, Pencil, Cpu, Download, Check, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -2097,8 +2098,8 @@ const handlePlayCloudGame = async (game: any) => {
 
       <MultiplayerGameBubble game={selectedMultiGame} onClose={() => setSelectedMultiGame(null)} />
 
-      {nativeDownloadJobs.length > 0 && (
-        <div className="fixed bottom-2 left-1/2 z-[260] w-[min(380px,calc(100vw-16px))] -translate-x-1/2 space-y-1 pointer-events-none">
+      {nativeDownloadJobs.length > 0 && typeof document !== "undefined" && createPortal(
+        <div className="fixed bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] left-[calc(env(safe-area-inset-left)+0.75rem)] z-[9999] w-[min(340px,calc(100vw-1.5rem))] space-y-1 pointer-events-none">
           {nativeDownloadJobs.map((job) => (
             <div key={job.jobId} className="pointer-events-auto overflow-hidden rounded-md border border-neon-cyan/25 bg-black/86 px-2 py-1.5 shadow-[0_6px_18px_rgba(0,0,0,0.45),0_0_12px_rgba(34,211,238,0.14)] backdrop-blur-xl">
               <div className="flex items-center gap-1.5">
@@ -2141,7 +2142,8 @@ const handlePlayCloudGame = async (game: any) => {
               </div>
             </div>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>
