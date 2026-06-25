@@ -126,8 +126,8 @@ struct NativeDownloadProgressEvent {
     error: Option<String>,
 }
 
-const WEBSITE_URL: &str = "https://forbiddens.net/?launcher_version=0.1.35";
-const LAUNCHER_DOWNLOAD_URL: &str = "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.35_x64-setup.exe";
+const WEBSITE_URL: &str = "https://forbiddens.net/?launcher_version=0.1.36";
+const LAUNCHER_DOWNLOAD_URL: &str = "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.36_x64-setup.exe";
 static ACTIVE_NATIVE_PROCESS_ID: AtomicU32 = AtomicU32::new(0);
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 const LAUNCHER_BRIDGE_SCRIPT: &str = r#"
@@ -1721,6 +1721,7 @@ fn arrange_emulator_window(app: AppHandle, process_id: u32) {
 $ErrorActionPreference = 'SilentlyContinue'
 Add-Type @"
 using System;
+using System.Globalization;
 using System.Runtime.InteropServices;
 public class ForbiddensWinApi {
   [DllImport("user32.dll")] public static extern bool MoveWindow(IntPtr hWnd, int X, int Y, int nWidth, int nHeight, bool bRepaint);
@@ -2243,7 +2244,9 @@ public static class ForbiddensProcessVolume {
 if (-not ('ForbiddensProcessVolume' -as [type])) {
   Add-Type -TypeDefinition $source
 }
-$volumeValue = [Math]::Max(0, [Math]::Min(1, ([single]$env:FORBIDDENS_EMU_VOLUME / 100)))
+$culture = [System.Globalization.CultureInfo]::InvariantCulture
+$volumePercent = [single]::Parse($env:FORBIDDENS_EMU_VOLUME, $culture)
+$volumeValue = [Math]::Max(0, [Math]::Min(1, ($volumePercent / 100.0)))
 $rootPid = [uint32]$env:FORBIDDENS_EMU_PID
 $processIds = @($rootPid)
 function Add-ChildProcessIds([uint32]$parentPid) {

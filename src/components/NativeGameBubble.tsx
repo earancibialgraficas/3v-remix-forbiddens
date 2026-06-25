@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CloudDownload, CloudUpload, Cpu, Download, ListFilter, Minus, Move, Pause, Play, RotateCcw, Settings, SkipBack, SkipForward, Trophy, Upload, Volume2, VolumeX, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +17,13 @@ const DEFAULT_MUSIC_OPTIONS = [
   { id: "Rap", label: "Rap", category: "Rap" },
   { id: "Lofi Hip-Hop", label: "Lofi Hip-Hop", category: "Lofi Hip-Hop" },
 ];
+
+const nativeButtonClass =
+  "relative overflow-hidden rounded-md border text-[10px] font-semibold transition duration-150 hover:-translate-y-0.5 hover:brightness-110 active:translate-y-px";
+const nativeIconButtonClass =
+  "relative overflow-hidden rounded-md border transition duration-150 hover:-translate-y-0.5 hover:brightness-110 active:translate-y-px";
+const nativePanelClass =
+  "rounded border bg-black/35 shadow-[0_14px_34px_rgba(0,0,0,0.24)]";
 
 type MusicOption = {
   id: string;
@@ -54,6 +61,7 @@ export default function NativeGameBubble() {
   const launcherPanelMode = Boolean(getLauncherBridge());
   const latestSessionRef = useRef(session);
   const suppressNextExitProcessRef = useRef<number | null>(null);
+  const nativeVolumeTimerRef = useRef<number | null>(null);
   const bubbleRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef({ startX: 0, startY: 0, startPosX: 0, startPosY: 0 });
 
@@ -162,6 +170,29 @@ export default function NativeGameBubble() {
   const selectedMusicOptionId = useMemo(() => {
     return musicOptions.find((option) => option.category === musicCategory || option.label === musicCategory)?.id || DEFAULT_MUSIC_OPTIONS[0].id;
   }, [musicCategory, musicOptions]);
+
+  const skinButtonStyle = useMemo<CSSProperties>(() => ({
+    background: "var(--skin-gradient-button, linear-gradient(180deg, rgba(34,211,238,0.18), rgba(236,72,153,0.13)))",
+    borderColor: "var(--skin-border, rgba(255,255,255,0.16))",
+    borderRadius: "var(--skin-border-radius, 7px)",
+    boxShadow: "var(--skin-shadow, 0 10px 24px rgba(0,0,0,0.28))",
+    color: "var(--skin-text, #ffffff)",
+  }), []);
+
+  const skinSoftButtonStyle = useMemo<CSSProperties>(() => ({
+    background: "linear-gradient(180deg, color-mix(in srgb, var(--skin-primary, #22d3ee) 24%, transparent), color-mix(in srgb, var(--skin-secondary, #ec4899) 16%, transparent))",
+    borderColor: "color-mix(in srgb, var(--skin-border, rgba(255,255,255,0.18)) 72%, transparent)",
+    borderRadius: "var(--skin-border-radius, 7px)",
+    boxShadow: "0 10px 24px color-mix(in srgb, var(--skin-primary, #22d3ee) 18%, transparent)",
+    color: "var(--skin-text, #ffffff)",
+  }), []);
+
+  const skinPanelStyle = useMemo<CSSProperties>(() => ({
+    background: "var(--skin-pattern-panel, linear-gradient(135deg, rgba(8,10,16,0.92), rgba(16,8,18,0.88)))",
+    borderColor: "color-mix(in srgb, var(--skin-border, rgba(255,255,255,0.16)) 78%, transparent)",
+    borderRadius: "var(--skin-border-radius, 8px)",
+    boxShadow: "var(--skin-shadow, 0 18px 36px rgba(0,0,0,0.28))",
+  }), []);
 
   const clampPosition = useCallback((x: number, y: number) => {
     if (typeof window === "undefined") return { x, y };
@@ -394,9 +425,14 @@ export default function NativeGameBubble() {
     setNativeVolume(nextVolume);
     const current = latestSessionRef.current;
     if (!current?.processId) return;
-    getLauncherBridge()?.setNativeEmulatorVolume?.(current.processId, nextVolume).catch((error) => {
-      console.warn("No se pudo ajustar volumen nativo", error);
-    });
+    if (nativeVolumeTimerRef.current) window.clearTimeout(nativeVolumeTimerRef.current);
+    nativeVolumeTimerRef.current = window.setTimeout(() => {
+      const active = latestSessionRef.current;
+      if (!active?.processId) return;
+      getLauncherBridge()?.setNativeEmulatorVolume?.(active.processId, nextVolume).catch((error) => {
+        console.warn("No se pudo ajustar volumen nativo", error);
+      });
+    }, 140);
   };
 
   const toggleEmulatorPause = async () => {
@@ -719,8 +755,8 @@ export default function NativeGameBubble() {
       <button
         type="button"
         onClick={() => restoreSession()}
-        className="fixed z-[80] flex max-w-[240px] items-center gap-2 rounded-full border border-neon-cyan/40 bg-black/85 px-3 py-2 text-left shadow-[0_0_28px_rgba(34,211,238,0.28)] backdrop-blur-xl"
-        style={{ left: position.x, top: position.y }}
+        className="fixed z-[80] flex max-w-[240px] items-center gap-2 border px-3 py-2 text-left backdrop-blur-xl transition hover:brightness-110"
+        style={{ ...skinButtonStyle, left: position.x, top: position.y }}
       >
         <Cpu className="h-4 w-4 shrink-0 text-neon-cyan" />
         <span className="min-w-0">
@@ -747,7 +783,7 @@ export default function NativeGameBubble() {
         onPointerDown={startDrag}
       >
         <div className="flex min-w-0 items-center gap-2">
-          <span className="grid h-7 w-7 shrink-0 place-items-center rounded border border-neon-cyan/35 bg-neon-cyan/10 text-neon-cyan">
+          <span className="grid h-7 w-7 shrink-0 place-items-center rounded border text-neon-cyan" style={skinSoftButtonStyle}>
             <Cpu className="h-3.5 w-3.5" />
           </span>
           <div className="min-w-0">
@@ -757,35 +793,35 @@ export default function NativeGameBubble() {
         </div>
         <div className="flex shrink-0 items-center gap-1">
           {!launcherPanelMode && <Move className="h-3.5 w-3.5 text-white/35" />}
-          <Button data-native-action size="icon" variant="ghost" className="h-6 w-6" onClick={minimizeSession} aria-label="Minimizar sesion">
+          <Button data-native-action size="icon" variant="ghost" className={cn(nativeIconButtonClass, "h-6 w-6")} style={skinSoftButtonStyle} onClick={minimizeSession} aria-label="Minimizar sesion">
             <Minus className="h-3.5 w-3.5" />
           </Button>
-          <Button data-native-action size="icon" variant="ghost" className="h-6 w-6 text-destructive hover:text-destructive" onClick={finishSession} aria-label="Cerrar sesion">
+          <Button data-native-action size="icon" variant="ghost" className={cn(nativeIconButtonClass, "h-6 w-6 text-destructive hover:text-destructive")} style={skinSoftButtonStyle} onClick={finishSession} aria-label="Cerrar sesion">
             <X className="h-3.5 w-3.5" />
           </Button>
         </div>
       </div>
 
       <div className={cn("p-2.5", launcherPanelMode && "flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto")}>
-        <div className="rounded border border-white/10 bg-black/45 p-2.5">
+        <div className={cn(nativePanelClass, "p-2.5")} style={skinPanelStyle}>
           <p className="truncate text-xs font-semibold text-white">{session.gameName}</p>
           <p className="mt-1 truncate text-[10px] text-white/45">{session.romPath || "ROM local"}</p>
           <div className="mt-2 grid grid-cols-2 gap-2">
-            <div className="rounded border border-neon-green/20 bg-neon-green/10 px-2.5 py-1.5">
+            <div className="rounded border px-2.5 py-1.5" style={skinSoftButtonStyle}>
               <p className="font-pixel text-[8px] uppercase text-neon-green">STATS</p>
               <p className="mt-1 flex items-center gap-1 text-base font-bold text-neon-green">
                 <Trophy className="h-3.5 w-3.5" />
                 {session.score}
               </p>
             </div>
-            <div className="rounded border border-neon-cyan/20 bg-neon-cyan/10 px-2.5 py-1.5">
+            <div className="rounded border px-2.5 py-1.5" style={skinSoftButtonStyle}>
               <p className="font-pixel text-[8px] uppercase text-neon-cyan">Tiempo</p>
               <p className="mt-1 text-base font-bold text-neon-cyan">{formattedTime}</p>
             </div>
           </div>
         </div>
 
-        <div className="rounded border border-neon-magenta/20 bg-neon-magenta/10 p-2">
+        <div className={cn(nativePanelClass, "p-2")} style={skinPanelStyle}>
           <div className="flex items-center justify-between gap-2">
             <p className="font-pixel text-[8px] uppercase text-neon-magenta">Mini reproductor</p>
             <span className="flex items-center gap-1 text-[9px] text-neon-cyan">
@@ -793,11 +829,11 @@ export default function NativeGameBubble() {
               {musicVolume}%
             </span>
           </div>
-          <div className="mt-1 rounded border border-white/10 bg-black/35 px-2 py-1.5">
+          <div className="mt-1 rounded border px-2 py-1.5" style={skinSoftButtonStyle}>
             <p className="truncate font-pixel text-[8px] uppercase text-neon-magenta/80">{musicCategory || "Todos"}</p>
             <p className="mt-0.5 truncate text-[11px] font-semibold text-white">{musicTitle}</p>
           </div>
-          <label className="mt-2 flex h-9 items-center gap-2 rounded border border-white/10 bg-black/35 px-2">
+          <label className="mt-2 flex h-9 items-center gap-2 rounded border px-2" style={skinSoftButtonStyle}>
             <ListFilter className="h-3.5 w-3.5 shrink-0 text-neon-magenta" />
             <select
               data-native-action
@@ -814,26 +850,26 @@ export default function NativeGameBubble() {
             </select>
           </label>
           <div className="mt-2 grid grid-cols-3 gap-2">
-            <Button size="sm" variant="outline" onClick={() => sendMusicCommand("prev")} className="h-9 border-white/10 bg-white/5" title="Anterior" aria-label="Anterior">
+            <Button size="sm" variant="outline" onClick={() => sendMusicCommand("prev")} className={cn(nativeButtonClass, "h-9")} style={skinButtonStyle} title="Anterior" aria-label="Anterior">
               <SkipBack className="h-4 w-4" />
             </Button>
-            <Button size="sm" variant="outline" onClick={() => sendMusicCommand("playPause")} className="h-9 border-neon-magenta/30 bg-neon-magenta/15 text-neon-magenta" title={musicPlaying ? "Pausar musica" : "Reproducir musica"} aria-label={musicPlaying ? "Pausar musica" : "Reproducir musica"}>
+            <Button size="sm" variant="outline" onClick={() => sendMusicCommand("playPause")} className={cn(nativeButtonClass, "h-9")} style={skinButtonStyle} title={musicPlaying ? "Pausar musica" : "Reproducir musica"} aria-label={musicPlaying ? "Pausar musica" : "Reproducir musica"}>
               {musicPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
             </Button>
-            <Button size="sm" variant="outline" onClick={() => sendMusicCommand("next")} className="h-9 border-white/10 bg-white/5" title="Siguiente" aria-label="Siguiente">
+            <Button size="sm" variant="outline" onClick={() => sendMusicCommand("next")} className={cn(nativeButtonClass, "h-9")} style={skinButtonStyle} title="Siguiente" aria-label="Siguiente">
               <SkipForward className="h-4 w-4" />
             </Button>
           </div>
           <div className="mt-2 grid grid-cols-3 gap-2">
-            <Button size="sm" variant="outline" onClick={() => sendMusicCommand("volumeDown")} className="h-8 border-white/10 bg-white/5 text-[12px]" title="Bajar volumen" aria-label="Bajar volumen">-</Button>
-            <Button size="sm" variant="outline" onClick={() => sendMusicCommand("mute")} className="h-8 border-white/10 bg-white/5" title="Mutear volumen" aria-label="Mutear volumen">
+            <Button size="sm" variant="outline" onClick={() => sendMusicCommand("volumeDown")} className={cn(nativeButtonClass, "h-8 text-[12px]")} style={skinSoftButtonStyle} title="Bajar volumen" aria-label="Bajar volumen">-</Button>
+            <Button size="sm" variant="outline" onClick={() => sendMusicCommand("mute")} className={cn(nativeButtonClass, "h-8")} style={skinSoftButtonStyle} title="Mutear volumen" aria-label="Mutear volumen">
               {musicVolume <= 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
             </Button>
-            <Button size="sm" variant="outline" onClick={() => sendMusicCommand("volumeUp")} className="h-8 border-white/10 bg-white/5 text-[12px]" title="Subir volumen" aria-label="Subir volumen">+</Button>
+            <Button size="sm" variant="outline" onClick={() => sendMusicCommand("volumeUp")} className={cn(nativeButtonClass, "h-8 text-[12px]")} style={skinSoftButtonStyle} title="Subir volumen" aria-label="Subir volumen">+</Button>
           </div>
         </div>
 
-        <div className="rounded border border-neon-cyan/20 bg-neon-cyan/10 p-2">
+        <div className={cn(nativePanelClass, "p-2")} style={skinPanelStyle}>
           <div className="flex items-center justify-between gap-2">
             <p className="font-pixel text-[8px] uppercase text-neon-cyan">Volumen emulador</p>
             <span className="text-[10px] font-semibold text-white/75">{nativeVolume}%</span>
@@ -860,16 +896,17 @@ export default function NativeGameBubble() {
             size="sm"
             variant="outline"
             onClick={toggleEmulatorPause}
-            className={cn("h-9 border-white/10 bg-white/5 text-[10px]", emulatorPaused && "border-neon-yellow/40 text-neon-yellow")}
+            className={cn(nativeButtonClass, "h-9", emulatorPaused && "text-neon-yellow")}
+            style={skinButtonStyle}
           >
             {emulatorPaused ? <Play className="mr-2 h-3.5 w-3.5" /> : <Pause className="mr-2 h-3.5 w-3.5" />}
             {emulatorPaused ? "Play" : "Pausa"}
           </Button>
-          <Button size="sm" variant="outline" onClick={openEmulatorSettings} className="h-9 border-white/10 bg-white/5 text-[10px]">
+          <Button size="sm" variant="outline" onClick={openEmulatorSettings} className={cn(nativeButtonClass, "h-9")} style={skinButtonStyle}>
             <Settings className="mr-2 h-3.5 w-3.5" />
             Config
           </Button>
-          <Button size="sm" variant="outline" onClick={() => restartNativeConsole()} className="h-9 border-white/10 bg-white/5 text-[10px]">
+          <Button size="sm" variant="outline" onClick={() => restartNativeConsole()} className={cn(nativeButtonClass, "h-9")} style={skinButtonStyle}>
             <RotateCcw className="mr-2 h-3.5 w-3.5" />
             Reset
           </Button>
@@ -881,7 +918,8 @@ export default function NativeGameBubble() {
               size="sm"
               variant="outline"
               onClick={saveNativeCloudNow}
-              className="h-9 border-neon-green/25 bg-neon-green/10 text-[10px] text-neon-green"
+              className={cn(nativeButtonClass, "h-9 text-neon-green")}
+              style={skinButtonStyle}
             >
               <CloudUpload className="mr-2 h-3.5 w-3.5" />
               Guardar
@@ -890,7 +928,8 @@ export default function NativeGameBubble() {
               size="sm"
               variant="outline"
               onClick={loadNativeCloudNow}
-              className="h-9 border-neon-cyan/25 bg-neon-cyan/10 text-[10px] text-neon-cyan"
+              className={cn(nativeButtonClass, "h-9 text-neon-cyan")}
+              style={skinButtonStyle}
             >
               <CloudDownload className="mr-2 h-3.5 w-3.5" />
               Cargar
@@ -905,7 +944,8 @@ export default function NativeGameBubble() {
                 size="sm"
                 variant="outline"
                 onClick={exportLocalSave}
-                className="h-8 border-white/10 bg-white/5 text-[10px]"
+                className={cn(nativeButtonClass, "h-8")}
+                style={skinSoftButtonStyle}
               >
                 <Download className="mr-2 h-3.5 w-3.5" />
                 Guardar local
@@ -914,7 +954,8 @@ export default function NativeGameBubble() {
                 size="sm"
                 variant="outline"
                 onClick={importLocalSave}
-                className="h-8 border-white/10 bg-white/5 text-[10px]"
+                className={cn(nativeButtonClass, "h-8")}
+                style={skinSoftButtonStyle}
               >
                 <Upload className="mr-2 h-3.5 w-3.5" />
                 Cargar local
