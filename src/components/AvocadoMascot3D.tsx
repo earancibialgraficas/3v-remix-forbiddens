@@ -77,19 +77,51 @@ const pickLine = (type: DragonMascotEventType) => {
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
-const makeLimb = (height: number, radius: number, color: number) => {
-  const geometry = new THREE.CylinderGeometry(radius, radius * 0.92, height, 18);
+const makeAvocadoGeometry = (scale = 1) => {
+  const points = [
+    [0.0, -1.26],
+    [0.36, -1.23],
+    [0.68, -0.96],
+    [0.84, -0.48],
+    [0.8, -0.02],
+    [0.66, 0.42],
+    [0.43, 0.82],
+    [0.2, 1.13],
+    [0.0, 1.24],
+  ].map(([radius, y]) => new THREE.Vector2(radius * scale, y * scale));
+  const geometry = new THREE.LatheGeometry(points, 64);
+  geometry.computeVertexNormals();
+  return geometry;
+};
+
+const makeCylinderPart = (height: number, radius: number, color: number) => {
+  const geometry = new THREE.CylinderGeometry(radius, radius * 0.9, height, 18);
   geometry.translate(0, -height / 2, 0);
   const material = new THREE.MeshStandardMaterial({
     color,
     roughness: 0.58,
     metalness: 0.05,
   });
-  const pivot = new THREE.Group();
   const mesh = new THREE.Mesh(geometry, material);
   mesh.castShadow = true;
-  pivot.add(mesh);
-  return pivot;
+  return mesh;
+};
+
+const makeJointedLimb = (upperLength: number, lowerLength: number, radius: number, color: number) => {
+  const pivot = new THREE.Group();
+  const upper = makeCylinderPart(upperLength, radius, color);
+  const joint = new THREE.Group();
+  const jointBall = makeRoundedPart(radius * 1.36, color);
+  const lower = makeCylinderPart(lowerLength, radius * 0.92, color);
+  const end = new THREE.Group();
+
+  joint.position.set(0, -upperLength, 0);
+  joint.add(jointBall, lower);
+  end.position.set(0, -lowerLength, 0);
+  joint.add(end);
+  pivot.add(upper, joint);
+
+  return { pivot, joint, end, jointBall };
 };
 
 const makeRoundedPart = (radius: number, color: number) => {
@@ -111,27 +143,27 @@ const makeAvocadoModel = () => {
   root.add(body);
 
   const outer = new THREE.Mesh(
-    new THREE.SphereGeometry(1, 48, 48),
+    makeAvocadoGeometry(1),
     new THREE.MeshStandardMaterial({
       color: 0x2f7d3a,
       roughness: 0.72,
       metalness: 0.03,
     }),
   );
-  outer.scale.set(0.92, 1.28, 0.22);
+  outer.scale.set(0.95, 1.05, 0.24);
   outer.castShadow = true;
   body.add(outer);
 
   const flesh = new THREE.Mesh(
-    new THREE.SphereGeometry(1, 48, 48),
+    makeAvocadoGeometry(0.82),
     new THREE.MeshStandardMaterial({
       color: 0xd8e88e,
       roughness: 0.82,
       metalness: 0.02,
     }),
   );
-  flesh.position.set(0, -0.02, 0.075);
-  flesh.scale.set(0.78, 1.08, 0.16);
+  flesh.position.set(0.01, -0.06, 0.11);
+  flesh.scale.set(0.93, 0.93, 0.14);
   flesh.castShadow = true;
   body.add(flesh);
 
@@ -190,34 +222,38 @@ const makeAvocadoModel = () => {
   mouthGroup.add(smile);
   body.add(mouthGroup);
 
-  const leftArm = makeLimb(0.82, 0.038, 0x8a6b30);
-  const rightArm = makeLimb(0.82, 0.038, 0x8a6b30);
+  const leftArmRig = makeJointedLimb(0.38, 0.44, 0.038, 0x8a6b30);
+  const rightArmRig = makeJointedLimb(0.38, 0.44, 0.038, 0x8a6b30);
+  const leftArm = leftArmRig.pivot;
+  const rightArm = rightArmRig.pivot;
   const leftHand = makeRoundedPart(0.07, 0x9d7c39);
   const rightHand = makeRoundedPart(0.07, 0x9d7c39);
-  leftHand.position.set(0, -0.84, 0.035);
-  rightHand.position.set(0, -0.84, 0.035);
+  leftHand.position.set(0, -0.02, 0.035);
+  rightHand.position.set(0, -0.02, 0.035);
   leftHand.scale.set(1.05, 0.86, 0.82);
   rightHand.scale.set(1.05, 0.86, 0.82);
-  leftArm.add(leftHand);
-  rightArm.add(rightHand);
-  leftArm.position.set(-0.58, -0.4, 0.31);
-  rightArm.position.set(0.58, -0.4, 0.31);
+  leftArmRig.end.add(leftHand);
+  rightArmRig.end.add(rightHand);
+  leftArm.position.set(-0.58, -0.38, 0.33);
+  rightArm.position.set(0.58, -0.38, 0.33);
   leftArm.rotation.z = 0.55;
   rightArm.rotation.z = -0.55;
   body.add(leftArm, rightArm);
 
-  const leftLeg = makeLimb(0.64, 0.045, 0x7f622d);
-  const rightLeg = makeLimb(0.64, 0.045, 0x7f622d);
+  const leftLegRig = makeJointedLimb(0.29, 0.31, 0.045, 0x7f622d);
+  const rightLegRig = makeJointedLimb(0.29, 0.31, 0.045, 0x7f622d);
+  const leftLeg = leftLegRig.pivot;
+  const rightLeg = rightLegRig.pivot;
   const leftFoot = makeRoundedPart(0.085, 0x8d7135);
   const rightFoot = makeRoundedPart(0.085, 0x8d7135);
-  leftFoot.position.set(0.045, -0.64, 0.04);
-  rightFoot.position.set(-0.045, -0.64, 0.04);
+  leftFoot.position.set(0.055, -0.02, 0.045);
+  rightFoot.position.set(-0.055, -0.02, 0.045);
   leftFoot.scale.set(1.35, 0.58, 0.84);
   rightFoot.scale.set(1.35, 0.58, 0.84);
-  leftLeg.add(leftFoot);
-  rightLeg.add(rightFoot);
-  leftLeg.position.set(-0.26, -1.13, 0.12);
-  rightLeg.position.set(0.26, -1.13, 0.12);
+  leftLegRig.end.add(leftFoot);
+  rightLegRig.end.add(rightFoot);
+  leftLeg.position.set(-0.27, -1.08, 0.14);
+  rightLeg.position.set(0.27, -1.08, 0.14);
   body.add(leftLeg, rightLeg);
 
   const parts = {
@@ -226,8 +262,12 @@ const makeAvocadoModel = () => {
     seed,
     leftArm,
     rightArm,
+    leftElbow: leftArmRig.joint,
+    rightElbow: rightArmRig.joint,
     leftLeg,
     rightLeg,
+    leftKnee: leftLegRig.joint,
+    rightKnee: rightLegRig.joint,
     leftEye,
     rightEye,
     leftSpark,
@@ -402,8 +442,12 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
         avocado.seed.position.set(0, -0.12 + breathe * 0.012, 0.26);
         avocado.leftArm.rotation.set(0, 0, 0.55 + breathe * 0.07);
         avocado.rightArm.rotation.set(0, 0, -0.55 - breathe * 0.07);
+        avocado.leftElbow.rotation.set(0, 0, -0.28 + breathe * 0.035);
+        avocado.rightElbow.rotation.set(0, 0, 0.28 - breathe * 0.035);
         avocado.leftLeg.rotation.set(0, 0, breathe * 0.035);
         avocado.rightLeg.rotation.set(0, 0, -breathe * 0.035);
+        avocado.leftKnee.rotation.set(0, 0, 0.18);
+        avocado.rightKnee.rotation.set(0, 0, -0.18);
         avocado.leftHand.scale.set(1.05, 0.86, 0.82);
         avocado.rightHand.scale.set(1.05, 0.86, 0.82);
         avocado.leftFoot.scale.set(1.35, 0.58, 0.84);
@@ -416,24 +460,37 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
           avocado.seed.position.y = -0.12 + fastCycle * 0.02;
           avocado.leftArm.rotation.z = 0.42 + Math.sin(elapsed * 10.5) * 0.28;
           avocado.rightArm.rotation.z = -0.42 - Math.sin(elapsed * 9.7) * 0.28;
+          avocado.leftElbow.rotation.z = -0.42 + Math.sin(elapsed * 13) * 0.22;
+          avocado.rightElbow.rotation.z = 0.42 - Math.sin(elapsed * 12.5) * 0.22;
         } else if (mode === "walk") {
-          avocado.root.position.y = Math.abs(walkCycle) * 0.12;
+          avocado.root.position.y = Math.abs(walkCycle) * 0.055;
           avocado.root.rotation.z = Math.sin(elapsed * 7) * 0.095;
           avocado.leftArm.rotation.z = 0.58 + walkCycle * 0.48;
           avocado.rightArm.rotation.z = -0.58 - walkCycle * 0.48;
-          avocado.leftLeg.rotation.z = walkCycle * 0.32;
-          avocado.rightLeg.rotation.z = -walkCycle * 0.32;
+          avocado.leftElbow.rotation.z = -0.3 - walkCycle * 0.16;
+          avocado.rightElbow.rotation.z = 0.3 + walkCycle * 0.16;
+          avocado.leftLeg.rotation.z = walkCycle * 0.24;
+          avocado.rightLeg.rotation.z = -walkCycle * 0.24;
+          avocado.leftKnee.rotation.z = 0.18 + Math.max(0, -walkCycle) * 0.34;
+          avocado.rightKnee.rotation.z = -0.18 - Math.max(0, walkCycle) * 0.34;
+          avocado.leftFoot.scale.y = 0.5 + Math.max(0, walkCycle) * 0.08;
+          avocado.rightFoot.scale.y = 0.5 + Math.max(0, -walkCycle) * 0.08;
         } else if (mode === "happy") {
           avocado.root.position.y = Math.abs(Math.sin(elapsed * 8.5)) * 0.16;
           avocado.root.rotation.z = Math.sin(elapsed * 8.5) * 0.16;
           avocado.body.scale.set(1.05 + fastCycle * 0.02, 0.96 - fastCycle * 0.012, 1);
           avocado.leftArm.rotation.z = 0.1 + Math.sin(elapsed * 11) * 0.2;
           avocado.rightArm.rotation.z = -0.1 - Math.sin(elapsed * 11) * 0.2;
+          avocado.leftElbow.rotation.z = -0.58 + Math.sin(elapsed * 11) * 0.18;
+          avocado.rightElbow.rotation.z = 0.58 - Math.sin(elapsed * 11) * 0.18;
+          avocado.leftKnee.rotation.z = 0.34;
+          avocado.rightKnee.rotation.z = -0.34;
         } else if (mode === "wave") {
           avocado.root.rotation.z = Math.sin(elapsed * 4.8) * 0.055;
           avocado.leftArm.rotation.z = 0.48 + breathe * 0.05;
           avocado.rightArm.rotation.z = -1.95 + Math.sin(elapsed * 12.5) * 0.38;
           avocado.rightArm.rotation.y = -0.38;
+          avocado.rightElbow.rotation.z = 0.86 + Math.sin(elapsed * 12.5) * 0.22;
           avocado.rightHand.scale.set(1.15, 0.92 + Math.abs(fastCycle) * 0.14, 0.86);
         } else if (mode === "jump") {
           const hop = Math.abs(Math.sin(elapsed * 7.2));
@@ -442,26 +499,37 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
           avocado.body.scale.set(1.04 - hop * 0.045, 0.95 + hop * 0.08, 1);
           avocado.leftArm.rotation.z = -0.1 + Math.sin(elapsed * 10) * 0.12;
           avocado.rightArm.rotation.z = 0.1 - Math.sin(elapsed * 10) * 0.12;
+          avocado.leftElbow.rotation.z = -0.74;
+          avocado.rightElbow.rotation.z = 0.74;
           avocado.leftLeg.rotation.z = -0.22 - hop * 0.28;
           avocado.rightLeg.rotation.z = 0.22 + hop * 0.28;
+          avocado.leftKnee.rotation.z = 0.44 + hop * 0.22;
+          avocado.rightKnee.rotation.z = -0.44 - hop * 0.22;
         } else if (mode === "dance") {
           avocado.root.position.y = Math.abs(Math.sin(elapsed * 6.5)) * 0.13;
           avocado.root.rotation.z = Math.sin(elapsed * 6.5) * 0.22;
           avocado.root.rotation.y = Math.sin(elapsed * 3.8) * 0.26;
           avocado.leftArm.rotation.z = 0.24 + Math.sin(elapsed * 9.5) * 0.55;
           avocado.rightArm.rotation.z = -0.24 + Math.sin(elapsed * 9.5 + Math.PI) * 0.55;
+          avocado.leftElbow.rotation.z = -0.4 + Math.sin(elapsed * 8.5) * 0.3;
+          avocado.rightElbow.rotation.z = 0.4 + Math.sin(elapsed * 8.5 + Math.PI) * 0.3;
           avocado.leftLeg.rotation.z = Math.sin(elapsed * 9.5 + Math.PI) * 0.24;
           avocado.rightLeg.rotation.z = Math.sin(elapsed * 9.5) * 0.24;
+          avocado.leftKnee.rotation.z = 0.2 + Math.abs(Math.sin(elapsed * 9.5)) * 0.24;
+          avocado.rightKnee.rotation.z = -0.2 - Math.abs(Math.sin(elapsed * 9.5 + Math.PI)) * 0.24;
         } else if (mode === "look") {
           avocado.root.rotation.y = Math.sin(elapsed * 2.6) * 0.32;
           avocado.root.rotation.z = Math.sin(elapsed * 1.7) * 0.035;
           avocado.leftArm.rotation.z = 0.35 + Math.sin(elapsed * 2.4) * 0.08;
           avocado.rightArm.rotation.z = -1.18 + Math.sin(elapsed * 4) * 0.12;
+          avocado.rightElbow.rotation.z = 0.74;
         } else if (mode === "stretch") {
           avocado.root.position.y = 0.08 + Math.sin(elapsed * 2.4) * 0.04;
           avocado.body.scale.set(0.95, 1.08 + Math.sin(elapsed * 2.4) * 0.025, 1);
           avocado.leftArm.rotation.z = 1.96 + Math.sin(elapsed * 2.4) * 0.08;
           avocado.rightArm.rotation.z = -1.96 - Math.sin(elapsed * 2.4) * 0.08;
+          avocado.leftElbow.rotation.z = -0.12;
+          avocado.rightElbow.rotation.z = 0.12;
           avocado.leftLeg.rotation.z = -0.12;
           avocado.rightLeg.rotation.z = 0.12;
         } else if (mode === "surprised") {
@@ -469,12 +537,16 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
           avocado.root.rotation.z = Math.sin(elapsed * 14) * 0.025;
           avocado.leftArm.rotation.z = 1.65 + Math.sin(elapsed * 14) * 0.12;
           avocado.rightArm.rotation.z = -1.65 - Math.sin(elapsed * 14) * 0.12;
+          avocado.leftElbow.rotation.z = -0.35;
+          avocado.rightElbow.rotation.z = 0.35;
         } else if (mode === "sad") {
           avocado.root.position.y = -0.1 + Math.sin(elapsed * 1.8) * 0.025;
           avocado.root.rotation.z = -0.16 + Math.sin(elapsed * 1.6) * 0.025;
           avocado.body.scale.set(0.97, 0.98, 1);
           avocado.leftArm.rotation.z = 0.82;
           avocado.rightArm.rotation.z = -0.82;
+          avocado.leftElbow.rotation.z = -0.12;
+          avocado.rightElbow.rotation.z = 0.12;
           avocado.leftEye.scale.y = 0.62;
           avocado.rightEye.scale.y = 0.62;
         } else if (mode === "sleep") {
@@ -483,16 +555,26 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
           avocado.body.scale.set(1.04, 0.92, 1);
           avocado.leftArm.rotation.z = 0.9 + Math.sin(elapsed * 1.4) * 0.035;
           avocado.rightArm.rotation.z = -0.9 - Math.sin(elapsed * 1.4) * 0.035;
+          avocado.leftElbow.rotation.z = -0.54;
+          avocado.rightElbow.rotation.z = 0.54;
           avocado.leftLeg.rotation.z = 0.16;
           avocado.rightLeg.rotation.z = -0.16;
+          avocado.leftKnee.rotation.z = 0.34;
+          avocado.rightKnee.rotation.z = -0.34;
         } else if (mode === "drag") {
           avocado.root.position.y = 0.18 + Math.sin(elapsed * 8) * 0.035;
           avocado.root.rotation.z = Math.sin(elapsed * 7) * 0.13;
           avocado.body.scale.set(0.96, 1.05, 1);
-          avocado.leftArm.rotation.z = 1.05 + Math.sin(elapsed * 9) * 0.08;
-          avocado.rightArm.rotation.z = -1.05 - Math.sin(elapsed * 9) * 0.08;
+          avocado.leftArm.rotation.z = 2.48 + Math.sin(elapsed * 9) * 0.05;
+          avocado.rightArm.rotation.z = -2.48 - Math.sin(elapsed * 9) * 0.05;
+          avocado.leftElbow.rotation.z = -0.72 + Math.sin(elapsed * 8) * 0.08;
+          avocado.rightElbow.rotation.z = 0.72 - Math.sin(elapsed * 8) * 0.08;
+          avocado.leftHand.scale.set(1.22, 1.0, 0.9);
+          avocado.rightHand.scale.set(1.22, 1.0, 0.9);
           avocado.leftLeg.rotation.z = 0.3 + Math.sin(elapsed * 10) * 0.18;
           avocado.rightLeg.rotation.z = -0.3 - Math.sin(elapsed * 10) * 0.18;
+          avocado.leftKnee.rotation.z = 0.55;
+          avocado.rightKnee.rotation.z = -0.55;
         }
       }
       renderer.render(scene, camera);
@@ -563,7 +645,7 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
             const nextX = clamp(position.x + (Math.random() < 0.5 ? -1 : 1) * (80 + Math.random() * 118), 4, maxX);
             setAnimationName("walk");
             setPosition((current) => clampPosition(nextX, current.y));
-            window.setTimeout(() => setAnimationName("idle"), 1700);
+            window.setTimeout(() => setAnimationName("idle"), 2400);
           }
         } else if (roll < 0.4) {
           setAnimationName("sleep");
@@ -651,7 +733,7 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
     transition: settling
       ? "top 520ms cubic-bezier(.18,.86,.22,1.08), left 260ms ease-out"
       : animationName === "walk"
-        ? "left 1500ms linear"
+        ? "left 2400ms linear"
         : "none",
     opacity: ready ? 1 : 0,
   } as const;
@@ -690,7 +772,8 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
         title={title}
         aria-label={title}
       >
-        <span className="pointer-events-none absolute bottom-2 left-1/2 h-5 w-[58%] -translate-x-1/2 rounded-full bg-black/30 blur-md" />
+        <span className="pointer-events-none absolute bottom-1 left-1/2 h-4 w-[66%] -translate-x-1/2 rounded-full bg-black/35 blur-sm" />
+        <span className="pointer-events-none absolute bottom-3 left-1/2 h-px w-[54%] -translate-x-1/2 bg-lime-100/20" />
         <canvas
           ref={canvasRef}
           width={MASCOT_WIDTH}
