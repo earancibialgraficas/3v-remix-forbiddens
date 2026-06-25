@@ -1482,27 +1482,24 @@ fn screen_layout(app: &AppHandle) -> Option<(i32, i32, u32, u32, u32, u32)> {
     let monitor_center_y = position.y + (size.height / 2) as i32;
     let (x, y, width, height) = windows_work_area_for_point(monitor_center_x, monitor_center_y)
         .unwrap_or((position.x, position.y, size.width, size.height));
-    let desired_companion_width = if width < 1100 {
-        width.saturating_mul(36) / 100
-    } else {
-        width.saturating_mul(28) / 100
-    };
-    let minimum_companion_width = if width < 900 { 300 } else { 380 }.min(width);
-    let maximum_companion_width = if width < 1100 {
-        width.saturating_mul(45) / 100
-    } else {
-        520
-    }
-    .min(width);
-    let minimum_emulator_width = if width >= 720 { 420 } else { width / 2 };
-    let companion_limit = width
-        .saturating_sub(minimum_emulator_width)
-        .max((width / 3).min(width));
-    let companion_width = desired_companion_width
+    let width_f = width as f64;
+    let height_f = height.max(1) as f64;
+    let aspect_ratio = width_f / height_f;
+    let narrowness = ((1.85 - aspect_ratio) / 0.85).clamp(0.0, 1.0);
+    let target_ratio = 0.30 + (narrowness * 0.14);
+    let desired_from_width = (width_f * target_ratio).round() as u32;
+    let desired_from_height = (height_f * 0.42).round() as u32;
+    let minimum_companion_width = ((height_f * 0.36).round() as u32)
+        .clamp(320, 460)
+        .min(width);
+    let maximum_companion_width = ((width_f * 0.48).round() as u32)
+        .min((height_f * 0.64).round() as u32)
         .max(minimum_companion_width)
-        .min(maximum_companion_width)
-        .min(companion_limit)
-        .max(260.min(width));
+        .min(width);
+    let companion_width = desired_from_width
+        .max(desired_from_height)
+        .max(minimum_companion_width)
+        .min(maximum_companion_width);
     let emulator_width = width.saturating_sub(companion_width);
     Some((
         x,
@@ -1527,6 +1524,7 @@ fn enter_native_companion_layout(app: &AppHandle) -> Result<(), String> {
     window
         .set_min_size(Some(PhysicalSize::new(320, 420)))
         .map_err(|error| error.to_string())?;
+    let _ = window.unmaximize();
     window
         .set_position(PhysicalPosition::new(x + emulator_width as i32, y))
         .map_err(|error| error.to_string())?;
