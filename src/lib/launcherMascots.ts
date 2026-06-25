@@ -1,4 +1,4 @@
-export type LauncherMascotSlug = 'dragon_noxito';
+export type LauncherMascotSlug = 'dragon_noxito' | 'avocado_palta';
 
 export type LauncherMascotTheme = {
   slug: LauncherMascotSlug;
@@ -12,6 +12,7 @@ export type LauncherMascotTheme = {
   assets: {
     baseUrl: string;
     config: string;
+    modelUrl?: string;
   };
 };
 
@@ -28,6 +29,21 @@ export const LAUNCHER_MASCOTS: Record<LauncherMascotSlug, LauncherMascotTheme> =
     assets: {
       baseUrl: '/mascot/dragon',
       config: 'dragonMascotConfig',
+    },
+  },
+  avocado_palta: {
+    slug: 'avocado_palta',
+    name: 'Mascota Palta 3D',
+    description: 'Mascota 3D riggeada para el launcher nativo, con animaciones de idle, caminar, hablar, dormir y reacciones al companion.',
+    thumbnailUrl: '/mascot/avocado/base.png',
+    price: 12000,
+    priceType: 'fcoins',
+    tierRequirement: 'lite',
+    companionOnly: true,
+    assets: {
+      baseUrl: '/mascot/avocado',
+      config: 'avocadoMascot3D',
+      modelUrl: '/mascot/avocado/avocado_mascot.glb',
     },
   },
 };

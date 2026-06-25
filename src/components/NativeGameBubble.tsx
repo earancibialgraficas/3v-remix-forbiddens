@@ -10,6 +10,7 @@ import { useNativeSession } from "@/contexts/NativeSessionContext";
 import { getLauncherBridge } from "@/lib/launcherBridge";
 import { getNativeCloudSaveKind, isNativeCloudSaveSupported, restoreNativeCloudSave, syncNativeCloudSave } from "@/lib/nativeCloudSaves";
 import DragonMascot, { emitDragonMascotEvent } from "@/components/DragonMascot";
+import AvocadoMascot3D from "@/components/AvocadoMascot3D";
 
 const POINTS_INTERVAL_MS = 10_000;
 const POINTS_PER_INTERVAL = 10;
@@ -1015,6 +1016,9 @@ export default function NativeGameBubble() {
       </div>
       {launcherPanelMode && activeMascot?.slug === "dragon_noxito" && (
         <DragonMascot gameName={session.gameName} className="z-[95]" />
+      )}
+      {launcherPanelMode && activeMascot?.slug === "avocado_palta" && (
+        <AvocadoMascot3D gameName={session.gameName} className="z-[95]" />
       )}
     </div>
   );

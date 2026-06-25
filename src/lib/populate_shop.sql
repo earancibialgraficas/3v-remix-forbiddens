@@ -186,6 +186,16 @@ VALUES
     'launcher_mascot',
     'lite',
     '/mascot/dragon/base.png'
+  ),
+  (
+    'avocado_palta',
+    'Mascota Palta 3D',
+    'Mascota 3D riggeada para el launcher nativo, con animaciones de idle, caminar, hablar, dormir y reacciones al companion.',
+    12000,
+    'fcoins',
+    'launcher_mascot',
+    'lite',
+    '/mascot/avocado/base.png'
   )
 ON CONFLICT (slug) DO UPDATE SET
   name = EXCLUDED.name,
