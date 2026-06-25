@@ -383,17 +383,18 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
   } as const;
 
   return (
-    <div ref={stageRef} className={cn("pointer-events-none absolute inset-0 overflow-hidden", className)} data-native-action>
+    <div ref={stageRef} className={cn("notranslate pointer-events-none absolute inset-0 overflow-hidden", className)} data-native-action translate="no">
       {bubbleVisible && (
         <div
           className="pointer-events-none absolute z-[110] max-w-[min(310px,78vw)] rounded-[18px] border-2 border-[#351019] bg-[#fff3f8] px-3.5 py-2.5 shadow-[5px_6px_0_rgba(53,16,25,0.55)]"
+          translate="no"
           style={{
             left: clamp(position.x - 86, 10, Math.max(10, (stageRef.current?.clientWidth || 360) - 318)),
             top: Math.max(8, position.y - 74),
           }}
         >
           <div className="absolute -bottom-[11px] left-1/2 h-5 w-5 -translate-x-1/2 rotate-45 border-b-2 border-r-2 border-[#351019] bg-[#fff3f8]" />
-          <p className="relative z-10 min-h-[2rem] text-[11px] font-black leading-snug text-[#351019]">
+          <p className="notranslate relative z-10 min-h-[2rem] text-[11px] font-black leading-snug text-[#351019]" translate="no">
             {typedMessage}
             <span className="ml-0.5 inline-block h-3 w-1 animate-pulse bg-[#351019] align-[-2px]" />
           </p>

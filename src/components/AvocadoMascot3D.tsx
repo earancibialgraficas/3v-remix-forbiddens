@@ -414,17 +414,18 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
   } as const;
 
   return (
-    <div ref={stageRef} className={cn("pointer-events-none absolute inset-0 overflow-hidden", className)} data-native-action>
+    <div ref={stageRef} className={cn("notranslate pointer-events-none absolute inset-0 overflow-hidden", className)} data-native-action translate="no">
       {bubbleVisible && (
         <div
           className="pointer-events-none absolute z-[110] max-w-[min(300px,78vw)] rounded-[18px] border-2 border-[#22380d] bg-[#f7ffd8] px-3.5 py-2.5 shadow-[5px_6px_0_rgba(34,56,13,0.55)]"
+          translate="no"
           style={{
             left: clamp(position.x - 76, 10, Math.max(10, (stageRef.current?.clientWidth || 360) - 308)),
             top: Math.max(8, position.y - 74),
           }}
         >
           <div className="absolute -bottom-[11px] left-1/2 h-5 w-5 -translate-x-1/2 rotate-45 border-b-2 border-r-2 border-[#22380d] bg-[#f7ffd8]" />
-          <p className="relative z-10 min-h-[2rem] text-[11px] font-black leading-snug text-[#22380d]">
+          <p className="notranslate relative z-10 min-h-[2rem] text-[11px] font-black leading-snug text-[#22380d]" translate="no">
             {typedMessage}
             <span className="ml-0.5 inline-block h-3 w-1 animate-pulse bg-[#22380d] align-[-2px]" />
           </p>

@@ -821,11 +821,12 @@ export default function NativeGameBubble() {
       ref={bubbleRef}
       className={cn(
         launcherPanelMode
-          ? "fixed bottom-2 left-2 right-2 top-2 z-[80] flex flex-col overflow-hidden rounded-lg border border-neon-cyan/30 bg-[#080a10]/92 shadow-[0_0_40px_rgba(34,211,238,0.22)] backdrop-blur-xl"
-          : "fixed z-[80] w-[min(94vw,330px)] overflow-hidden rounded-lg border border-neon-cyan/30 bg-[#080a10]/92 shadow-[0_0_40px_rgba(34,211,238,0.22)] backdrop-blur-xl",
+          ? "notranslate fixed bottom-2 left-2 right-2 top-2 z-[80] flex flex-col overflow-hidden rounded-lg border border-neon-cyan/30 bg-[#080a10]/92 shadow-[0_0_40px_rgba(34,211,238,0.22)] backdrop-blur-xl"
+          : "notranslate fixed z-[80] w-[min(94vw,330px)] overflow-hidden rounded-lg border border-neon-cyan/30 bg-[#080a10]/92 shadow-[0_0_40px_rgba(34,211,238,0.22)] backdrop-blur-xl",
         dragging && "select-none",
       )}
       style={launcherPanelMode ? undefined : { left: position.x, top: position.y }}
+      translate="no"
     >
       <div
         className={cn("flex items-center justify-between gap-2 border-b border-white/10 bg-white/[0.03] px-2.5 py-1.5", !launcherPanelMode && "cursor-move")}
