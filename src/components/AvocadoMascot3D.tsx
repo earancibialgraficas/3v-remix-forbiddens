@@ -23,8 +23,8 @@ type AvocadoAnimation = "idle" | "walk" | "talk" | "happy" | "sad" | "sleep" | "
 
 const MASCOT_EVENT = "forbiddens:dragon-mascot";
 const MODEL_URL = "/mascot/avocado/avocado_mascot_v3.glb?v=20260625-3";
-const MASCOT_WIDTH = 226;
-const MASCOT_HEIGHT = 236;
+const MASCOT_WIDTH = 260;
+const MASCOT_HEIGHT = 310;
 const GROUND_GAP = 0;
 
 const eventAnimation: Record<DragonMascotEventType, AvocadoAnimation> = {
@@ -97,6 +97,7 @@ const relaxAvocadoTpose = (model: THREE.Object3D) => {
 
 export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3DProps) {
   const stageRef = useRef<HTMLDivElement>(null);
+  const modelShellRef = useRef<HTMLSpanElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mixerRef = useRef<THREE.AnimationMixer | null>(null);
   const modelRootRef = useRef<THREE.Group | null>(null);
@@ -214,9 +215,9 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
     rendererRef.current = renderer;
 
     const scene = new THREE.Scene();
-    const camera = new THREE.OrthographicCamera(-2.05, 2.05, 2.2, -2.2, 0.1, 100);
-    camera.position.set(0, 1.2, 5.2);
-    camera.lookAt(0, 0.05, 0);
+    const camera = new THREE.OrthographicCamera(-2.55, 2.55, 3.05, -3.05, 0.1, 100);
+    camera.position.set(0, 1.0, 6.2);
+    camera.lookAt(0, 0, 0);
 
     scene.add(new THREE.HemisphereLight(0xffffff, 0x604040, 1.95));
     const keyLight = new THREE.DirectionalLight(0xfff4dc, 2.35);
@@ -237,7 +238,7 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
       const size = box.getSize(new THREE.Vector3());
       const maxAxis = Math.max(size.x, size.y, size.z) || 1;
       model.position.set(-center.x, -center.y, -center.z);
-      const baseScale = 2.28 / maxAxis;
+      const baseScale = 2.04 / maxAxis;
       const root = new THREE.Group();
       root.scale.setScalar(baseScale);
       root.add(model);
@@ -268,6 +269,7 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
       const elapsed = clock.elapsedTime;
       mixerRef.current?.update(delta);
       const modelRoot = modelRootRef.current;
+      const modelShell = modelShellRef.current;
       if (modelRoot) {
         const baseScale = modelBaseScaleRef.current || 1;
         const state = animationNameRef.current;
@@ -289,6 +291,17 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
           baseScale * (1 + squash),
           baseScale,
         );
+        if (modelShell) {
+          const shellY = isSleep
+            ? 12 + Math.sin(elapsed * 1.8) * 2
+            : Math.sin(elapsed * (isTalk ? 9.5 : isWalk ? 10.5 : 2.4)) * (isTalk ? 13 : isWalk ? 15 : 9) + (isDrag ? 14 : 0);
+          const shellRot = isSleep
+            ? -13 + Math.sin(elapsed * 1.4) * 1.4
+            : Math.sin(elapsed * (isTalk ? 8.5 : isHappy ? 7.8 : isWalk ? 9 : 1.9)) * (isTalk ? 5 : isHappy ? 9 : isWalk ? 7 : 2.8);
+          const shellScaleX = isTalk ? 1 + Math.sin(elapsed * 14) * 0.035 : isHappy ? 1.04 : 1;
+          const shellScaleY = isTalk ? 1 - Math.sin(elapsed * 14) * 0.03 : isHappy ? 0.98 : 1;
+          modelShell.style.transform = `translateY(${shellY}px) rotate(${shellRot}deg) scale(${shellScaleX}, ${shellScaleY})`;
+        }
       }
       renderer.render(scene, camera);
       animationFrameRef.current = window.requestAnimationFrame(render);
@@ -443,18 +456,6 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
     opacity: ready ? 1 : 0,
   } as const;
 
-  const modelMotionClass = dragging
-    ? "animate-[avocado-drag_720ms_ease-in-out_infinite]"
-    : animationName === "talk"
-      ? "animate-[avocado-talk_420ms_ease-in-out_infinite]"
-      : animationName === "happy"
-        ? "animate-[avocado-happy_620ms_ease-in-out_infinite]"
-        : animationName === "walk"
-          ? "animate-[avocado-walk_520ms_ease-in-out_infinite]"
-          : animationName === "sleep"
-            ? "animate-[avocado-sleep_2600ms_ease-in-out_infinite]"
-            : "animate-[avocado-idle_2400ms_ease-in-out_infinite]";
-
   return (
     <div ref={stageRef} className={cn("notranslate pointer-events-none absolute inset-0 overflow-hidden", className)} data-native-action translate="no">
       {bubbleVisible && (
@@ -491,8 +492,9 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
       >
         <span className="pointer-events-none absolute bottom-2 left-1/2 h-5 w-[58%] -translate-x-1/2 rounded-full bg-black/30 blur-md" />
         <span
-          className={cn("pointer-events-none relative z-10 block h-full w-full drop-shadow-[0_12px_18px_rgba(0,0,0,0.52)]", modelMotionClass)}
-          style={{ transformOrigin: "50% 82%" }}
+          ref={modelShellRef}
+          className="pointer-events-none relative z-10 block h-full w-full drop-shadow-[0_12px_18px_rgba(0,0,0,0.52)] will-change-transform"
+          style={{ transformOrigin: "50% 82%", transform: "translateY(0) rotate(0deg) scale(1)" }}
         >
           <canvas
             ref={canvasRef}
