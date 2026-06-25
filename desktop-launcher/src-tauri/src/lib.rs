@@ -1,6 +1,7 @@
 use std::{
     env, fs,
     io::{self, BufRead, BufReader},
+    net::UdpSocket,
     path::{Path, PathBuf},
     process::{Command, Stdio},
     sync::atomic::{AtomicU32, Ordering},
@@ -126,8 +127,8 @@ struct NativeDownloadProgressEvent {
     error: Option<String>,
 }
 
-const WEBSITE_URL: &str = "https://forbiddens.net/?launcher_version=0.1.36";
-const LAUNCHER_DOWNLOAD_URL: &str = "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.36_x64-setup.exe";
+const WEBSITE_URL: &str = "https://forbiddens.net/?launcher_version=0.1.37";
+const LAUNCHER_DOWNLOAD_URL: &str = "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.37_x64-setup.exe";
 static ACTIVE_NATIVE_PROCESS_ID: AtomicU32 = AtomicU32::new(0);
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 const LAUNCHER_BRIDGE_SCRIPT: &str = r#"
@@ -206,6 +207,7 @@ const LAUNCHER_BRIDGE_SCRIPT: &str = r#"
     setNativeEmulatorState: function (processId, action) { return invoke("set_native_emulator_state", { processId: processId, action: action }); },
     nativeEmulatorAction: function (processId, action) { return invoke("native_emulator_action", { processId: processId, action: action }); },
     setNativeEmulatorVolume: function (processId, volume) { return invoke("set_native_emulator_volume", { processId: processId, volume: volume }); },
+    syncNativeCompanionLayout: function (processId) { return invoke("sync_native_companion_layout", { processId: processId }); },
     readNativeSaveFile: function (args) { return invoke("read_native_save_file", args || {}); },
     writeNativeSaveFile: function (args) { return invoke("write_native_save_file", args || {}); },
     exportNativeLocalSave: function (args) { return invoke("export_native_local_save", args || {}); },
@@ -915,7 +917,7 @@ fn ensure_retroarch_save_config(console_id: &str) -> Result<PathBuf, String> {
     let saves = saves_dir.to_string_lossy().replace('\\', "/");
     let states = states_dir.to_string_lossy().replace('\\', "/");
     let content = format!(
-        "savefile_directory = \"{}\"\nsavestate_directory = \"{}\"\nsavestate_auto_index = \"false\"\nsavestate_slot = \"0\"\npause_nonactive = \"false\"\n",
+        "savefile_directory = \"{}\"\nsavestate_directory = \"{}\"\nsavestate_auto_index = \"false\"\nsavestate_slot = \"0\"\npause_nonactive = \"false\"\nnetwork_cmd_enable = \"true\"\nnetwork_cmd_port = \"55355\"\ninput_menu_toggle = \"f1\"\ninput_save_state = \"f2\"\ninput_load_state = \"f4\"\ninput_pause_toggle = \"p\"\n",
         saves, states
     );
     fs::write(&config_path, content).map_err(|error| error.to_string())?;
@@ -2084,6 +2086,13 @@ fn set_native_emulator_state(process_id: u32, action: String) -> Result<(), Stri
     Ok(())
 }
 
+#[tauri::command]
+fn sync_native_companion_layout(app: AppHandle, process_id: u32) -> Result<(), String> {
+    enter_native_companion_layout(&app)?;
+    arrange_emulator_window(app, process_id);
+    Ok(())
+}
+
 #[cfg(windows)]
 fn send_native_key(process_id: u32, virtual_key: u8) -> Result<(), String> {
     let Some(hwnd) = native_process_window_handle(process_id) else {
@@ -2104,15 +2113,30 @@ fn send_native_key(process_id: u32, virtual_key: u8) -> Result<(), String> {
     Ok(())
 }
 
+fn send_retroarch_network_command(command: &str) -> bool {
+    let Ok(socket) = UdpSocket::bind("127.0.0.1:0") else {
+        return false;
+    };
+    socket
+        .send_to(command.as_bytes(), "127.0.0.1:55355")
+        .is_ok()
+}
+
 #[tauri::command]
 fn native_emulator_action(process_id: u32, action: String) -> Result<(), String> {
-    let virtual_key: u8 = match action.trim().to_lowercase().as_str() {
-        "menu" | "settings" | "config" => 0x70,
-        "save_state" | "savestate" => 0x71,
-        "load_state" => 0x73,
-        "pause" | "pause_toggle" | "play_pause" => 0x50,
+    let normalized = action.trim().to_lowercase();
+    let (retroarch_command, virtual_key): (&str, u8) = match normalized.as_str() {
+        "menu" | "settings" | "config" => ("MENU_TOGGLE", 0x70),
+        "save_state" | "savestate" => ("SAVE_STATE", 0x71),
+        "load_state" => ("LOAD_STATE", 0x73),
+        "pause" | "pause_toggle" | "play_pause" => ("PAUSE_TOGGLE", 0x50),
         _ => return Err("Accion del emulador no soportada.".to_string()),
     };
+
+    let sent_retroarch_command = send_retroarch_network_command(retroarch_command);
+    if sent_retroarch_command && matches!(normalized.as_str(), "menu" | "settings" | "config" | "pause" | "pause_toggle" | "play_pause") {
+        return Ok(());
+    }
 
     #[cfg(windows)]
     {
@@ -3060,6 +3084,7 @@ pub fn run() {
             open_native_emulator,
             close_native_emulator,
             set_native_emulator_state,
+            sync_native_companion_layout,
             native_emulator_action,
             set_native_emulator_volume,
             read_native_save_file,

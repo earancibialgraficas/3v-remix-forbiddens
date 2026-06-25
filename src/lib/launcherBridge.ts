@@ -82,6 +82,7 @@ type LauncherBridge = {
   setNativeEmulatorState?: (processId: number, action: "minimize" | "restore" | "show" | "maximize") => Promise<void>;
   nativeEmulatorAction?: (processId: number, action: "menu" | "save_state" | "load_state" | "pause_toggle") => Promise<void>;
   setNativeEmulatorVolume?: (processId: number, volume: number) => Promise<void>;
+  syncNativeCompanionLayout?: (processId: number) => Promise<void>;
   readNativeSaveFile?: (args: {
     consoleId: string;
     romPath: string;
@@ -169,6 +170,7 @@ const buildBridgeFromTauri = (): LauncherBridge | null => {
     setNativeEmulatorState: (processId: number, action: "minimize" | "restore" | "show" | "maximize") => invoke("set_native_emulator_state", { processId, action }),
     nativeEmulatorAction: (processId: number, action: "menu" | "save_state" | "load_state" | "pause_toggle") => invoke("native_emulator_action", { processId, action }),
     setNativeEmulatorVolume: (processId: number, volume: number) => invoke("set_native_emulator_volume", { processId, volume }),
+    syncNativeCompanionLayout: (processId: number) => invoke("sync_native_companion_layout", { processId }),
     readNativeSaveFile: (args) => invoke("read_native_save_file", args || {}),
     writeNativeSaveFile: (args) => invoke("write_native_save_file", args || {}),
     exportNativeLocalSave: (args) => invoke("export_native_local_save", args || {}),
@@ -189,12 +191,14 @@ export const getLauncherBridge = (): LauncherBridge | null => {
   if (typeof window === "undefined") return null;
   const existing = (window as any).forbiddensLauncher as LauncherBridge | undefined;
   const hasTauriInvoke = typeof (window as any).__TAURI__?.core?.invoke === "function";
+  if (!hasTauriInvoke) return null;
   const missingNativeApi = Boolean(
     hasTauriInvoke &&
       existing &&
       (!existing.openNativeEmulator ||
         !existing.nativeEmulatorAction ||
         !existing.setNativeEmulatorVolume ||
+        !existing.syncNativeCompanionLayout ||
         !existing.startDriveRomDownloadForNative ||
         !existing.startRemoteRomDownloadForNative),
   );

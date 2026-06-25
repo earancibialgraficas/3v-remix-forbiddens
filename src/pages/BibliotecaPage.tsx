@@ -1654,7 +1654,7 @@ const handlePlayCloudGame = async (game: any) => {
             </div>
           ) : (
             <>
-              {selectedConsoleHasNativeOption && (
+              {launcherDetected && selectedConsoleHasNativeOption && (
                 <div className="mb-3 rounded-lg border border-neon-cyan/25 bg-black/35 px-3 py-2 shadow-[0_0_24px_rgba(34,211,238,0.06)] backdrop-blur-sm">
                   <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
                     <div className="flex min-w-0 flex-1 items-center gap-2">

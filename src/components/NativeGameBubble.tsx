@@ -57,11 +57,10 @@ export default function NativeGameBubble() {
   const [musicPlaying, setMusicPlaying] = useState(false);
   const [musicCategory, setMusicCategory] = useState("Todos");
   const [musicOptions, setMusicOptions] = useState<MusicOption[]>(DEFAULT_MUSIC_OPTIONS);
-  const [nativeVolume, setNativeVolume] = useState(85);
+  const [nativeMuted, setNativeMuted] = useState(false);
   const launcherPanelMode = Boolean(getLauncherBridge());
   const latestSessionRef = useRef(session);
   const suppressNextExitProcessRef = useRef<number | null>(null);
-  const nativeVolumeTimerRef = useRef<number | null>(null);
   const bubbleRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef({ startX: 0, startY: 0, startPosX: 0, startPosY: 0 });
 
@@ -420,19 +419,15 @@ export default function NativeGameBubble() {
     });
   };
 
-  const changeNativeVolume = (value: number) => {
-    const nextVolume = Math.max(0, Math.min(100, Math.round(value)));
-    setNativeVolume(nextVolume);
+  const toggleNativeMute = () => {
+    const nextMuted = !nativeMuted;
+    setNativeMuted(nextMuted);
     const current = latestSessionRef.current;
     if (!current?.processId) return;
-    if (nativeVolumeTimerRef.current) window.clearTimeout(nativeVolumeTimerRef.current);
-    nativeVolumeTimerRef.current = window.setTimeout(() => {
-      const active = latestSessionRef.current;
-      if (!active?.processId) return;
-      getLauncherBridge()?.setNativeEmulatorVolume?.(active.processId, nextVolume).catch((error) => {
-        console.warn("No se pudo ajustar volumen nativo", error);
-      });
-    }, 140);
+    getLauncherBridge()?.setNativeEmulatorVolume?.(current.processId, nextMuted ? 0 : 100).catch((error) => {
+      setNativeMuted(!nextMuted);
+      console.warn("No se pudo mutear/desmutear emulador nativo", error);
+    });
   };
 
   const toggleEmulatorPause = async () => {
@@ -637,6 +632,10 @@ export default function NativeGameBubble() {
         ? String((result as any).rom_path || current.romPath)
         : current.romPath;
       updateNativeSession(current.id, { processId, romPath });
+      if (processId) {
+        await new Promise((resolve) => window.setTimeout(resolve, 450));
+        await bridge.syncNativeCompanionLayout?.(processId).catch(() => {});
+      }
       maximizeNativeSession();
       if (!options?.silent) {
         toast({
@@ -872,23 +871,20 @@ export default function NativeGameBubble() {
         <div className={cn(nativePanelClass, "p-2")} style={skinPanelStyle}>
           <div className="flex items-center justify-between gap-2">
             <p className="font-pixel text-[8px] uppercase text-neon-cyan">Volumen emulador</p>
-            <span className="text-[10px] font-semibold text-white/75">{nativeVolume}%</span>
+            <span className="text-[10px] font-semibold text-white/75">{nativeMuted ? "Mute" : "Activo"}</span>
           </div>
-          <div className="mt-2 flex items-center gap-2">
-            <VolumeX className="h-3.5 w-3.5 shrink-0 text-neon-cyan/70" />
-            <input
-              data-native-action
-              type="range"
-              min={0}
-              max={100}
-              step={1}
-              value={nativeVolume}
-              onChange={(event) => changeNativeVolume(Number(event.target.value))}
-              className="h-2 min-w-0 flex-1 accent-cyan-300"
-              aria-label="Volumen del emulador nativo"
-            />
-            <Volume2 className="h-3.5 w-3.5 shrink-0 text-neon-cyan/70" />
-          </div>
+          <Button
+            data-native-action
+            size="sm"
+            variant="outline"
+            onClick={toggleNativeMute}
+            className={cn(nativeButtonClass, "mt-2 h-9 w-full justify-center")}
+            style={skinButtonStyle}
+            aria-label={nativeMuted ? "Desmutear emulador nativo" : "Mutear emulador nativo"}
+          >
+            {nativeMuted ? <VolumeX className="mr-2 h-4 w-4" /> : <Volume2 className="mr-2 h-4 w-4" />}
+            {nativeMuted ? "Desmutear" : "Mutear"}
+          </Button>
         </div>
 
         <div className="grid grid-cols-3 gap-2">
