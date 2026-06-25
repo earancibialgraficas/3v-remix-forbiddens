@@ -1,7 +1,9 @@
 export type DragonMascotAnimationId =
   | "idle"
+  | "idle_sit"
   | "blink"
-  | "walk"
+  | "walk_left"
+  | "walk_right"
   | "talk"
   | "happy"
   | "sad"
@@ -9,7 +11,9 @@ export type DragonMascotAnimationId =
   | "laugh"
   | "tongue"
   | "fart"
+  | "lie_down"
   | "sleep"
+  | "wake"
   | "drag";
 
 export type DragonMascotEventType =
@@ -41,17 +45,21 @@ const frames = (prefix: string, count: number) =>
   Array.from({ length: count }, (_, index) => `${base}/${prefix}_${String(index + 1).padStart(2, "0")}.png`);
 
 export const dragonMascotAnimations: Record<DragonMascotAnimationId, DragonMascotAnimation> = {
-  idle: { id: "idle", frames: [`${base}/idle_01.png`], fps: 1, loop: true },
+  idle: { id: "idle", frames: frames("idle_live", 5), fps: 2, loop: true },
+  idle_sit: { id: "idle_sit", frames: frames("idle_sit", 5), fps: 2, loop: true },
   blink: { id: "blink", frames: frames("blink", 4), fps: 8, loop: false, fallback: "idle" },
-  walk: { id: "walk", frames: frames("walk_right", 5), fps: 8, loop: false, fallback: "idle" },
-  talk: { id: "talk", frames: frames("talk", 5), fps: 10, loop: true },
+  walk_left: { id: "walk_left", frames: frames("walk_left", 5), fps: 8, loop: true },
+  walk_right: { id: "walk_right", frames: frames("walk_right", 5), fps: 8, loop: true },
+  talk: { id: "talk", frames: frames("talk", 5), fps: 12, loop: true },
   happy: { id: "happy", frames: frames("happy", 4), fps: 9, loop: false, fallback: "idle" },
   sad: { id: "sad", frames: frames("sad", 2), fps: 4, loop: false, fallback: "idle" },
   judge: { id: "judge", frames: frames("judge", 1), fps: 1, loop: false, fallback: "idle" },
   laugh: { id: "laugh", frames: frames("laugh", 3), fps: 7, loop: false, fallback: "idle" },
   tongue: { id: "tongue", frames: frames("tongue", 3), fps: 7, loop: false, fallback: "idle" },
   fart: { id: "fart", frames: frames("fart", 5), fps: 8, loop: false, fallback: "idle" },
+  lie_down: { id: "lie_down", frames: frames("lie_down", 5), fps: 6, loop: false, fallback: "sleep" },
   sleep: { id: "sleep", frames: frames("sleep", 2), fps: 2, loop: true },
+  wake: { id: "wake", frames: frames("wake", 5), fps: 7, loop: false, fallback: "idle" },
   drag: { id: "drag", frames: [`${base}/drag_held_01.png`], fps: 1, loop: true },
 };
 

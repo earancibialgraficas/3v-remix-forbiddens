@@ -48,6 +48,8 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
   const clickTimerRef = useRef<number | null>(null);
   const hideBubbleTimerRef = useRef<number | null>(null);
   const idleTimerRef = useRef<number | null>(null);
+  const walkTimerRef = useRef<number | null>(null);
+  const sleepTransitionTimerRef = useRef<number | null>(null);
   const lastInteractionRef = useRef(Date.now());
   const cooldownRef = useRef<Record<string, number>>({});
   const dragRef = useRef({ pointerId: -1, offsetX: 0, offsetY: 0 });
@@ -61,10 +63,12 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
   const [ready, setReady] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [settling, setSettling] = useState(false);
+  const [walking, setWalking] = useState(false);
+  const [walkDurationMs, setWalkDurationMs] = useState(1800);
 
   const animation = dragonMascotAnimations[animationId] || dragonMascotAnimations.idle;
   const currentFrame = animation.frames[Math.min(frameIndex, animation.frames.length - 1)] || animation.frames[0];
-  const sleeping = animationId === "sleep";
+  const sleeping = animationId === "sleep" || animationId === "lie_down";
 
   const title = useMemo(() => {
     const trimmed = String(gameName || "").trim();
@@ -89,13 +93,14 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
   const markInteraction = useCallback(() => {
     lastInteractionRef.current = Date.now();
     if (sleeping) {
-      setAnimationId("blink");
+      if (sleepTransitionTimerRef.current) window.clearTimeout(sleepTransitionTimerRef.current);
+      setAnimationId("wake");
       setFrameIndex(0);
     }
   }, [sleeping]);
 
   const setNaturalIdle = useCallback(() => {
-    setAnimationId("idle");
+    setAnimationId(Math.random() < 0.24 ? "idle_sit" : "idle");
     setFrameIndex(0);
   }, []);
 
@@ -137,7 +142,8 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
     setMessage(text);
     setTypedMessage("");
     setBubbleVisible(true);
-    setAnimationId(nextAnimation);
+    void nextAnimation;
+    setAnimationId("talk");
     setFrameIndex(0);
   }, [dragging, markInteraction]);
 
@@ -169,6 +175,38 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
       window.removeEventListener("resize", syncInitialPosition);
     };
   }, [clampPosition, groundY]);
+
+  const startRandomWalk = useCallback(() => {
+    const stage = stageRef.current;
+    if (!stage || dragging || bubbleVisible) return false;
+
+    const maxX = Math.max(4, stage.clientWidth - MASCOT_WIDTH - 4);
+    const currentX = position.x;
+    const canGoLeft = currentX > 34;
+    const canGoRight = currentX < maxX - 34;
+    if (!canGoLeft && !canGoRight) return false;
+
+    const direction = canGoLeft && canGoRight
+      ? (Math.random() < 0.5 ? -1 : 1)
+      : canGoLeft ? -1 : 1;
+    const distance = 72 + Math.random() * 96;
+    const targetX = clamp(currentX + direction * distance, 4, maxX);
+    const duration = 1500 + Math.abs(targetX - currentX) * 10;
+
+    if (walkTimerRef.current) window.clearTimeout(walkTimerRef.current);
+    setWalking(true);
+    setWalkDurationMs(duration);
+    setAnimationId(direction < 0 ? "walk_left" : "walk_right");
+    setFrameIndex(0);
+    window.requestAnimationFrame(() => {
+      setPosition((current) => clampPosition(targetX, groundY()));
+    });
+    walkTimerRef.current = window.setTimeout(() => {
+      setWalking(false);
+      setNaturalIdle();
+    }, duration + 80);
+    return true;
+  }, [bubbleVisible, clampPosition, dragging, groundY, position.x, setNaturalIdle]);
 
   useEffect(() => {
     if (!message) return;
@@ -219,23 +257,33 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
       if (idleTimerRef.current) window.clearTimeout(idleTimerRef.current);
       const delay = 12_000 + Math.random() * 14_000;
       idleTimerRef.current = window.setTimeout(() => {
-        if (dragging || bubbleVisible) {
+        if (dragging || bubbleVisible || walking) {
           scheduleIdle();
           return;
         }
 
         const idleFor = Date.now() - lastInteractionRef.current;
         if (idleFor > IDLE_SLEEP_AFTER_MS && canUseCooldown("sleep", 50_000)) {
-          setAnimationId("sleep");
+          setAnimationId("lie_down");
           setFrameIndex(0);
+          sleepTransitionTimerRef.current = window.setTimeout(() => {
+            setAnimationId("sleep");
+            setFrameIndex(0);
+          }, 920);
           scheduleIdle();
           return;
         }
 
         const roll = Math.random();
-        if (roll < 0.68) {
+        if (roll < 0.28 && canUseCooldown("walk", 16_000) && startRandomWalk()) {
+          scheduleIdle();
+          return;
+        }
+        if (roll < 0.56) {
           setAnimationId("blink");
-        } else if (roll < 0.83 && canUseCooldown("attention", 28_000)) {
+        } else if (roll < 0.72) {
+          setAnimationId("idle_sit");
+        } else if (roll < 0.86 && canUseCooldown("attention", 28_000)) {
           setAnimationId("judge");
         } else if (roll < 0.95 && canUseCooldown("troll-soft", 42_000)) {
           setAnimationId("tongue");
@@ -251,11 +299,22 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
     return () => {
       if (idleTimerRef.current) window.clearTimeout(idleTimerRef.current);
     };
-  }, [bubbleVisible, canUseCooldown, dragging]);
+  }, [bubbleVisible, canUseCooldown, dragging, startRandomWalk, walking]);
+
+  useEffect(() => {
+    return () => {
+      if (idleTimerRef.current) window.clearTimeout(idleTimerRef.current);
+      if (walkTimerRef.current) window.clearTimeout(walkTimerRef.current);
+      if (sleepTransitionTimerRef.current) window.clearTimeout(sleepTransitionTimerRef.current);
+      if (clickTimerRef.current) window.clearTimeout(clickTimerRef.current);
+      if (hideBubbleTimerRef.current) window.clearTimeout(hideBubbleTimerRef.current);
+    };
+  }, []);
 
   const finishDrag = useCallback(() => {
     if (!dragging) return;
     setDragging(false);
+    setWalking(false);
     setSettling(true);
     setPosition((current) => clampPosition(current.x, groundY()));
     window.setTimeout(() => {
@@ -277,6 +336,8 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
     };
     event.currentTarget.setPointerCapture?.(event.pointerId);
     setBubbleVisible(false);
+    if (walkTimerRef.current) window.clearTimeout(walkTimerRef.current);
+    setWalking(false);
     setDragging(true);
     setSettling(false);
     setAnimationId("drag");
@@ -313,7 +374,11 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
     top: position.y,
     width: MASCOT_WIDTH,
     height: MASCOT_HEIGHT,
-    transition: settling ? "top 520ms cubic-bezier(.18,.86,.22,1.08), left 260ms ease-out" : "none",
+    transition: settling
+      ? "top 520ms cubic-bezier(.18,.86,.22,1.08), left 260ms ease-out"
+      : walking
+        ? `left ${walkDurationMs}ms linear`
+        : "none",
     opacity: ready ? 1 : 0,
   } as const;
 
@@ -344,7 +409,7 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
         onPointerUp={finishDrag}
         onPointerCancel={finishDrag}
         className={cn(
-          "pointer-events-auto absolute z-[105] flex items-end justify-center bg-transparent outline-none transition-[filter] hover:brightness-110 focus-visible:ring-2 focus-visible:ring-red-300/70",
+          "pointer-events-auto absolute z-[105] flex items-end justify-center bg-transparent outline-none focus-visible:ring-2 focus-visible:ring-red-300/70",
           dragging ? "cursor-grabbing" : "cursor-grab",
         )}
         style={mascotStyle}
