@@ -22,7 +22,7 @@ type MascotPosition = {
 type AvocadoAnimation = "idle" | "walk" | "talk" | "happy" | "sad" | "sleep" | "drag";
 
 const MASCOT_EVENT = "forbiddens:dragon-mascot";
-const MODEL_URL = "/mascot/avocado/avocado_mascot.glb?v=20260625-2";
+const MODEL_URL = "/mascot/avocado/avocado_mascot_v3.glb?v=20260625-3";
 const MASCOT_WIDTH = 226;
 const MASCOT_HEIGHT = 236;
 const GROUND_GAP = 0;
@@ -65,6 +65,35 @@ const pickLine = (type: DragonMascotEventType) => {
 };
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+
+const relaxAvocadoTpose = (model: THREE.Object3D) => {
+  model.updateWorldMatrix(true, true);
+  model.traverse((child) => {
+    const mesh = child as THREE.Mesh;
+    if (!mesh.isMesh || !mesh.geometry || !String(mesh.name || "").includes("Cylinder")) return;
+    const geometry = mesh.geometry.clone();
+    const position = geometry.getAttribute("position");
+    const inverse = new THREE.Matrix4().copy(mesh.matrixWorld).invert();
+    const world = new THREE.Vector3();
+    const local = new THREE.Vector3();
+    for (let index = 0; index < position.count; index += 1) {
+      world.fromBufferAttribute(position, index).applyMatrix4(mesh.matrixWorld);
+      const side = world.x >= 0 ? 1 : -1;
+      const distance = Math.abs(world.x) - 0.62;
+      if (distance > 0 && world.z > 1.22) {
+        const lowered = Math.min(distance, 1.35);
+        world.x = side * (0.62 + lowered * 0.32);
+        world.z = 1.46 - lowered * 0.72;
+        local.copy(world).applyMatrix4(inverse);
+        position.setXYZ(index, local.x, local.y, local.z);
+      }
+    }
+    position.needsUpdate = true;
+    geometry.computeBoundingBox();
+    geometry.computeBoundingSphere();
+    mesh.geometry = geometry;
+  });
+};
 
 export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3DProps) {
   const stageRef = useRef<HTMLDivElement>(null);
@@ -202,6 +231,7 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
     loader.load(MODEL_URL, (gltf) => {
       if (disposed) return;
       const model = gltf.scene;
+      relaxAvocadoTpose(model);
       const box = new THREE.Box3().setFromObject(model);
       const center = box.getCenter(new THREE.Vector3());
       const size = box.getSize(new THREE.Vector3());
@@ -413,6 +443,18 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
     opacity: ready ? 1 : 0,
   } as const;
 
+  const modelMotionClass = dragging
+    ? "animate-[avocado-drag_720ms_ease-in-out_infinite]"
+    : animationName === "talk"
+      ? "animate-[avocado-talk_420ms_ease-in-out_infinite]"
+      : animationName === "happy"
+        ? "animate-[avocado-happy_620ms_ease-in-out_infinite]"
+        : animationName === "walk"
+          ? "animate-[avocado-walk_520ms_ease-in-out_infinite]"
+          : animationName === "sleep"
+            ? "animate-[avocado-sleep_2600ms_ease-in-out_infinite]"
+            : "animate-[avocado-idle_2400ms_ease-in-out_infinite]";
+
   return (
     <div ref={stageRef} className={cn("notranslate pointer-events-none absolute inset-0 overflow-hidden", className)} data-native-action translate="no">
       {bubbleVisible && (
@@ -448,17 +490,18 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
         aria-label={title}
       >
         <span className="pointer-events-none absolute bottom-2 left-1/2 h-5 w-[58%] -translate-x-1/2 rounded-full bg-black/30 blur-md" />
-        <canvas
-          ref={canvasRef}
-          width={MASCOT_WIDTH}
-          height={MASCOT_HEIGHT}
-          draggable={false}
-          className="pointer-events-none relative z-10 h-full w-full drop-shadow-[0_12px_18px_rgba(0,0,0,0.52)]"
-          style={{
-            transformOrigin: "50% 12%",
-            transform: dragging ? "translateY(8px) rotate(-4deg) scaleY(0.97)" : undefined,
-          }}
-        />
+        <span
+          className={cn("pointer-events-none relative z-10 block h-full w-full drop-shadow-[0_12px_18px_rgba(0,0,0,0.52)]", modelMotionClass)}
+          style={{ transformOrigin: "50% 82%" }}
+        >
+          <canvas
+            ref={canvasRef}
+            width={MASCOT_WIDTH}
+            height={MASCOT_HEIGHT}
+            draggable={false}
+            className="h-full w-full"
+          />
+        </span>
       </button>
     </div>
   );

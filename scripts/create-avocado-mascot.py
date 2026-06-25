@@ -10,7 +10,7 @@ OUTPUT_DIR = ROOT / "public" / "mascot" / "avocado"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 ARMATURE_NAME = "Armature"
-OUT_GLB = OUTPUT_DIR / "avocado_mascot.glb"
+OUT_GLB = OUTPUT_DIR / "avocado_mascot_v3.glb"
 OUT_THUMB = OUTPUT_DIR / "base.png"
 
 arm = bpy.data.objects.get(ARMATURE_NAME)
