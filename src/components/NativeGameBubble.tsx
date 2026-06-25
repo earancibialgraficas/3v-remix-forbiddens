@@ -462,13 +462,11 @@ export default function NativeGameBubble() {
 
       if (payload.state === "minimized") {
         minimizeNativeSession();
-        getLauncherBridge()?.launcherWindowAction?.("minimize").catch(() => {});
         return;
       }
 
       if (payload.state === "restored") {
         maximizeNativeSession();
-        getLauncherBridge()?.launcherWindowAction?.("restore").catch(() => {});
       }
     })
       .then((cleanup: () => void) => {
@@ -493,13 +491,11 @@ export default function NativeGameBubble() {
 
       if (payload.state === "minimized") {
         minimizeNativeSession();
-        await getLauncherBridge()?.setNativeEmulatorState?.(current.processId, "minimize").catch(() => {});
         return;
       }
 
       if (payload.state === "restored") {
         maximizeNativeSession();
-        await getLauncherBridge()?.setNativeEmulatorState?.(current.processId, "restore").catch(() => {});
       }
     })
       .then((cleanup: () => void) => {

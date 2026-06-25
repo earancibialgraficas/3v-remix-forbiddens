@@ -3,6 +3,7 @@ use std::{
     io::{self, BufRead, BufReader},
     path::{Path, PathBuf},
     process::{Command, Stdio},
+    sync::atomic::{AtomicU32, Ordering},
     thread,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
@@ -125,8 +126,9 @@ struct NativeDownloadProgressEvent {
     error: Option<String>,
 }
 
-const WEBSITE_URL: &str = "https://forbiddens.net/?launcher_version=0.1.34";
-const LAUNCHER_DOWNLOAD_URL: &str = "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.34_x64-setup.exe";
+const WEBSITE_URL: &str = "https://forbiddens.net/?launcher_version=0.1.35";
+const LAUNCHER_DOWNLOAD_URL: &str = "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.35_x64-setup.exe";
+static ACTIVE_NATIVE_PROCESS_ID: AtomicU32 = AtomicU32::new(0);
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 const LAUNCHER_BRIDGE_SCRIPT: &str = r#"
 (function () {
@@ -380,6 +382,11 @@ fn monitor_launcher_window_state(app: AppHandle) {
             }
             last_minimized = Some(is_minimized);
             let state = if is_minimized { "minimized" } else { "restored" };
+            let process_id = ACTIVE_NATIVE_PROCESS_ID.load(Ordering::SeqCst);
+            if process_id != 0 {
+                let action = if is_minimized { "minimize" } else { "restore" };
+                let _ = set_native_emulator_state(process_id, action.to_string());
+            }
             let _ = app.emit(
                 "forbiddens-launcher-window-state",
                 LauncherWindowStateEvent {
@@ -908,7 +915,7 @@ fn ensure_retroarch_save_config(console_id: &str) -> Result<PathBuf, String> {
     let saves = saves_dir.to_string_lossy().replace('\\', "/");
     let states = states_dir.to_string_lossy().replace('\\', "/");
     let content = format!(
-        "savefile_directory = \"{}\"\nsavestate_directory = \"{}\"\nsavestate_auto_index = \"false\"\nsavestate_slot = \"0\"\n",
+        "savefile_directory = \"{}\"\nsavestate_directory = \"{}\"\nsavestate_auto_index = \"false\"\nsavestate_slot = \"0\"\npause_nonactive = \"false\"\n",
         saves, states
     );
     fs::write(&config_path, content).map_err(|error| error.to_string())?;
@@ -1492,8 +1499,23 @@ fn restore_launcher_layout(app: &AppHandle) {
 
 #[cfg(windows)]
 struct WindowSearch {
-    process_id: u32,
+    process_ids: Vec<u32>,
     hwnd: isize,
+}
+
+#[cfg(windows)]
+#[repr(C)]
+struct ProcessEntry32W {
+    dw_size: u32,
+    cnt_usage: u32,
+    th32_process_id: u32,
+    th32_default_heap_id: usize,
+    th32_module_id: u32,
+    cnt_threads: u32,
+    th32_parent_process_id: u32,
+    pc_pri_class_base: i32,
+    dw_flags: u32,
+    sz_exe_file: [u16; 260],
 }
 
 #[cfg(windows)]
@@ -1506,9 +1528,18 @@ extern "system" {
     fn GetWindowThreadProcessId(hwnd: isize, lpdw_process_id: *mut u32) -> u32;
     fn IsIconic(hwnd: isize) -> i32;
     fn IsWindowVisible(hwnd: isize) -> i32;
-    fn PostMessageW(hwnd: isize, msg: u32, w_param: usize, l_param: isize) -> i32;
+    fn keybd_event(b_vk: u8, b_scan: u8, dw_flags: u32, dw_extra_info: usize);
     fn SetForegroundWindow(hwnd: isize) -> i32;
     fn ShowWindowAsync(hwnd: isize, cmd_show: i32) -> i32;
+}
+
+#[cfg(windows)]
+#[link(name = "kernel32")]
+extern "system" {
+    fn CloseHandle(h_object: isize) -> i32;
+    fn CreateToolhelp32Snapshot(dw_flags: u32, th32_process_id: u32) -> isize;
+    fn Process32FirstW(h_snapshot: isize, lppe: *mut ProcessEntry32W) -> i32;
+    fn Process32NextW(h_snapshot: isize, lppe: *mut ProcessEntry32W) -> i32;
 }
 
 #[cfg(windows)]
@@ -1520,11 +1551,61 @@ unsafe extern "system" fn enum_windows_for_process(hwnd: isize, l_param: isize) 
     let search = &mut *(l_param as *mut WindowSearch);
     let mut window_process_id = 0u32;
     GetWindowThreadProcessId(hwnd, &mut window_process_id as *mut u32);
-    if window_process_id == search.process_id {
+    if search.process_ids.contains(&window_process_id) {
         search.hwnd = hwnd;
         return 0;
     }
     1
+}
+
+#[cfg(windows)]
+fn native_process_tree(process_id: u32) -> Vec<u32> {
+    const TH32CS_SNAPPROCESS: u32 = 0x00000002;
+    const INVALID_HANDLE_VALUE: isize = -1isize;
+
+    let mut processes = vec![process_id];
+    let mut entries: Vec<(u32, u32)> = Vec::new();
+    unsafe {
+        let snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+        if snapshot == INVALID_HANDLE_VALUE {
+            return processes;
+        }
+
+        let mut entry = ProcessEntry32W {
+            dw_size: std::mem::size_of::<ProcessEntry32W>() as u32,
+            cnt_usage: 0,
+            th32_process_id: 0,
+            th32_default_heap_id: 0,
+            th32_module_id: 0,
+            cnt_threads: 0,
+            th32_parent_process_id: 0,
+            pc_pri_class_base: 0,
+            dw_flags: 0,
+            sz_exe_file: [0; 260],
+        };
+
+        if Process32FirstW(snapshot, &mut entry as *mut ProcessEntry32W) != 0 {
+            loop {
+                entries.push((entry.th32_process_id, entry.th32_parent_process_id));
+                if Process32NextW(snapshot, &mut entry as *mut ProcessEntry32W) == 0 {
+                    break;
+                }
+            }
+        }
+        CloseHandle(snapshot);
+    }
+
+    let mut index = 0;
+    while index < processes.len() {
+        let parent = processes[index];
+        for (pid, ppid) in &entries {
+            if *ppid == parent && !processes.contains(pid) {
+                processes.push(*pid);
+            }
+        }
+        index += 1;
+    }
+    processes
 }
 
 #[cfg(windows)]
@@ -1536,7 +1617,7 @@ fn native_process_window_minimized(process_id: u32) -> Option<bool> {
 #[cfg(windows)]
 fn native_process_window_handle(process_id: u32) -> Option<isize> {
     let mut search = WindowSearch {
-        process_id,
+        process_ids: native_process_tree(process_id),
         hwnd: 0,
     };
     unsafe {
@@ -1895,6 +1976,7 @@ fn open_native_emulator(
 
     let mut child = command.spawn().map_err(|error| error.to_string())?;
     let process_id = child.id();
+    ACTIVE_NATIVE_PROCESS_ID.store(process_id, Ordering::SeqCst);
     let rom_path_for_event = rom_path
         .as_deref()
         .map(str::trim)
@@ -1923,6 +2005,12 @@ fn open_native_emulator(
 
     thread::spawn(move || {
         let success = child.wait().map(|status| status.success()).unwrap_or(false);
+        ACTIVE_NATIVE_PROCESS_ID.compare_exchange(
+            process_id,
+            0,
+            Ordering::SeqCst,
+            Ordering::SeqCst,
+        ).ok();
         let mut payload = event_payload.clone();
         payload.success = success;
         let _ = event_app.emit("forbiddens-native-emulator-exit", payload);
@@ -1941,14 +2029,32 @@ fn open_native_emulator(
 fn close_native_emulator(process_id: u32) -> Result<(), String> {
     let script = "$ErrorActionPreference='SilentlyContinue'; \
       $processId = [int]$env:FORBIDDENS_EMU_PID; \
-      $p = Get-Process -Id $processId -ErrorAction SilentlyContinue; \
-      if ($p) { \
-        if ($p.MainWindowHandle -ne 0) { $null = $p.CloseMainWindow(); Start-Sleep -Milliseconds 900; $p.Refresh() } \
-        if (-not $p.HasExited) { Stop-Process -Id $processId -Force } \
+      $ids = New-Object System.Collections.Generic.List[int]; \
+      $ids.Add($processId); \
+      function Add-Children([int]$parentId) { \
+        $children = Get-CimInstance Win32_Process -Filter \"ParentProcessId=$parentId\" -ErrorAction SilentlyContinue; \
+        foreach ($child in $children) { if ($child.ProcessId) { $ids.Add([int]$child.ProcessId); Add-Children ([int]$child.ProcessId) } } \
+      }; \
+      Add-Children $processId; \
+      foreach ($id in ($ids | Select-Object -Unique | Sort-Object -Descending)) { \
+        $p = Get-Process -Id $id -ErrorAction SilentlyContinue; \
+        if ($p -and $p.MainWindowHandle -ne 0) { $null = $p.CloseMainWindow() } \
+      }; \
+      Start-Sleep -Milliseconds 900; \
+      foreach ($id in ($ids | Select-Object -Unique | Sort-Object -Descending)) { \
+        $p = Get-Process -Id $id -ErrorAction SilentlyContinue; \
+        if ($p -and -not $p.HasExited) { Stop-Process -Id $id -Force } \
       }";
     let mut command = powershell_command(script);
     command.env("FORBIDDENS_EMU_PID", process_id.to_string());
-    run_hidden(command)
+    let result = run_hidden(command);
+    ACTIVE_NATIVE_PROCESS_ID.compare_exchange(
+        process_id,
+        0,
+        Ordering::SeqCst,
+        Ordering::SeqCst,
+    ).ok();
+    result
 }
 
 #[tauri::command]
@@ -1977,9 +2083,29 @@ fn set_native_emulator_state(process_id: u32, action: String) -> Result<(), Stri
     Ok(())
 }
 
+#[cfg(windows)]
+fn send_native_key(process_id: u32, virtual_key: u8) -> Result<(), String> {
+    let Some(hwnd) = native_process_window_handle(process_id) else {
+        return Err("No se encontro la ventana del emulador.".to_string());
+    };
+    unsafe {
+        ShowWindowAsync(hwnd, 9);
+        SetForegroundWindow(hwnd);
+    }
+    thread::sleep(Duration::from_millis(120));
+    unsafe {
+        keybd_event(virtual_key, 0, 0, 0);
+    }
+    thread::sleep(Duration::from_millis(45));
+    unsafe {
+        keybd_event(virtual_key, 0, 0x0002, 0);
+    }
+    Ok(())
+}
+
 #[tauri::command]
 fn native_emulator_action(process_id: u32, action: String) -> Result<(), String> {
-    let virtual_key = match action.trim().to_lowercase().as_str() {
+    let virtual_key: u8 = match action.trim().to_lowercase().as_str() {
         "menu" | "settings" | "config" => 0x70,
         "save_state" | "savestate" => 0x71,
         "load_state" => 0x73,
@@ -1989,19 +2115,7 @@ fn native_emulator_action(process_id: u32, action: String) -> Result<(), String>
 
     #[cfg(windows)]
     {
-        if let Some(hwnd) = native_process_window_handle(process_id) {
-            unsafe {
-                ShowWindowAsync(hwnd, 9);
-                SetForegroundWindow(hwnd);
-            }
-            thread::sleep(Duration::from_millis(80));
-            unsafe {
-                PostMessageW(hwnd, 0x0100, virtual_key as usize, 1);
-                thread::sleep(Duration::from_millis(30));
-                PostMessageW(hwnd, 0x0101, virtual_key as usize, 0xC0000001u32 as isize);
-            }
-        }
-        return Ok(());
+        return send_native_key(process_id, virtual_key);
     }
 
     #[cfg(not(windows))]
@@ -2061,11 +2175,20 @@ public interface IAudioSessionControl {
 [Guid("bfb7ff88-7239-4fc9-8fa2-07c950be9c6d")]
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 public interface IAudioSessionControl2 {
-  int NotImpl1();
-  int NotImpl2();
+  int GetState(out int pRetVal);
+  int GetDisplayName(out IntPtr retVal);
+  int SetDisplayName([MarshalAs(UnmanagedType.LPWStr)] string Value, ref Guid EventContext);
+  int GetIconPath(out IntPtr retVal);
+  int SetIconPath([MarshalAs(UnmanagedType.LPWStr)] string Value, ref Guid EventContext);
+  int GetGroupingParam(out Guid retVal);
+  int SetGroupingParam(ref Guid Override, ref Guid EventContext);
+  int RegisterAudioSessionNotification(IntPtr NewNotifications);
+  int UnregisterAudioSessionNotification(IntPtr NewNotifications);
   int GetSessionIdentifier(out IntPtr retVal);
   int GetSessionInstanceIdentifier(out IntPtr retVal);
   int GetProcessId(out uint retVal);
+  int IsSystemSoundsSession();
+  int SetDuckingPreference(bool optOut);
 }
 
 [Guid("87CE5498-68D6-44E5-9215-6DA47EF883D8")]
