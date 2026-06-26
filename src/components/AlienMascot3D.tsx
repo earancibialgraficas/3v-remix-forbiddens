@@ -29,6 +29,8 @@ const BODY_GLOSS_URL = "/mascot/alien/textures/Alien-Animal-Base-Gloss.jpg";
 const EYE_TEXTURE_URL = "/mascot/alien/textures/Alien-Animal_eye.jpg";
 const MASCOT_WIDTH = 340;
 const MASCOT_HEIGHT = 292;
+const CANVAS_WIDTH = 460;
+const CANVAS_HEIGHT = 390;
 const GROUND_GAP = 0;
 
 const ALIEN_ANIMATION_DURATIONS: Record<string, number> = {
@@ -91,13 +93,13 @@ const alienDialogues: Record<DragonMascotEventType, string[]> = {
   mute: ["Silencio. El cosmos acaba de mejorar.", "Mute activado. Tus vecinos me deben una."],
   unmute: ["Volvio el ruido. Dramatico, pero aceptable.", "Audio restaurado. Que el caos tenga soundtrack."],
   music: ["Musica detectada. Tu derrota tendra ritmo.", "Buen tema. Pesima estrategia, pero buen tema."],
-  music_prev: ["Retrocediendo. Nostalgia con tentaculos.", "Volvemos una pista. El pasado exige revancha."],
-  music_play_pause: ["Control musical hecho. Soy DJ y amenaza biologica.", "Ritmo alternado. Nadie pregunto, pero quedo epico."],
-  music_next: ["Siguiente pista. Esta nave no espera coros.", "Saltando tema. El anterior no sobrevivio al analisis."],
-  music_volume_up: ["Mas volumen. Que tiemble el planeta chico.", "Subiendo potencia. Cientificamente irresponsable."],
-  music_volume_down: ["Bajando volumen. Modo sigilo viscoso.", "Menos ruido. Ahora puedo escuchar tus errores."],
-  music_mute: ["Musica anulada. El silencio tambien juzga.", "Mute musical. Dramatico y barato."],
-  music_playlist: ["Nueva playlist. El ritual sonoro cambia.", "Lista enlazada. Procede el baile extraterrestre."],
+  music_prev: ["Rebobinando. El pasado acaba de pedir segunda oportunidad.", "Una pista atras. El DJ alien no acepta reclamos."],
+  music_play_pause: ["Toco el ritmo con una garra y el destino con la otra.", "Play, pausa, caos. Tres comidas balanceadas."],
+  music_next: ["Siguiente tema. Este planeta necesita mejor soundtrack.", "Saltando pista. La anterior fue enviada al espacio profundo."],
+  music_volume_up: ["Mas volumen. Que la abuela del boss tambien escuche.", "Subiendo potencia. Si vibra el companion, era parte del plan."],
+  music_volume_down: ["Bajando volumen. Modo depredador educado.", "Menos ruido. Asi escucho cuando finges que sabes jugar."],
+  music_mute: ["Silencio musical. Ahora solo queda tu ansiedad en HD.", "Mute aplicado. El universo pidio cinco minutos de paz."],
+  music_playlist: ["Nueva playlist. El ritual sonoro exige sacrificios pequenos.", "Cambiamos lista. Si bailo raro, es anatomia avanzada."],
   error: ["Anomalia detectada. Yo no fui, pero me gustaria.", "Eso exploto bonito. Casi profesional."],
   idle: ["Estoy quieto, pero sospechando fuerte.", "Si me miras mucho, cobro peaje cosmico."],
   click: ["Ey. Con respeto, dedo terrestre.", "Tocame otra vez y te vendo a los grunts.", "Contacto recibido. Ahora somos enemigos cordiales."],
@@ -110,7 +112,7 @@ const pickLine = (type: DragonMascotEventType) => {
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
-const isInsideAlienHitArea = (event: React.PointerEvent<HTMLButtonElement>) => {
+const isInsideAlienHitArea = (event: React.PointerEvent<HTMLElement>) => {
   const rect = event.currentTarget.getBoundingClientRect();
   if (!rect.width || !rect.height) return false;
   const x = (event.clientX - rect.left) / rect.width;
@@ -292,11 +294,11 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
     const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
     renderer.setClearColor(0x000000, 0);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    renderer.setSize(MASCOT_WIDTH, MASCOT_HEIGHT, false);
+    renderer.setSize(CANVAS_WIDTH, CANVAS_HEIGHT, false);
     rendererRef.current = renderer;
 
     const scene = new THREE.Scene();
-    const camera = new THREE.OrthographicCamera(-2.22, 2.22, 1.72, -1.5, 0.1, 100);
+    const camera = new THREE.OrthographicCamera(-3.0, 3.0, 2.32, -2.02, 0.1, 100);
     camera.position.set(0, 0.08, 5.4);
     camera.lookAt(0, -0.15, 0);
 
@@ -593,7 +595,7 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
     window.setTimeout(() => setSettling(false), 520);
   }, [clampPosition, dragging, groundY, playAnimation]);
 
-  const startDrag = (event: React.PointerEvent<HTMLButtonElement>) => {
+  const startDrag = (event: React.PointerEvent<HTMLDivElement>) => {
     event.preventDefault();
     event.stopPropagation();
     if (!isInsideAlienHitArea(event)) return;
@@ -613,7 +615,7 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
     playAnimation("Bake_Pose");
   };
 
-  const moveDrag = (event: React.PointerEvent<HTMLButtonElement>) => {
+  const moveDrag = (event: React.PointerEvent<HTMLDivElement>) => {
     if (!dragging || event.pointerId !== dragRef.current.pointerId) return;
     const stageRect = stageRef.current?.getBoundingClientRect();
     if (!stageRect) return;
@@ -622,7 +624,7 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
     setPosition(clampPosition(x, y));
   };
 
-  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+  const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
     if (dragging || settling) return;
     const rect = event.currentTarget.getBoundingClientRect();
     if (rect.width && rect.height) {
@@ -653,6 +655,13 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
     border: 0,
     outline: "none",
     padding: 0,
+    overflow: "visible",
+    WebkitTapHighlightColor: "transparent",
+  } as const;
+
+  const hitAreaStyle = {
+    clipPath: "polygon(5% 44%, 16% 26%, 36% 17%, 60% 22%, 83% 34%, 99% 53%, 91% 76%, 65% 91%, 28% 88%, 7% 68%)",
+    WebkitClipPath: "polygon(5% 44%, 16% 26%, 36% 17%, 60% 22%, 83% 34%, 99% 53%, 91% 76%, 65% 91%, 28% 88%, 7% 68%)",
     WebkitTapHighlightColor: "transparent",
   } as const;
 
@@ -663,8 +672,8 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
           className="pointer-events-none absolute z-[110] max-w-[min(300px,78vw)] rounded-[18px] border-2 border-[#17383a] bg-[#d9fff3] px-3.5 py-2.5 shadow-[5px_6px_0_rgba(23,56,58,0.55)]"
           translate="no"
           style={{
-            left: clamp(position.x - 76, 10, Math.max(10, (stageRef.current?.clientWidth || 360) - 308)),
-            top: Math.max(8, position.y - 74),
+            left: clamp(position.x - 54, 10, Math.max(10, (stageRef.current?.clientWidth || 360) - 308)),
+            top: Math.max(8, position.y - 48),
           }}
         >
           <div className="absolute -bottom-[11px] left-1/2 h-5 w-5 -translate-x-1/2 rotate-45 border-b-2 border-r-2 border-[#17383a] bg-[#d9fff3]" />
@@ -675,29 +684,42 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
         </div>
       )}
 
-      <button
-        type="button"
-        onClick={handleClick}
-        onPointerDown={startDrag}
-        onPointerMove={moveDrag}
-        onPointerUp={finishDrag}
-        onPointerCancel={finishDrag}
+      <div
         className={cn(
-          "pointer-events-auto absolute z-[105] flex items-end justify-center border-0 bg-transparent p-0 outline-none hover:bg-transparent active:bg-transparent focus:bg-transparent focus:outline-none focus-visible:bg-transparent focus-visible:outline-none focus-visible:ring-0",
-          dragging ? "cursor-grabbing" : "cursor-grab",
+          "pointer-events-none absolute z-[105] flex items-end justify-center border-0 bg-transparent p-0 outline-none",
         )}
         style={mascotStyle}
-        title={title}
         aria-label={title}
       >
         <canvas
           ref={canvasRef}
-          width={MASCOT_WIDTH}
-          height={MASCOT_HEIGHT}
+          width={CANVAS_WIDTH}
+          height={CANVAS_HEIGHT}
           draggable={false}
-          className="pointer-events-none relative z-10 h-full w-full drop-shadow-[0_12px_18px_rgba(0,0,0,0.5)]"
+          className="pointer-events-none absolute z-10 drop-shadow-[0_12px_18px_rgba(0,0,0,0.5)]"
+          style={{
+            width: CANVAS_WIDTH,
+            height: CANVAS_HEIGHT,
+            left: -(CANVAS_WIDTH - MASCOT_WIDTH) / 2,
+            top: -(CANVAS_HEIGHT - MASCOT_HEIGHT) / 2,
+          }}
         />
-      </button>
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={handleClick}
+          onPointerDown={startDrag}
+          onPointerMove={moveDrag}
+          onPointerUp={finishDrag}
+          onPointerCancel={finishDrag}
+          className={cn(
+            "pointer-events-auto absolute inset-0 z-20 border-0 bg-transparent p-0 outline-none hover:bg-transparent active:bg-transparent focus:bg-transparent focus:outline-none focus-visible:bg-transparent focus-visible:outline-none focus-visible:ring-0",
+            dragging ? "cursor-grabbing" : "cursor-grab",
+          )}
+          style={hitAreaStyle}
+          aria-label={title}
+        />
+      </div>
     </div>
   );
 }

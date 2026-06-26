@@ -426,15 +426,7 @@ export default function NativeGameBubble() {
       volumeDown: "music_volume_down",
       mute: "music_mute",
     };
-    const textByCommand: Record<typeof command, string> = {
-      prev: "Volviendo a la pista anterior.",
-      playPause: musicPlaying ? "Pausando la musica." : "Reproduciendo la musica.",
-      next: "Saltando a la siguiente pista.",
-      volumeUp: `Subiendo la musica a ${Math.min(100, musicVolume + 10)}%.`,
-      volumeDown: `Bajando la musica a ${Math.max(0, musicVolume - 10)}%.`,
-      mute: "Silenciando o recuperando la musica.",
-    };
-    emitDragonMascotEvent(eventByCommand[command], textByCommand[command]);
+    emitDragonMascotEvent(eventByCommand[command]);
   };
 
   const changeMusicCategory = (optionId: string) => {
@@ -445,7 +437,7 @@ export default function NativeGameBubble() {
       category: option.category,
       playlistId: option.playlistId || "",
     });
-    emitDragonMascotEvent("music_playlist", `Playlist seleccionada: ${option.label}.`);
+    emitDragonMascotEvent("music_playlist");
   };
 
   const toggleNativeMute = () => {
