@@ -21,6 +21,8 @@ type MascotPosition = {
 
 const MASCOT_EVENT = "forbiddens:dragon-mascot";
 const MODEL_URL = "/mascot/alien/alien_animal.glb";
+const BODY_TEXTURE_URL = "/mascot/alien/textures/Alien-Animal-Base-Color.jpg";
+const BODY_NORMAL_URL = "/mascot/alien/textures/Alien-Animal-Base-Nor.jpg";
 const MASCOT_WIDTH = 244;
 const MASCOT_HEIGHT = 286;
 const GROUND_GAP = 0;
@@ -215,6 +217,12 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
     let disposed = false;
     const clock = new THREE.Clock();
     const loader = new GLTFLoader();
+    const textureLoader = new THREE.TextureLoader();
+    const bodyTexture = textureLoader.load(BODY_TEXTURE_URL);
+    const bodyNormal = textureLoader.load(BODY_NORMAL_URL);
+    bodyTexture.colorSpace = THREE.SRGBColorSpace;
+    bodyTexture.flipY = false;
+    bodyNormal.flipY = false;
 
     const installModel = (gltf: GLTF) => {
       if (disposed) return;
@@ -223,18 +231,45 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
       model.traverse((child) => {
         const mesh = child as THREE.Mesh;
         if (mesh.isMesh) {
+          if (/plane|cage/i.test(mesh.name)) {
+            mesh.visible = false;
+            return;
+          }
           mesh.frustumCulled = false;
           mesh.castShadow = true;
           mesh.receiveShadow = false;
-          const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-          materials.forEach((material) => {
-            if (!material) return;
-            material.transparent = false;
-            material.opacity = 1;
-            material.depthWrite = true;
-            material.side = THREE.DoubleSide;
-            material.needsUpdate = true;
+          const sourceMaterials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+          const nextMaterials = sourceMaterials.map((material) => {
+            const materialName = material?.name || "";
+            if (/body/i.test(materialName) || /body/i.test(mesh.name)) {
+              return new THREE.MeshStandardMaterial({
+                name: materialName || "Alien body textured",
+                map: bodyTexture,
+                normalMap: bodyNormal,
+                roughness: 0.62,
+                metalness: 0.02,
+                side: THREE.DoubleSide,
+              });
+            }
+            if (/material/i.test(materialName)) {
+              return new THREE.MeshStandardMaterial({
+                name: materialName,
+                color: 0x19b94d,
+                roughness: 0.55,
+                metalness: 0.02,
+                side: THREE.DoubleSide,
+              });
+            }
+            if (material) {
+              material.transparent = false;
+              material.opacity = 1;
+              material.depthWrite = true;
+              material.side = THREE.DoubleSide;
+              material.needsUpdate = true;
+            }
+            return material;
           });
+          mesh.material = Array.isArray(mesh.material) ? nextMaterials : nextMaterials[0];
         }
       });
       const box = new THREE.Box3().setFromObject(model);
@@ -243,7 +278,7 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
       const scale = 3.15 / Math.max(size.y, 1);
       model.scale.setScalar(scale);
       model.position.set(-center.x * scale, -box.min.y * scale - 1.64, -center.z * scale);
-      model.rotation.set(0, Math.PI, 0);
+      model.rotation.set(0, 0, 0);
       modelRoot.position.set(0, 0, 0);
       modelRoot.add(model);
       scene.add(modelRoot);
@@ -268,9 +303,16 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
         const currentMotion = motionRef.current;
         const isWalk = currentMotion.includes("Walk") || currentMotion.includes("Run");
         const isHit = currentMotion.includes("Attack") || currentMotion.includes("Action");
-        const bob = Math.sin(elapsed * (isWalk ? 7.5 : isHit ? 8.5 : 2.1));
-        modelRoot.position.y = -0.18 + (isWalk ? Math.abs(bob) * 0.045 : bob * 0.018);
-        modelRoot.rotation.z = Math.sin(elapsed * (isWalk ? 5.5 : 1.4)) * (isWalk ? 0.045 : 0.018);
+        const isIdleAggressive = currentMotion.includes("Aggressive");
+        const bob = Math.sin(elapsed * (isWalk ? 8.5 : isHit ? 10 : isIdleAggressive ? 5.5 : 2.4));
+        modelRoot.position.y = -0.18 + (isWalk ? Math.abs(bob) * 0.14 : isHit ? Math.abs(bob) * 0.1 : bob * 0.035);
+        modelRoot.rotation.z = Math.sin(elapsed * (isWalk ? 7 : isHit ? 9 : 1.8)) * (isWalk ? 0.12 : isHit ? 0.18 : 0.035);
+        modelRoot.rotation.y = Math.sin(elapsed * (isHit ? 8 : isIdleAggressive ? 3.8 : 1.2)) * (isHit ? 0.28 : isIdleAggressive ? 0.16 : 0.05);
+        modelRoot.scale.set(
+          1 + Math.abs(bob) * (isHit ? 0.06 : isWalk ? 0.035 : 0.015),
+          1 - Math.abs(bob) * (isHit ? 0.045 : isWalk ? 0.025 : 0.01),
+          1,
+        );
       }
       renderer.render(scene, camera);
       animationFrameRef.current = window.requestAnimationFrame(render);
@@ -291,6 +333,8 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
         if (Array.isArray(material)) material.forEach((item) => item.dispose());
         else material?.dispose?.();
       });
+      bodyTexture.dispose();
+      bodyNormal.dispose();
       renderer.dispose();
       rendererRef.current = null;
     };
