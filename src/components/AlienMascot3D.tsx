@@ -553,8 +553,18 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
     setPosition(clampPosition(x, y));
   };
 
-  const handleClick = () => {
+  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     if (dragging || settling) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    if (rect.width && rect.height) {
+      const x = (event.clientX - rect.left) / rect.width;
+      const y = (event.clientY - rect.top) / rect.height;
+      const body = ((x - 0.5) / 0.48) ** 2 + ((y - 0.56) / 0.34) ** 2 <= 1;
+      const head = ((x - 0.26) / 0.25) ** 2 + ((y - 0.43) / 0.26) ** 2 <= 1;
+      const tail = x > 0.67 && x < 0.98 && y > 0.44 && y < 0.75;
+      const feet = y > 0.68 && y < 0.93 && x > 0.12 && x < 0.82;
+      if (!(body || head || tail || feet)) return;
+    }
     speak(pickLine("click"), Math.random() < 0.5 ? "Attack_Bite" : "Attack_Bite.002");
   };
 
@@ -601,10 +611,7 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
           "pointer-events-auto absolute z-[105] flex items-end justify-center bg-transparent outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70",
           dragging ? "cursor-grabbing" : "cursor-grab",
         )}
-        style={{
-          ...mascotStyle,
-          clipPath: "polygon(5% 34%, 25% 13%, 61% 12%, 98% 37%, 96% 77%, 77% 93%, 18% 94%, 0 71%)",
-        }}
+        style={mascotStyle}
         title={title}
         aria-label={title}
       >
