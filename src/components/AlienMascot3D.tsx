@@ -22,8 +22,11 @@ type MascotPosition = {
 const MASCOT_EVENT = "forbiddens:dragon-mascot";
 const MODEL_URL = "/mascot/alien/alien_animal_model.glb";
 const ANIMATIONS_URL = "/mascot/alien/alien_animal_animations.glb";
-const MASCOT_WIDTH = 244;
-const MASCOT_HEIGHT = 286;
+const BODY_TEXTURE_URL = "/mascot/alien/textures/Alien-Animal-Base-Diffuse.jpg";
+const BODY_NORMAL_URL = "/mascot/alien/textures/Alien-Animal-Base-Nor.jpg";
+const EYE_TEXTURE_URL = "/mascot/alien/textures/Alien-Animal_eye.jpg";
+const MASCOT_WIDTH = 330;
+const MASCOT_HEIGHT = 360;
 const GROUND_GAP = 0;
 
 const animationByEvent: Record<DragonMascotEventType, string> = {
@@ -200,15 +203,15 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
     rendererRef.current = renderer;
 
     const scene = new THREE.Scene();
-    const camera = new THREE.OrthographicCamera(-1.55, 1.55, 1.85, -1.85, 0.1, 100);
-    camera.position.set(0, 0.18, 5.4);
+    const camera = new THREE.OrthographicCamera(-2.18, 2.18, 2.22, -2.16, 0.1, 100);
+    camera.position.set(0, 0.2, 5.4);
     camera.lookAt(0, -0.15, 0);
 
-    scene.add(new THREE.HemisphereLight(0xdffff6, 0x1b1940, 1.8));
-    const keyLight = new THREE.DirectionalLight(0xe5fff8, 2.3);
+    scene.add(new THREE.HemisphereLight(0xffe1dc, 0x160708, 1.15));
+    const keyLight = new THREE.DirectionalLight(0xffddd0, 1.7);
     keyLight.position.set(2.4, 3.6, 4.2);
     scene.add(keyLight);
-    const rimLight = new THREE.DirectionalLight(0x91ffdd, 1.15);
+    const rimLight = new THREE.DirectionalLight(0xff2b2b, 0.9);
     rimLight.position.set(-2.8, 1.6, 2.6);
     scene.add(rimLight);
 
@@ -216,6 +219,15 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
     let disposed = false;
     const clock = new THREE.Clock();
     const loader = new GLTFLoader();
+    const textureLoader = new THREE.TextureLoader();
+    const bodyTexture = textureLoader.load(BODY_TEXTURE_URL);
+    const bodyNormal = textureLoader.load(BODY_NORMAL_URL);
+    const eyeTexture = textureLoader.load(EYE_TEXTURE_URL);
+    bodyTexture.colorSpace = THREE.SRGBColorSpace;
+    eyeTexture.colorSpace = THREE.SRGBColorSpace;
+    bodyTexture.flipY = false;
+    bodyNormal.flipY = false;
+    eyeTexture.flipY = false;
 
     const installAnimations = (gltf: GLTF, mixer: THREE.AnimationMixer) => {
       if (disposed) return;
@@ -240,23 +252,51 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
           mesh.castShadow = true;
           mesh.receiveShadow = false;
           const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-          materials.forEach((material) => {
-            if (material) {
-              material.transparent = false;
-              material.opacity = 1;
-              material.depthWrite = true;
-              material.side = THREE.DoubleSide;
-              material.needsUpdate = true;
+          const nextMaterials = materials.map((material) => {
+            const name = material?.name || "";
+            if (/body/i.test(name) || /postprocessing/i.test(mesh.name)) {
+              return new THREE.MeshStandardMaterial({
+                name: name || "Alien red body",
+                map: bodyTexture,
+                normalMap: bodyNormal,
+                color: new THREE.Color(0xb82a24),
+                emissive: new THREE.Color(0x260000),
+                emissiveMap: bodyTexture,
+                emissiveIntensity: 0.22,
+                roughness: 0.5,
+                metalness: 0.04,
+                side: THREE.DoubleSide,
+              });
             }
+            if (/eye/i.test(name) || /eye/i.test(mesh.name)) {
+              return new THREE.MeshStandardMaterial({
+                name: name || "Alien eye",
+                map: eyeTexture,
+                emissive: new THREE.Color(0xff7a22),
+                emissiveMap: eyeTexture,
+                emissiveIntensity: 0.38,
+                roughness: 0.35,
+                metalness: 0.12,
+                side: THREE.DoubleSide,
+              });
+            }
+            if (!material) return material;
+            material.transparent = false;
+            material.opacity = 1;
+            material.depthWrite = true;
+            material.side = THREE.DoubleSide;
+            material.needsUpdate = true;
+            return material;
           });
+          mesh.material = Array.isArray(mesh.material) ? nextMaterials : nextMaterials[0];
         }
       });
       const box = new THREE.Box3().setFromObject(model);
       const center = box.getCenter(new THREE.Vector3());
       const size = box.getSize(new THREE.Vector3());
-      const scale = 3.15 / Math.max(size.y, 1);
+      const scale = 2.72 / Math.max(size.y, 1);
       model.scale.setScalar(scale);
-      model.position.set(-center.x * scale, -box.min.y * scale - 1.64, -center.z * scale);
+      model.position.set(-center.x * scale, -box.min.y * scale - 1.46, -center.z * scale);
       model.rotation.set(0, 0, 0);
       modelRoot.position.set(0, 0, 0);
       modelRoot.add(model);
@@ -307,6 +347,9 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
         if (Array.isArray(material)) material.forEach((item) => item.dispose());
         else material?.dispose?.();
       });
+      bodyTexture.dispose();
+      bodyNormal.dispose();
+      eyeTexture.dispose();
       renderer.dispose();
       rendererRef.current = null;
     };
@@ -425,8 +468,8 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
     setBubbleVisible(false);
     setDragging(true);
     setSettling(false);
-    setMotion("Run-Cycle");
-    playAnimation("Run-Cycle");
+    setMotion("Idle_Aggressive");
+    playAnimation("Idle_Aggressive");
   };
 
   const moveDrag = (event: React.PointerEvent<HTMLButtonElement>) => {
