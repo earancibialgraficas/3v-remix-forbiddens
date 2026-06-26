@@ -21,6 +21,8 @@ type MascotPosition = {
 
 const MASCOT_EVENT = "forbiddens:dragon-mascot";
 const MODEL_URL = "/mascot/dragon/dragon_black_model.glb";
+const BODY_TEXTURE_URL = "/mascot/dragon/textures/Dragon_Bump_Col2.jpg";
+const NORMAL_TEXTURE_URL = "/mascot/dragon/textures/Dragon_Nor_mirror2.jpg";
 const MASCOT_WIDTH = 420;
 const MASCOT_HEIGHT = 300;
 const CANVAS_WIDTH = 620;
@@ -266,6 +268,12 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
     let disposed = false;
     const clock = new THREE.Clock();
     const loader = new GLTFLoader();
+    const textureLoader = new THREE.TextureLoader();
+    const bodyTexture = textureLoader.load(BODY_TEXTURE_URL);
+    const normalTexture = textureLoader.load(NORMAL_TEXTURE_URL);
+    bodyTexture.colorSpace = THREE.SRGBColorSpace;
+    bodyTexture.flipY = false;
+    normalTexture.flipY = false;
 
     loader.load(MODEL_URL, (gltf: GLTF) => {
       if (disposed) return;
@@ -278,17 +286,38 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
         mesh.castShadow = true;
         mesh.geometry.computeVertexNormals();
         const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-        materials.forEach((material) => {
-          if (!material) return;
-          if ("flatShading" in material) {
-            (material as THREE.MeshStandardMaterial).flatShading = false;
+        const nextMaterials = materials.map((material) => {
+          if (!material) return new THREE.MeshStandardMaterial({ name: "Black dragon material", map: bodyTexture, normalMap: normalTexture });
+          const name = material.name || "";
+          const nextMaterial = material instanceof THREE.MeshStandardMaterial
+            ? material.clone()
+            : new THREE.MeshStandardMaterial({ name: name || "Black dragon material" });
+          nextMaterial.name = name || "Black dragon material";
+          if (/eye/i.test(name)) {
+            nextMaterial.color = new THREE.Color(0xff3a1d);
+            nextMaterial.emissive = new THREE.Color(0xff1f0f);
+            nextMaterial.emissiveIntensity = 0.55;
+            nextMaterial.roughness = 0.38;
+            nextMaterial.metalness = 0.08;
+          } else {
+            nextMaterial.map = bodyTexture;
+            nextMaterial.normalMap = normalTexture;
+            nextMaterial.color = new THREE.Color(0xffffff);
+            nextMaterial.emissive = new THREE.Color(0x120202);
+            nextMaterial.emissiveIntensity = 0.05;
+            nextMaterial.roughness = 0.58;
+            nextMaterial.metalness = 0.04;
+            nextMaterial.normalScale = new THREE.Vector2(1.35, 1.35);
           }
-          material.transparent = false;
-          material.opacity = 1;
-          material.depthWrite = true;
-          material.side = THREE.DoubleSide;
-          material.needsUpdate = true;
+          nextMaterial.flatShading = false;
+          nextMaterial.transparent = false;
+          nextMaterial.opacity = 1;
+          nextMaterial.depthWrite = true;
+          nextMaterial.side = THREE.DoubleSide;
+          nextMaterial.needsUpdate = true;
+          return nextMaterial;
         });
+        mesh.material = Array.isArray(mesh.material) ? nextMaterials : nextMaterials[0];
       });
 
       const box = new THREE.Box3().setFromObject(model);
@@ -296,7 +325,7 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
       const size = box.getSize(new THREE.Vector3());
       const scale = 6.15 / Math.max(size.x, size.y * 1.34, size.z, 1);
       model.scale.setScalar(scale);
-      model.position.set(-center.x * scale, -box.min.y * scale - 1.3, -center.z * scale);
+      model.position.set(-center.x * scale, -box.min.y * scale - 0.88, -center.z * scale);
       model.rotation.set(0, 0, 0);
       modelRoot.add(model);
       scene.add(modelRoot);
@@ -346,6 +375,8 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
         else material?.dispose?.();
       });
       renderer.dispose();
+      bodyTexture.dispose();
+      normalTexture.dispose();
       rendererRef.current = null;
     };
   }, [playAnimation]);
