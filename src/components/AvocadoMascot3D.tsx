@@ -349,7 +349,7 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
       oscillator.frequency.setValueAtTime(pitch, context.currentTime);
       oscillator.frequency.exponentialRampToValueAtTime(Math.max(260, pitch * 0.76), context.currentTime + 0.052);
       gain.gain.setValueAtTime(0.0001, context.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.044, context.currentTime + 0.006);
+      gain.gain.exponentialRampToValueAtTime(0.132, context.currentTime + 0.006);
       gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.058);
       oscillator.connect(gain);
       gain.connect(context.destination);

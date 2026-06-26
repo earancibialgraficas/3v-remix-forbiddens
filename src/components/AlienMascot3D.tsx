@@ -29,6 +29,34 @@ const MASCOT_WIDTH = 330;
 const MASCOT_HEIGHT = 360;
 const GROUND_GAP = 0;
 
+const ALIEN_ANIMATION_DURATIONS: Record<string, number> = {
+  "0": 700,
+  Action_Rolls: 900,
+  Attack_Bite: 1800,
+  "Attack_Bite.002": 1800,
+  Attack_Hit: 1250,
+  Bake_Pose: 700,
+  Default: 900,
+  Die_1: 2400,
+  Die_2: 2400,
+  Idel_Normal: 2200,
+  Idle_Aggressive: 2400,
+  "Run-Cycle": 1600,
+  "Walk-Cycle": 2400,
+};
+
+const ALIEN_IDLE_ROTATION = [
+  "Idel_Normal",
+  "Idle_Aggressive",
+  "Action_Rolls",
+  "Attack_Bite.002",
+  "Default",
+  "Bake_Pose",
+  "0",
+  "Die_1",
+  "Die_2",
+];
+
 const animationByEvent: Record<DragonMascotEventType, string> = {
   greeting: "Idel_Normal",
   play: "Run-Cycle",
@@ -39,7 +67,7 @@ const animationByEvent: Record<DragonMascotEventType, string> = {
   reset: "Action_Rolls",
   mute: "Idel_Normal",
   unmute: "Idle_Aggressive",
-  music: "Walk-Cycle",
+  music: "Attack_Bite.002",
   error: "Attack_Hit",
   idle: "Idel_Normal",
   click: "Attack_Bite",
@@ -131,7 +159,7 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
       oscillator.frequency.setValueAtTime(pitch, context.currentTime);
       oscillator.frequency.exponentialRampToValueAtTime(Math.max(210, pitch * 0.68), context.currentTime + 0.055);
       gain.gain.setValueAtTime(0.0001, context.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.038, context.currentTime + 0.006);
+      gain.gain.exponentialRampToValueAtTime(0.114, context.currentTime + 0.006);
       gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.06);
       oscillator.connect(gain);
       gain.connect(context.destination);
@@ -168,6 +196,15 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
     setMessage(text);
     setTypedMessage("");
     setBubbleVisible(true);
+  }, [playAnimation]);
+
+  const playTemporaryAnimation = useCallback((clip: string, duration?: number) => {
+    setMotion(clip);
+    playAnimation(clip);
+    window.setTimeout(() => {
+      setMotion("Idel_Normal");
+      playAnimation("Idel_Normal");
+    }, duration ?? ALIEN_ANIMATION_DURATIONS[clip] ?? 1800);
   }, [playAnimation]);
 
   useEffect(() => {
@@ -398,7 +435,7 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
         }
         const stage = stageRef.current;
         const roll = Math.random();
-        if (roll < 0.4 && stage) {
+        if (roll < 0.28 && stage) {
           const maxX = Math.max(4, stage.clientWidth - MASCOT_WIDTH - 4);
           const nextX = clamp(position.x + (Math.random() < 0.5 ? -1 : 1) * (80 + Math.random() * 120), 4, maxX);
           setMotion("Walk-Cycle");
@@ -408,23 +445,21 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
             setMotion("Idel_Normal");
             playAnimation("Idel_Normal");
           }, 2400);
-        } else if (roll < 0.62) {
-          setMotion("Idle_Aggressive");
-          playAnimation("Idle_Aggressive");
+        } else if (roll < 0.36 && stage) {
+          const maxX = Math.max(4, stage.clientWidth - MASCOT_WIDTH - 4);
+          const nextX = clamp(position.x + (Math.random() < 0.5 ? -1 : 1) * (110 + Math.random() * 150), 4, maxX);
+          setMotion("Run-Cycle");
+          playAnimation("Run-Cycle");
+          setPosition((current) => clampPosition(nextX, current.y));
           window.setTimeout(() => {
             setMotion("Idel_Normal");
             playAnimation("Idel_Normal");
-          }, 2200);
-        } else if (roll < 0.76) {
-          setMotion("Action_Rolls");
-          playAnimation("Action_Rolls");
-          window.setTimeout(() => {
-            setMotion("Idel_Normal");
-            playAnimation("Idel_Normal");
-          }, 1800);
+          }, 1600);
+        } else if (roll < 0.9) {
+          const clip = ALIEN_IDLE_ROTATION[Math.floor(Math.random() * ALIEN_IDLE_ROTATION.length)] || "Idel_Normal";
+          playTemporaryAnimation(clip);
         } else {
-          setMotion("Idel_Normal");
-          playAnimation("Idel_Normal");
+          playTemporaryAnimation(Math.random() < 0.5 ? "Attack_Hit" : "Attack_Bite");
         }
         schedule();
       }, 5_500 + Math.random() * 8_000);
@@ -433,7 +468,7 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
     return () => {
       if (idleTimerRef.current) window.clearTimeout(idleTimerRef.current);
     };
-  }, [bubbleVisible, clampPosition, dragging, playAnimation, position.x]);
+  }, [bubbleVisible, clampPosition, dragging, playAnimation, playTemporaryAnimation, position.x]);
 
   useEffect(() => {
     return () => {
@@ -468,8 +503,8 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
     setBubbleVisible(false);
     setDragging(true);
     setSettling(false);
-    setMotion("Idle_Aggressive");
-    playAnimation("Idle_Aggressive");
+    setMotion("Bake_Pose");
+    playAnimation("Bake_Pose");
   };
 
   const moveDrag = (event: React.PointerEvent<HTMLButtonElement>) => {
@@ -483,7 +518,7 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
 
   const handleClick = () => {
     if (dragging || settling) return;
-    speak(pickLine("click"), "Attack_Bite");
+    speak(pickLine("click"), Math.random() < 0.5 ? "Attack_Bite" : "Attack_Bite.002");
   };
 
   const mascotStyle = {
