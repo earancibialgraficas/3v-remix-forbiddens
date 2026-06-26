@@ -179,8 +179,8 @@ INSERT INTO shop_items (slug, name, description, price, price_type, category, ti
 VALUES
   (
     'dragon_noxito',
-    'Mascota Dragon Noxito',
-    'Companero animado para el launcher nativo con burbuja de texto, sonido estilo juego cozy y reacciones al jugar.',
+    'Mascota Dragon Noxito 3D',
+    'Dragon negro 3D riggeado para el launcher nativo, con animaciones reales de idle, caminar, correr y volar.',
     10000,
     'fcoins',
     'launcher_mascot',

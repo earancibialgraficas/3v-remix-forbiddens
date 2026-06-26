@@ -19,8 +19,8 @@ export type LauncherMascotTheme = {
 export const LAUNCHER_MASCOTS: Record<LauncherMascotSlug, LauncherMascotTheme> = {
   dragon_noxito: {
     slug: 'dragon_noxito',
-    name: 'Mascota Dragon Noxito',
-    description: 'Companero animado para el launcher nativo con burbuja de texto, sonido estilo juego cozy y reacciones al jugar.',
+    name: 'Mascota Dragon Noxito 3D',
+    description: 'Dragon negro 3D riggeado para el launcher nativo, con animaciones reales de idle, caminar, correr y volar.',
     thumbnailUrl: '/mascot/dragon/base.png',
     price: 10000,
     priceType: 'fcoins',
@@ -28,7 +28,8 @@ export const LAUNCHER_MASCOTS: Record<LauncherMascotSlug, LauncherMascotTheme> =
     companionOnly: true,
     assets: {
       baseUrl: '/mascot/dragon',
-      config: 'dragonMascotConfig',
+      config: 'dragonMascot3D',
+      modelUrl: '/mascot/dragon/dragon_black_model.glb',
     },
   },
   avocado_palta: {

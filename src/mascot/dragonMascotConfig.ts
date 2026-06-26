@@ -1,21 +1,3 @@
-export type DragonMascotAnimationId =
-  | "idle"
-  | "idle_sit"
-  | "blink"
-  | "walk_left"
-  | "walk_right"
-  | "talk"
-  | "happy"
-  | "sad"
-  | "judge"
-  | "laugh"
-  | "tongue"
-  | "fart"
-  | "lie_down"
-  | "sleep"
-  | "wake"
-  | "drag";
-
 export type DragonMascotEventType =
   | "greeting"
   | "play"
@@ -37,61 +19,6 @@ export type DragonMascotEventType =
   | "error"
   | "idle"
   | "click";
-
-export type DragonMascotAnimation = {
-  id: DragonMascotAnimationId;
-  frames: string[];
-  fps: number;
-  loop: boolean;
-  fallback?: DragonMascotAnimationId;
-};
-
-const base = "/mascot/dragon";
-
-const frames = (prefix: string, count: number) =>
-  Array.from({ length: count }, (_, index) => `${base}/${prefix}_${String(index + 1).padStart(2, "0")}.png`);
-
-export const dragonMascotAnimations: Record<DragonMascotAnimationId, DragonMascotAnimation> = {
-  idle: { id: "idle", frames: frames("idle_live", 5), fps: 2, loop: true },
-  idle_sit: { id: "idle_sit", frames: frames("idle_sit", 5), fps: 2, loop: true },
-  blink: { id: "blink", frames: frames("blink", 4), fps: 8, loop: false, fallback: "idle" },
-  walk_left: { id: "walk_left", frames: frames("walk_left", 5), fps: 8, loop: true },
-  walk_right: { id: "walk_right", frames: frames("walk_right", 5), fps: 8, loop: true },
-  talk: { id: "talk", frames: frames("talk", 5), fps: 12, loop: true },
-  happy: { id: "happy", frames: frames("happy", 4), fps: 9, loop: false, fallback: "idle" },
-  sad: { id: "sad", frames: frames("sad", 2), fps: 4, loop: false, fallback: "idle" },
-  judge: { id: "judge", frames: frames("judge", 1), fps: 1, loop: false, fallback: "idle" },
-  laugh: { id: "laugh", frames: frames("laugh", 3), fps: 7, loop: false, fallback: "idle" },
-  tongue: { id: "tongue", frames: frames("tongue", 3), fps: 7, loop: false, fallback: "idle" },
-  fart: { id: "fart", frames: frames("fart", 5), fps: 8, loop: false, fallback: "idle" },
-  lie_down: { id: "lie_down", frames: frames("lie_down", 5), fps: 6, loop: false, fallback: "sleep" },
-  sleep: { id: "sleep", frames: frames("sleep", 2), fps: 2, loop: true },
-  wake: { id: "wake", frames: frames("wake", 5), fps: 7, loop: false, fallback: "idle" },
-  drag: { id: "drag", frames: [`${base}/drag_held_01.png`], fps: 1, loop: true },
-};
-
-export const dragonMascotEventAnimation: Record<DragonMascotEventType, DragonMascotAnimationId> = {
-  greeting: "happy",
-  play: "happy",
-  pause: "sad",
-  save: "happy",
-  load: "judge",
-  settings: "judge",
-  reset: "happy",
-  mute: "tongue",
-  unmute: "happy",
-  music: "talk",
-  music_prev: "judge",
-  music_play_pause: "talk",
-  music_next: "happy",
-  music_volume_up: "happy",
-  music_volume_down: "blink",
-  music_mute: "tongue",
-  music_playlist: "judge",
-  error: "sad",
-  idle: "blink",
-  click: "laugh",
-};
 
 export const dragonMascotDialogues: Record<DragonMascotEventType, string[]> = {
   greeting: [
