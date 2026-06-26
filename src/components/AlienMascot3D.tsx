@@ -226,16 +226,25 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
           mesh.frustumCulled = false;
           mesh.castShadow = true;
           mesh.receiveShadow = false;
+          const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+          materials.forEach((material) => {
+            if (!material) return;
+            material.transparent = false;
+            material.opacity = 1;
+            material.depthWrite = true;
+            material.side = THREE.DoubleSide;
+            material.needsUpdate = true;
+          });
         }
       });
       const box = new THREE.Box3().setFromObject(model);
       const center = box.getCenter(new THREE.Vector3());
       const size = box.getSize(new THREE.Vector3());
-      model.position.sub(center);
-      const scale = 2.55 / Math.max(size.x, size.y, size.z, 1);
+      const scale = 3.15 / Math.max(size.y, 1);
       model.scale.setScalar(scale);
+      model.position.set(-center.x * scale, -box.min.y * scale - 1.64, -center.z * scale);
       model.rotation.set(0, Math.PI, 0);
-      modelRoot.position.set(0, -0.18, 0);
+      modelRoot.position.set(0, 0, 0);
       modelRoot.add(model);
       scene.add(modelRoot);
 
