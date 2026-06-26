@@ -34,6 +34,10 @@ def import_dragon():
         obj.rotation_euler[0] = math.radians(0)
         obj.location = (0, 0, 0)
         obj.scale = (1, 1, 1)
+        bpy.ops.object.shade_smooth()
+        normal_modifier = obj.modifiers.new("FORBIDDENS_weighted_normals", "WEIGHTED_NORMAL")
+        normal_modifier.keep_sharp = True
+        normal_modifier.weight = 50
         for slot in obj.material_slots:
             material = slot.material
             if not material:

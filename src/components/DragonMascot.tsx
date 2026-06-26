@@ -21,10 +21,10 @@ type MascotPosition = {
 
 const MASCOT_EVENT = "forbiddens:dragon-mascot";
 const MODEL_URL = "/mascot/dragon/dragon_black_model.glb";
-const MASCOT_WIDTH = 342;
-const MASCOT_HEIGHT = 246;
-const CANVAS_WIDTH = 520;
-const CANVAS_HEIGHT = 380;
+const MASCOT_WIDTH = 420;
+const MASCOT_HEIGHT = 300;
+const CANVAS_WIDTH = 620;
+const CANVAS_HEIGHT = 450;
 const GROUND_GAP = 0;
 
 const DRAGON_CLIPS = {
@@ -250,8 +250,8 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
     rendererRef.current = renderer;
 
     const scene = new THREE.Scene();
-    const camera = new THREE.OrthographicCamera(-3.25, 3.25, 2.18, -1.78, 0.1, 100);
-    camera.position.set(0, 0.18, 6.4);
+    const camera = new THREE.OrthographicCamera(-2.55, 2.55, 1.82, -1.45, 0.1, 100);
+    camera.position.set(0, 0.14, 6.4);
     camera.lookAt(0, -0.08, 0);
 
     scene.add(new THREE.HemisphereLight(0xfaf7ee, 0x120606, 1.25));
@@ -276,9 +276,13 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
         if (!mesh.isMesh) return;
         mesh.frustumCulled = false;
         mesh.castShadow = true;
+        mesh.geometry.computeVertexNormals();
         const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
         materials.forEach((material) => {
           if (!material) return;
+          if ("flatShading" in material) {
+            (material as THREE.MeshStandardMaterial).flatShading = false;
+          }
           material.transparent = false;
           material.opacity = 1;
           material.depthWrite = true;
@@ -290,10 +294,10 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
       const box = new THREE.Box3().setFromObject(model);
       const center = box.getCenter(new THREE.Vector3());
       const size = box.getSize(new THREE.Vector3());
-      const scale = 4.55 / Math.max(size.x, size.y * 1.34, size.z, 1);
+      const scale = 6.15 / Math.max(size.x, size.y * 1.34, size.z, 1);
       model.scale.setScalar(scale);
-      model.position.set(-center.x * scale, -box.min.y * scale - 1.24, -center.z * scale);
-      model.rotation.set(0, Math.PI, 0);
+      model.position.set(-center.x * scale, -box.min.y * scale - 1.3, -center.z * scale);
+      model.rotation.set(0, 0, 0);
       modelRoot.add(model);
       scene.add(modelRoot);
 
