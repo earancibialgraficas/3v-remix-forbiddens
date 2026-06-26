@@ -25,8 +25,8 @@ const BODY_TEXTURE_URL = "/mascot/dragon/textures/Dragon_Bump_Col2.jpg";
 const NORMAL_TEXTURE_URL = "/mascot/dragon/textures/Dragon_Nor_mirror2.jpg";
 const MASCOT_WIDTH = 420;
 const MASCOT_HEIGHT = 300;
-const CANVAS_WIDTH = 620;
-const CANVAS_HEIGHT = 450;
+const CANVAS_WIDTH = 1100;
+const CANVAS_HEIGHT = 760;
 const GROUND_GAP = 0;
 
 const DRAGON_CLIPS = {
@@ -100,6 +100,8 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
   const targetYawRef = useRef(-0.2);
   const currentYawRef = useRef(-0.2);
   const motionRef = useRef(DRAGON_CLIPS.idle);
+  const draggingRef = useRef(false);
+  const landingUntilRef = useRef(0);
 
   const [message, setMessage] = useState("");
   const [typedMessage, setTypedMessage] = useState("");
@@ -113,6 +115,10 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
   useEffect(() => {
     motionRef.current = motion;
   }, [motion]);
+
+  useEffect(() => {
+    draggingRef.current = dragging;
+  }, [dragging]);
 
   const title = useMemo(() => {
     const trimmed = String(gameName || "").trim();
@@ -216,7 +222,11 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
   const playTemporaryAnimation = useCallback((clip: string, duration = 1800) => {
     setMotion(clip);
     playAnimation(clip);
-    window.setTimeout(setIdle, duration);
+    window.setTimeout(() => {
+      if (draggingRef.current) return;
+      if (clip === DRAGON_CLIPS.fly) landingUntilRef.current = performance.now() + 950;
+      setIdle();
+    }, duration);
   }, [playAnimation, setIdle]);
 
   useEffect(() => {
@@ -252,7 +262,7 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
     rendererRef.current = renderer;
 
     const scene = new THREE.Scene();
-    const camera = new THREE.OrthographicCamera(-2.55, 2.55, 1.82, -1.45, 0.1, 100);
+    const camera = new THREE.OrthographicCamera(-4.53, 4.53, 2.76, -2.76, 0.1, 100);
     camera.position.set(0, 0.14, 6.4);
     camera.lookAt(0, -0.08, 0);
 
@@ -350,8 +360,11 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
         const isMoving = currentMotion === DRAGON_CLIPS.walk || currentMotion === DRAGON_CLIPS.run;
         const isFlying = currentMotion === DRAGON_CLIPS.fly;
         const bob = Math.sin(elapsed * (isMoving ? 7.8 : isFlying ? 5.4 : 2.1));
+        const landingLift = Math.max(0, landingUntilRef.current - performance.now()) / 950;
         currentYawRef.current += (targetYawRef.current - currentYawRef.current) * Math.min(1, delta * 4.0);
-        modelRoot.position.y = -0.03 + (isMoving ? Math.abs(bob) * 0.025 : isFlying ? Math.sin(elapsed * 4.2) * 0.05 : bob * 0.008);
+        modelRoot.position.y = -0.03
+          + (isMoving ? Math.abs(bob) * 0.025 : isFlying ? Math.sin(elapsed * 4.2) * 0.05 : bob * 0.008)
+          + landingLift * 0.12;
         modelRoot.rotation.y = currentYawRef.current + Math.sin(elapsed * (isFlying ? 3.2 : 1.4)) * (isFlying ? 0.035 : 0.012);
         modelRoot.rotation.z = Math.sin(elapsed * (isMoving ? 6.5 : isFlying ? 4.5 : 1.6)) * (isMoving ? 0.022 : isFlying ? 0.035 : 0.01);
       }
@@ -433,7 +446,7 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
           window.setTimeout(setIdle, roll < 0.18 ? 2600 : 1650);
         } else if (roll < 0.62) {
           targetYawRef.current = (Math.random() < 0.5 ? -1 : 1) * (0.16 + Math.random() * 0.26);
-          playTemporaryAnimation(DRAGON_CLIPS.fly, 2200);
+          playTemporaryAnimation(DRAGON_CLIPS.fly, 6200);
         } else {
           setIdle();
         }
@@ -460,6 +473,7 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
     setDragging(false);
     setSettling(true);
     setPosition((current) => clampPosition(current.x, groundY()));
+    landingUntilRef.current = performance.now() + 950;
     setIdle();
     window.setTimeout(() => setSettling(false), 520);
   }, [clampPosition, dragging, groundY, setIdle]);
