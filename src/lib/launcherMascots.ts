@@ -58,7 +58,7 @@ export const LAUNCHER_MASCOTS: Record<LauncherMascotSlug, LauncherMascotTheme> =
     assets: {
       baseUrl: '/mascot/alien',
       config: 'alienMascot3D',
-      modelUrl: '/mascot/alien/alien_animal.glb',
+      modelUrl: '/mascot/alien/alien_animal_model.glb',
     },
   },
 };
