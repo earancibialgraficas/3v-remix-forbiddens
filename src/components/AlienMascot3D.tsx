@@ -292,30 +292,43 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
           const nextMaterials = materials.map((material) => {
             const name = material?.name || "";
             if (/body/i.test(name) || /postprocessing/i.test(mesh.name)) {
-              return new THREE.MeshStandardMaterial({
-                name: name || "Alien red body",
-                map: bodyTexture,
-                normalMap: bodyNormal,
-                color: new THREE.Color(0xffffff),
-                emissive: new THREE.Color(0x100000),
-                emissiveMap: bodyTexture,
-                emissiveIntensity: 0.08,
-                roughness: 0.58,
-                metalness: 0.04,
-                side: THREE.DoubleSide,
-              });
+              const bodyMaterial = material instanceof THREE.MeshStandardMaterial
+                ? material.clone()
+                : new THREE.MeshStandardMaterial({ name: name || "Alien textured body" });
+              bodyMaterial.name = name || "Alien textured body";
+              bodyMaterial.map = bodyTexture;
+              bodyMaterial.normalMap = bodyNormal;
+              bodyMaterial.color = new THREE.Color(0xffffff);
+              bodyMaterial.emissive = new THREE.Color(0x180000);
+              bodyMaterial.emissiveMap = bodyTexture;
+              bodyMaterial.emissiveIntensity = 0.1;
+              bodyMaterial.roughness = 0.52;
+              bodyMaterial.metalness = 0.06;
+              bodyMaterial.transparent = false;
+              bodyMaterial.opacity = 1;
+              bodyMaterial.depthWrite = true;
+              bodyMaterial.side = THREE.DoubleSide;
+              bodyMaterial.needsUpdate = true;
+              return bodyMaterial;
             }
             if (/eye/i.test(name) || /eye/i.test(mesh.name)) {
-              return new THREE.MeshStandardMaterial({
-                name: name || "Alien eye",
-                map: eyeTexture,
-                emissive: new THREE.Color(0xff7a22),
-                emissiveMap: eyeTexture,
-                emissiveIntensity: 0.38,
-                roughness: 0.35,
-                metalness: 0.12,
-                side: THREE.DoubleSide,
-              });
+              const eyeMaterial = material instanceof THREE.MeshStandardMaterial
+                ? material.clone()
+                : new THREE.MeshStandardMaterial({ name: name || "Alien eye" });
+              eyeMaterial.name = name || "Alien eye";
+              eyeMaterial.map = eyeMaterial.map || eyeTexture;
+              eyeMaterial.color = new THREE.Color(0xffffff);
+              eyeMaterial.emissive = new THREE.Color(0xff7a22);
+              eyeMaterial.emissiveMap = eyeMaterial.emissiveMap || eyeTexture;
+              eyeMaterial.emissiveIntensity = 0.38;
+              eyeMaterial.roughness = 0.35;
+              eyeMaterial.metalness = 0.12;
+              eyeMaterial.transparent = false;
+              eyeMaterial.opacity = 1;
+              eyeMaterial.depthWrite = true;
+              eyeMaterial.side = THREE.DoubleSide;
+              eyeMaterial.needsUpdate = true;
+              return eyeMaterial;
             }
             if (!material) return material;
             material.transparent = false;
