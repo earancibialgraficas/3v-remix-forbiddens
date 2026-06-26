@@ -1726,6 +1726,14 @@ extern "system" {
     fn MonitorFromPoint(pt: NativePoint, dw_flags: u32) -> isize;
     fn GetMonitorInfoW(h_monitor: isize, lpmi: *mut NativeMonitorInfo) -> i32;
     fn GetWindowRect(hwnd: isize, lp_rect: *mut NativeRect) -> i32;
+    fn MoveWindow(
+        hwnd: isize,
+        x: i32,
+        y: i32,
+        width: i32,
+        height: i32,
+        repaint: i32,
+    ) -> i32;
     fn SetForegroundWindow(hwnd: isize) -> i32;
     fn ShowWindowAsync(hwnd: isize, cmd_show: i32) -> i32;
 }
@@ -1837,6 +1845,22 @@ fn native_process_window_handle(process_id: u32) -> Option<isize> {
     }
 }
 
+#[cfg(windows)]
+fn wait_native_process_window_handle(process_id: u32, attempts: u32, delay_ms: u64) -> Option<isize> {
+    for _ in 0..attempts {
+        if let Some(hwnd) = native_process_window_handle(process_id) {
+            return Some(hwnd);
+        }
+        thread::sleep(Duration::from_millis(delay_ms));
+    }
+    None
+}
+
+#[cfg(not(windows))]
+fn wait_native_process_window_handle(_process_id: u32, _attempts: u32, _delay_ms: u64) -> Option<isize> {
+    None
+}
+
 #[cfg(not(windows))]
 fn native_process_window_minimized(_process_id: u32) -> Option<bool> {
     None
@@ -1895,7 +1919,6 @@ fn monitor_native_emulator_window(
                             let _ = window.minimize();
                         }
                     } else {
-                        let _ = enter_native_companion_layout(&app, Some(process_id));
                         arrange_emulator_window(app.clone(), process_id);
                         emit_native_window_state(
                             &app,
@@ -1918,43 +1941,32 @@ fn monitor_native_emulator_window(
 }
 
 fn arrange_emulator_window(app: AppHandle, process_id: u32) {
-    let Some(layout) = screen_layout(&app, Some(process_id)) else {
-        return;
-    };
-
+    #[cfg(windows)]
     thread::spawn(move || {
-        let script = r#"
-$ErrorActionPreference = 'SilentlyContinue'
-Add-Type @"
-using System;
-using System.Globalization;
-using System.Runtime.InteropServices;
-public class ForbiddensWinApi {
-  [DllImport("user32.dll")] public static extern bool MoveWindow(IntPtr hWnd, int X, int Y, int nWidth, int nHeight, bool bRepaint);
-  [DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
-}
-"@
-$processId = [int]$env:FORBIDDENS_EMU_PID
-$p = Get-Process -Id $processId -ErrorAction SilentlyContinue
-for ($i = 0; $i -lt 60; $i++) {
-  if (-not $p) { Start-Sleep -Milliseconds 150; $p = Get-Process -Id $processId -ErrorAction SilentlyContinue; continue }
-  $p.Refresh()
-  if ($p.MainWindowHandle -ne 0) { break }
-  Start-Sleep -Milliseconds 150
-}
-if ($p -and $p.MainWindowHandle -ne 0) {
-  [ForbiddensWinApi]::ShowWindowAsync($p.MainWindowHandle, 9) | Out-Null
-  [ForbiddensWinApi]::MoveWindow($p.MainWindowHandle, [int]$env:FORBIDDENS_EMU_X, [int]$env:FORBIDDENS_EMU_Y, [int]$env:FORBIDDENS_EMU_W, [int]$env:FORBIDDENS_EMU_H, $true) | Out-Null
-}
-"#;
-        let mut command = powershell_command(script);
-        command.env("FORBIDDENS_EMU_PID", process_id.to_string());
-        command.env("FORBIDDENS_EMU_X", layout.x.to_string());
-        command.env("FORBIDDENS_EMU_Y", layout.y.to_string());
-        command.env("FORBIDDENS_EMU_W", layout.emulator_width.to_string());
-        command.env("FORBIDDENS_EMU_H", layout.height.to_string());
-        let _ = run_hidden(command);
+        let Some(hwnd) = wait_native_process_window_handle(process_id, 70, 120) else {
+            return;
+        };
+        let _ = enter_native_companion_layout(&app, Some(process_id));
+        let Some(layout) = screen_layout(&app, Some(process_id)) else {
+            return;
+        };
+        unsafe {
+            ShowWindowAsync(hwnd, 9);
+            MoveWindow(
+                hwnd,
+                layout.x,
+                layout.y,
+                layout.emulator_width as i32,
+                layout.height as i32,
+                1,
+            );
+        }
     });
+
+    #[cfg(not(windows))]
+    {
+        let _ = enter_native_companion_layout(&app, Some(process_id));
+    }
 }
 
 fn extract_archive(archive: &Path, destination: &Path) -> Result<(), String> {
@@ -2191,7 +2203,6 @@ fn open_native_emulator(
         .map(|path| path.to_string());
     let engine_path_string = engine_path.to_string_lossy().to_string();
 
-    let _ = enter_native_companion_layout(&app, Some(child.id()));
     arrange_emulator_window(app.clone(), process_id);
     monitor_native_emulator_window(
         app.clone(),
@@ -2320,7 +2331,6 @@ fn set_native_emulator_state(process_id: u32, action: String) -> Result<(), Stri
 
 #[tauri::command]
 fn sync_native_companion_layout(app: AppHandle, process_id: u32) -> Result<(), String> {
-    enter_native_companion_layout(&app, Some(process_id))?;
     arrange_emulator_window(app, process_id);
     Ok(())
 }

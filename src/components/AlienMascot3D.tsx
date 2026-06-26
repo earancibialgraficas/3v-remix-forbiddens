@@ -24,9 +24,11 @@ const MODEL_URL = "/mascot/alien/alien_animal_model.glb";
 const ANIMATIONS_URL = "/mascot/alien/alien_animal_animations.glb";
 const BODY_TEXTURE_URL = "/mascot/alien/textures/Alien-Animal-Base-Diffuse.jpg";
 const BODY_NORMAL_URL = "/mascot/alien/textures/Alien-Animal-Base-Nor.jpg";
+const BODY_METALLIC_URL = "/mascot/alien/textures/Alien-Animal-Base-Metallic.jpg";
+const BODY_GLOSS_URL = "/mascot/alien/textures/Alien-Animal-Base-Gloss.jpg";
 const EYE_TEXTURE_URL = "/mascot/alien/textures/Alien-Animal_eye.jpg";
-const MASCOT_WIDTH = 330;
-const MASCOT_HEIGHT = 360;
+const MASCOT_WIDTH = 292;
+const MASCOT_HEIGHT = 260;
 const GROUND_GAP = 0;
 
 const ALIEN_ANIMATION_DURATIONS: Record<string, number> = {
@@ -95,6 +97,18 @@ const pickLine = (type: DragonMascotEventType) => {
 };
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+
+const isInsideAlienHitArea = (event: React.PointerEvent<HTMLButtonElement>) => {
+  const rect = event.currentTarget.getBoundingClientRect();
+  if (!rect.width || !rect.height) return false;
+  const x = (event.clientX - rect.left) / rect.width;
+  const y = (event.clientY - rect.top) / rect.height;
+  const body = ((x - 0.5) / 0.48) ** 2 + ((y - 0.56) / 0.34) ** 2 <= 1;
+  const head = ((x - 0.26) / 0.25) ** 2 + ((y - 0.43) / 0.26) ** 2 <= 1;
+  const tail = x > 0.67 && x < 0.98 && y > 0.44 && y < 0.75;
+  const feet = y > 0.68 && y < 0.93 && x > 0.12 && x < 0.82;
+  return body || head || tail || feet;
+};
 
 export default function AlienMascot3D({ gameName, className }: AlienMascot3DProps) {
   const stageRef = useRef<HTMLDivElement>(null);
@@ -240,8 +254,8 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
     rendererRef.current = renderer;
 
     const scene = new THREE.Scene();
-    const camera = new THREE.OrthographicCamera(-2.18, 2.18, 2.22, -2.16, 0.1, 100);
-    camera.position.set(0, 0.2, 5.4);
+    const camera = new THREE.OrthographicCamera(-2.22, 2.22, 1.72, -1.5, 0.1, 100);
+    camera.position.set(0, 0.08, 5.4);
     camera.lookAt(0, -0.15, 0);
 
     scene.add(new THREE.HemisphereLight(0xf5f7ff, 0x160708, 1.2));
@@ -259,11 +273,15 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
     const textureLoader = new THREE.TextureLoader();
     const bodyTexture = textureLoader.load(BODY_TEXTURE_URL);
     const bodyNormal = textureLoader.load(BODY_NORMAL_URL);
+    const bodyMetallic = textureLoader.load(BODY_METALLIC_URL);
+    const bodyGloss = textureLoader.load(BODY_GLOSS_URL);
     const eyeTexture = textureLoader.load(EYE_TEXTURE_URL);
     bodyTexture.colorSpace = THREE.SRGBColorSpace;
     eyeTexture.colorSpace = THREE.SRGBColorSpace;
     bodyTexture.flipY = false;
     bodyNormal.flipY = false;
+    bodyMetallic.flipY = false;
+    bodyGloss.flipY = false;
     eyeTexture.flipY = false;
 
     const installAnimations = (gltf: GLTF, mixer: THREE.AnimationMixer) => {
@@ -298,12 +316,15 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
               bodyMaterial.name = name || "Alien textured body";
               bodyMaterial.map = bodyTexture;
               bodyMaterial.normalMap = bodyNormal;
+              bodyMaterial.metalnessMap = bodyMetallic;
+              bodyMaterial.roughnessMap = bodyGloss;
               bodyMaterial.color = new THREE.Color(0xffffff);
-              bodyMaterial.emissive = new THREE.Color(0x180000);
-              bodyMaterial.emissiveMap = bodyTexture;
-              bodyMaterial.emissiveIntensity = 0.1;
-              bodyMaterial.roughness = 0.52;
-              bodyMaterial.metalness = 0.06;
+              bodyMaterial.emissive = new THREE.Color(0x080000);
+              bodyMaterial.emissiveMap = null;
+              bodyMaterial.emissiveIntensity = 0.035;
+              bodyMaterial.roughness = 0.34;
+              bodyMaterial.metalness = 0.42;
+              bodyMaterial.normalScale = new THREE.Vector2(1.85, 1.85);
               bodyMaterial.transparent = false;
               bodyMaterial.opacity = 1;
               bodyMaterial.depthWrite = true;
@@ -399,6 +420,8 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
       });
       bodyTexture.dispose();
       bodyNormal.dispose();
+      bodyMetallic.dispose();
+      bodyGloss.dispose();
       eyeTexture.dispose();
       renderer.dispose();
       rendererRef.current = null;
@@ -505,6 +528,7 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
   const startDrag = (event: React.PointerEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
+    if (!isInsideAlienHitArea(event)) return;
     const stageRect = stageRef.current?.getBoundingClientRect();
     if (!stageRect) return;
     dragRef.current = {
@@ -577,7 +601,10 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
           "pointer-events-auto absolute z-[105] flex items-end justify-center bg-transparent outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70",
           dragging ? "cursor-grabbing" : "cursor-grab",
         )}
-        style={mascotStyle}
+        style={{
+          ...mascotStyle,
+          clipPath: "polygon(5% 34%, 25% 13%, 61% 12%, 98% 37%, 96% 77%, 77% 93%, 18% 94%, 0 71%)",
+        }}
         title={title}
         aria-label={title}
       >
