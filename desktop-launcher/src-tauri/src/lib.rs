@@ -1460,6 +1460,27 @@ struct NativeMonitorInfo {
     dw_flags: u32,
 }
 
+#[derive(Clone, Copy)]
+struct NativeWorkArea {
+    x: i32,
+    y: i32,
+    width: u32,
+    height: u32,
+    monitor_width: u32,
+    monitor_height: u32,
+    dpi_x: u32,
+    dpi_y: u32,
+}
+
+#[derive(Clone, Copy)]
+struct NativeScreenLayout {
+    x: i32,
+    y: i32,
+    height: u32,
+    emulator_width: u32,
+    companion_width: u32,
+}
+
 #[cfg(windows)]
 fn rect_size(rect: NativeRect) -> Option<(u32, u32)> {
     let width = rect.right.checked_sub(rect.left)?;
@@ -1471,7 +1492,19 @@ fn rect_size(rect: NativeRect) -> Option<(u32, u32)> {
 }
 
 #[cfg(windows)]
-fn windows_work_area_for_point(x: i32, y: i32) -> Option<(i32, i32, u32, u32)> {
+fn windows_monitor_dpi(monitor: isize) -> Option<(u32, u32)> {
+    let mut dpi_x = 96u32;
+    let mut dpi_y = 96u32;
+    let result = unsafe { GetDpiForMonitor(monitor, 0, &mut dpi_x as *mut u32, &mut dpi_y as *mut u32) };
+    if result == 0 && dpi_x > 0 && dpi_y > 0 {
+        Some((dpi_x, dpi_y))
+    } else {
+        None
+    }
+}
+
+#[cfg(windows)]
+fn windows_work_area_for_point(x: i32, y: i32) -> Option<NativeWorkArea> {
     const MONITOR_DEFAULTTONEAREST: u32 = 0x00000002;
     let monitor = unsafe { MonitorFromPoint(NativePoint { x, y }, MONITOR_DEFAULTTONEAREST) };
     if monitor == 0 {
@@ -1497,18 +1530,96 @@ fn windows_work_area_for_point(x: i32, y: i32) -> Option<(i32, i32, u32, u32)> {
         return None;
     }
     let (width, height) = rect_size(info.rc_work)?;
+    let (monitor_width, monitor_height) = rect_size(info.rc_monitor)?;
     if width == 0 || height == 0 {
         return None;
     }
-    Some((info.rc_work.left, info.rc_work.top, width, height))
+    let (dpi_x, dpi_y) = windows_monitor_dpi(monitor).unwrap_or((96, 96));
+    Some(NativeWorkArea {
+        x: info.rc_work.left,
+        y: info.rc_work.top,
+        width,
+        height,
+        monitor_width,
+        monitor_height,
+        dpi_x,
+        dpi_y,
+    })
 }
 
 #[cfg(not(windows))]
-fn windows_work_area_for_point(_x: i32, _y: i32) -> Option<(i32, i32, u32, u32)> {
+fn windows_work_area_for_point(_x: i32, _y: i32) -> Option<NativeWorkArea> {
     None
 }
 
-fn screen_layout(app: &AppHandle) -> Option<(i32, i32, u32, u32, u32, u32)> {
+fn companion_width_for_area(area: NativeWorkArea) -> u32 {
+    let width_f = area.width.max(1) as f64;
+    let height_f = area.height.max(1) as f64;
+    let dpi = ((area.dpi_x.max(72) as f64) + (area.dpi_y.max(72) as f64)) / 2.0;
+    let monitor_diagonal_inches = (((area.monitor_width as f64).powi(2)
+        + (area.monitor_height as f64).powi(2))
+        .sqrt()
+        / dpi)
+        .clamp(10.0, 42.0);
+    let aspect_ratio = width_f / height_f;
+    let narrowness = ((1.88 - aspect_ratio) / 0.85).clamp(0.0, 1.0);
+    let compact_physical_boost = ((17.0 - monitor_diagonal_inches) / 10.0).clamp(0.0, 0.1);
+    let roomy_physical_trim = ((monitor_diagonal_inches - 24.0) / 18.0).clamp(0.0, 0.04);
+    let target_ratio = 0.29 + (narrowness * 0.12) + compact_physical_boost - roomy_physical_trim;
+    let target_physical_inches = if monitor_diagonal_inches < 14.2 {
+        5.0
+    } else if monitor_diagonal_inches < 17.5 {
+        5.25
+    } else if monitor_diagonal_inches < 24.0 {
+        5.45
+    } else {
+        5.65
+    };
+    let desired_from_width = (width_f * target_ratio).round() as u32;
+    let desired_from_height = (height_f * 0.43).round() as u32;
+    let desired_from_inches = (dpi * target_physical_inches).round() as u32;
+    let minimum_companion_width = ((dpi * 3.75).round() as u32)
+        .max((height_f * 0.34).round() as u32)
+        .clamp(340, 620)
+        .min(area.width);
+    let max_ratio = if monitor_diagonal_inches < 15.0 { 0.54 } else { 0.48 };
+    let minimum_emulator_width = ((width_f * 0.45).round() as u32).max(520).min(area.width);
+    let maximum_companion_width = ((width_f * max_ratio).round() as u32)
+        .min(area.width.saturating_sub(minimum_emulator_width))
+        .max(minimum_companion_width)
+        .min(area.width);
+
+    desired_from_width
+        .max(desired_from_height)
+        .max(desired_from_inches)
+        .max(minimum_companion_width)
+        .min(maximum_companion_width)
+}
+
+#[cfg(windows)]
+fn native_process_window_center(process_id: u32) -> Option<(i32, i32)> {
+    let hwnd = native_process_window_handle(process_id)?;
+    let mut rect = NativeRect {
+        left: 0,
+        top: 0,
+        right: 0,
+        bottom: 0,
+    };
+    if unsafe { GetWindowRect(hwnd, &mut rect as *mut NativeRect) } == 0 {
+        return None;
+    }
+    Some((
+        rect.left + ((rect.right - rect.left) / 2),
+        rect.top + ((rect.bottom - rect.top) / 2),
+    ))
+}
+
+#[cfg(not(windows))]
+fn native_process_window_center(_process_id: u32) -> Option<(i32, i32)> {
+    None
+}
+
+fn screen_layout(app: &AppHandle, process_id: Option<u32>) -> Option<NativeScreenLayout> {
     let window = app.get_webview_window("main")?;
     let monitor = window
         .current_monitor()
@@ -1517,46 +1628,39 @@ fn screen_layout(app: &AppHandle) -> Option<(i32, i32, u32, u32, u32, u32)> {
         .or_else(|| window.primary_monitor().ok().flatten())?;
     let size = monitor.size();
     let position = monitor.position();
-    let monitor_center_x = position.x + (size.width / 2) as i32;
-    let monitor_center_y = position.y + (size.height / 2) as i32;
-    let (x, y, width, height) = windows_work_area_for_point(monitor_center_x, monitor_center_y)
-        .unwrap_or((position.x, position.y, size.width, size.height));
-    let width_f = width as f64;
-    let height_f = height.max(1) as f64;
-    let aspect_ratio = width_f / height_f;
-    let narrowness = ((1.85 - aspect_ratio) / 0.85).clamp(0.0, 1.0);
-    let target_ratio = 0.30 + (narrowness * 0.14);
-    let desired_from_width = (width_f * target_ratio).round() as u32;
-    let desired_from_height = (height_f * 0.42).round() as u32;
-    let minimum_companion_width = ((height_f * 0.36).round() as u32)
-        .clamp(320, 460)
-        .min(width);
-    let maximum_companion_width = ((width_f * 0.48).round() as u32)
-        .min((height_f * 0.64).round() as u32)
-        .max(minimum_companion_width)
-        .min(width);
-    let companion_width = desired_from_width
-        .max(desired_from_height)
-        .max(minimum_companion_width)
-        .min(maximum_companion_width);
-    let emulator_width = width.saturating_sub(companion_width);
-    Some((
-        x,
-        y,
-        width,
-        height,
+    let fallback_center_x = position.x + (size.width / 2) as i32;
+    let fallback_center_y = position.y + (size.height / 2) as i32;
+    let (reference_x, reference_y) = process_id
+        .and_then(native_process_window_center)
+        .unwrap_or((fallback_center_x, fallback_center_y));
+    let scale_factor = monitor.scale_factor().max(0.75);
+    let fallback_dpi = (96.0 * scale_factor).round().max(72.0) as u32;
+    let area = windows_work_area_for_point(reference_x, reference_y).unwrap_or(NativeWorkArea {
+        x: position.x,
+        y: position.y,
+        width: size.width,
+        height: size.height,
+        monitor_width: size.width,
+        monitor_height: size.height,
+        dpi_x: fallback_dpi,
+        dpi_y: fallback_dpi,
+    });
+    let companion_width = companion_width_for_area(area);
+    let emulator_width = area.width.saturating_sub(companion_width);
+    Some(NativeScreenLayout {
+        x: area.x,
+        y: area.y,
+        height: area.height,
         emulator_width,
         companion_width,
-    ))
+    })
 }
 
-fn enter_native_companion_layout(app: &AppHandle) -> Result<(), String> {
+fn enter_native_companion_layout(app: &AppHandle, process_id: Option<u32>) -> Result<(), String> {
     let Some(window) = app.get_webview_window("main") else {
         return Ok(());
     };
-    let Some((x, y, _screen_width, screen_height, emulator_width, companion_width)) =
-        screen_layout(app)
-    else {
+    let Some(layout) = screen_layout(app, process_id) else {
         return Ok(());
     };
 
@@ -1565,10 +1669,10 @@ fn enter_native_companion_layout(app: &AppHandle) -> Result<(), String> {
         .map_err(|error| error.to_string())?;
     let _ = window.unmaximize();
     window
-        .set_position(PhysicalPosition::new(x + emulator_width as i32, y))
+        .set_position(PhysicalPosition::new(layout.x + layout.emulator_width as i32, layout.y))
         .map_err(|error| error.to_string())?;
     window
-        .set_size(PhysicalSize::new(companion_width, screen_height))
+        .set_size(PhysicalSize::new(layout.companion_width, layout.height))
         .map_err(|error| error.to_string())?;
     let _ = window.set_always_on_top(true);
     let _ = window.unminimize();
@@ -1621,8 +1725,20 @@ extern "system" {
     fn keybd_event(b_vk: u8, b_scan: u8, dw_flags: u32, dw_extra_info: usize);
     fn MonitorFromPoint(pt: NativePoint, dw_flags: u32) -> isize;
     fn GetMonitorInfoW(h_monitor: isize, lpmi: *mut NativeMonitorInfo) -> i32;
+    fn GetWindowRect(hwnd: isize, lp_rect: *mut NativeRect) -> i32;
     fn SetForegroundWindow(hwnd: isize) -> i32;
     fn ShowWindowAsync(hwnd: isize, cmd_show: i32) -> i32;
+}
+
+#[cfg(windows)]
+#[link(name = "shcore")]
+extern "system" {
+    fn GetDpiForMonitor(
+        hmonitor: isize,
+        dpi_type: i32,
+        dpi_x: *mut u32,
+        dpi_y: *mut u32,
+    ) -> i32;
 }
 
 #[cfg(windows)]
@@ -1779,7 +1895,7 @@ fn monitor_native_emulator_window(
                             let _ = window.minimize();
                         }
                     } else {
-                        let _ = enter_native_companion_layout(&app);
+                        let _ = enter_native_companion_layout(&app, Some(process_id));
                         arrange_emulator_window(app.clone(), process_id);
                         emit_native_window_state(
                             &app,
@@ -1802,9 +1918,7 @@ fn monitor_native_emulator_window(
 }
 
 fn arrange_emulator_window(app: AppHandle, process_id: u32) {
-    let Some((x, y, _screen_width, screen_height, emulator_width, _companion_width)) =
-        screen_layout(&app)
-    else {
+    let Some(layout) = screen_layout(&app, Some(process_id)) else {
         return;
     };
 
@@ -1835,10 +1949,10 @@ if ($p -and $p.MainWindowHandle -ne 0) {
 "#;
         let mut command = powershell_command(script);
         command.env("FORBIDDENS_EMU_PID", process_id.to_string());
-        command.env("FORBIDDENS_EMU_X", x.to_string());
-        command.env("FORBIDDENS_EMU_Y", y.to_string());
-        command.env("FORBIDDENS_EMU_W", emulator_width.to_string());
-        command.env("FORBIDDENS_EMU_H", screen_height.to_string());
+        command.env("FORBIDDENS_EMU_X", layout.x.to_string());
+        command.env("FORBIDDENS_EMU_Y", layout.y.to_string());
+        command.env("FORBIDDENS_EMU_W", layout.emulator_width.to_string());
+        command.env("FORBIDDENS_EMU_H", layout.height.to_string());
         let _ = run_hidden(command);
     });
 }
@@ -2077,7 +2191,7 @@ fn open_native_emulator(
         .map(|path| path.to_string());
     let engine_path_string = engine_path.to_string_lossy().to_string();
 
-    let _ = enter_native_companion_layout(&app);
+    let _ = enter_native_companion_layout(&app, Some(child.id()));
     arrange_emulator_window(app.clone(), process_id);
     monitor_native_emulator_window(
         app.clone(),
@@ -2206,7 +2320,7 @@ fn set_native_emulator_state(process_id: u32, action: String) -> Result<(), Stri
 
 #[tauri::command]
 fn sync_native_companion_layout(app: AppHandle, process_id: u32) -> Result<(), String> {
-    enter_native_companion_layout(&app)?;
+    enter_native_companion_layout(&app, Some(process_id))?;
     arrange_emulator_window(app, process_id);
     Ok(())
 }

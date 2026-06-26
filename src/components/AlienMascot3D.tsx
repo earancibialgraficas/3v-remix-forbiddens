@@ -159,7 +159,7 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
       oscillator.frequency.setValueAtTime(pitch, context.currentTime);
       oscillator.frequency.exponentialRampToValueAtTime(Math.max(210, pitch * 0.68), context.currentTime + 0.055);
       gain.gain.setValueAtTime(0.0001, context.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.114, context.currentTime + 0.006);
+      gain.gain.exponentialRampToValueAtTime(0.228, context.currentTime + 0.006);
       gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.06);
       oscillator.connect(gain);
       gain.connect(context.destination);
@@ -244,11 +244,11 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
     camera.position.set(0, 0.2, 5.4);
     camera.lookAt(0, -0.15, 0);
 
-    scene.add(new THREE.HemisphereLight(0xffe1dc, 0x160708, 1.15));
-    const keyLight = new THREE.DirectionalLight(0xffddd0, 1.7);
+    scene.add(new THREE.HemisphereLight(0xf5f7ff, 0x160708, 1.2));
+    const keyLight = new THREE.DirectionalLight(0xfff1e8, 1.65);
     keyLight.position.set(2.4, 3.6, 4.2);
     scene.add(keyLight);
-    const rimLight = new THREE.DirectionalLight(0xff2b2b, 0.9);
+    const rimLight = new THREE.DirectionalLight(0xff3636, 0.72);
     rimLight.position.set(-2.8, 1.6, 2.6);
     scene.add(rimLight);
 
@@ -296,11 +296,11 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
                 name: name || "Alien red body",
                 map: bodyTexture,
                 normalMap: bodyNormal,
-                color: new THREE.Color(0xb82a24),
-                emissive: new THREE.Color(0x260000),
+                color: new THREE.Color(0xffffff),
+                emissive: new THREE.Color(0x100000),
                 emissiveMap: bodyTexture,
-                emissiveIntensity: 0.22,
-                roughness: 0.5,
+                emissiveIntensity: 0.08,
+                roughness: 0.58,
                 metalness: 0.04,
                 side: THREE.DoubleSide,
               });

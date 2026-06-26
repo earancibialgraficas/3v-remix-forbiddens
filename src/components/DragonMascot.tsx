@@ -124,7 +124,7 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
       oscillator.frequency.setValueAtTime(pitch, context.currentTime);
       oscillator.frequency.exponentialRampToValueAtTime(Math.max(300, pitch * 0.72), context.currentTime + 0.05);
       gain.gain.setValueAtTime(0.0001, context.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.15, context.currentTime + 0.006);
+      gain.gain.exponentialRampToValueAtTime(0.3, context.currentTime + 0.006);
       gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.054);
       oscillator.connect(gain);
       gain.connect(context.destination);
