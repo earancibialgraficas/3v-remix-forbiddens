@@ -136,10 +136,11 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
   }, []);
 
   const speak = useCallback((text: string, nextAnimation: DragonMascotAnimationId = "talk") => {
-    if (!text || dragging) return;
+    const nextText = text.trim();
+    if (!nextText || dragging) return;
     markInteraction();
     if (hideBubbleTimerRef.current) window.clearTimeout(hideBubbleTimerRef.current);
-    setMessage(text);
+    setMessage(nextText);
     setTypedMessage("");
     setBubbleVisible(true);
     void nextAnimation;

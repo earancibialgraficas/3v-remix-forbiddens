@@ -12,6 +12,7 @@ import { getNativeCloudSaveKind, isNativeCloudSaveSupported, restoreNativeCloudS
 import DragonMascot, { emitDragonMascotEvent } from "@/components/DragonMascot";
 import AvocadoMascot3D from "@/components/AvocadoMascot3D";
 import AlienMascot3D from "@/components/AlienMascot3D";
+import type { DragonMascotEventType } from "@/mascot/dragonMascotConfig";
 
 const POINTS_INTERVAL_MS = 10_000;
 const POINTS_PER_INTERVAL = 10;
@@ -417,7 +418,23 @@ export default function NativeGameBubble() {
 
   const sendMusicCommand = (command: "prev" | "playPause" | "next" | "volumeUp" | "volumeDown" | "mute") => {
     sendMusicPayload({ command });
-    emitDragonMascotEvent("music");
+    const eventByCommand: Record<typeof command, DragonMascotEventType> = {
+      prev: "music_prev",
+      playPause: "music_play_pause",
+      next: "music_next",
+      volumeUp: "music_volume_up",
+      volumeDown: "music_volume_down",
+      mute: "music_mute",
+    };
+    const textByCommand: Record<typeof command, string> = {
+      prev: "Volviendo a la pista anterior.",
+      playPause: musicPlaying ? "Pausando la musica." : "Reproduciendo la musica.",
+      next: "Saltando a la siguiente pista.",
+      volumeUp: `Subiendo la musica a ${Math.min(100, musicVolume + 10)}%.`,
+      volumeDown: `Bajando la musica a ${Math.max(0, musicVolume - 10)}%.`,
+      mute: "Silenciando o recuperando la musica.",
+    };
+    emitDragonMascotEvent(eventByCommand[command], textByCommand[command]);
   };
 
   const changeMusicCategory = (optionId: string) => {
@@ -428,7 +445,7 @@ export default function NativeGameBubble() {
       category: option.category,
       playlistId: option.playlistId || "",
     });
-    emitDragonMascotEvent("music");
+    emitDragonMascotEvent("music_playlist", `Playlist seleccionada: ${option.label}.`);
   };
 
   const toggleNativeMute = () => {

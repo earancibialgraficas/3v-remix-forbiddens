@@ -22,7 +22,7 @@ type MascotPosition = {
 const MASCOT_EVENT = "forbiddens:dragon-mascot";
 const MODEL_URL = "/mascot/alien/alien_animal_model.glb";
 const ANIMATIONS_URL = "/mascot/alien/alien_animal_animations.glb";
-const BODY_TEXTURE_URL = "/mascot/alien/textures/Alien-Animal-Base-Diffuse.jpg";
+const BODY_TEXTURE_URL = "/mascot/alien/textures/Alien-Animal-Base-Color.jpg";
 const BODY_NORMAL_URL = "/mascot/alien/textures/Alien-Animal-Base-Nor.jpg";
 const BODY_METALLIC_URL = "/mascot/alien/textures/Alien-Animal-Base-Metallic.jpg";
 const BODY_GLOSS_URL = "/mascot/alien/textures/Alien-Animal-Base-Gloss.jpg";
@@ -70,6 +70,13 @@ const animationByEvent: Record<DragonMascotEventType, string> = {
   mute: "Idel_Normal",
   unmute: "Idle_Aggressive",
   music: "Attack_Bite.002",
+  music_prev: "Default",
+  music_play_pause: "Attack_Bite.002",
+  music_next: "Run-Cycle",
+  music_volume_up: "Idle_Aggressive",
+  music_volume_down: "Idel_Normal",
+  music_mute: "Bake_Pose",
+  music_playlist: "Action_Rolls",
   error: "Attack_Hit",
   idle: "Idel_Normal",
   click: "Attack_Bite",
@@ -86,6 +93,13 @@ const alienDialogues: Record<DragonMascotEventType, string[]> = {
   mute: ["Silencio interestelar.", "Audio oculto."],
   unmute: ["Senal recuperada.", "Volvio el sonido."],
   music: ["Frecuencia musical detectada.", "Buen ritmo para una invasion."],
+  music_prev: ["Retrocediendo frecuencia.", "Volvemos a la pista anterior."],
+  music_play_pause: ["Control musical aceptado.", "Ritmo en modo alterno."],
+  music_next: ["Siguiente transmision.", "Saltando a otra frecuencia."],
+  music_volume_up: ["Amplificando senal musical.", "Subiendo potencia sonora."],
+  music_volume_down: ["Reduciendo senal musical.", "Bajando volumen de cabina."],
+  music_mute: ["Musica silenciada.", "Frecuencia musical oculta."],
+  music_playlist: ["Lista musical enlazada.", "Nueva orbita sonora seleccionada."],
   error: ["Anomalia detectada.", "Eso no salio segun el plan."],
   idle: ["Sigo observando.", "La nave esta en espera."],
   click: ["Contacto recibido.", "Hey, cuidado con las antenas."],
@@ -124,6 +138,8 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
   const audioContextRef = useRef<AudioContext | null>(null);
   const dragRef = useRef({ pointerId: -1, offsetX: 0, offsetY: 0 });
   const motionRef = useRef("Idel_Normal");
+  const targetYawRef = useRef(-0.18);
+  const currentYawRef = useRef(-0.18);
 
   const [position, setPosition] = useState<MascotPosition>({ x: 0, y: 0 });
   const [ready, setReady] = useState(false);
@@ -202,12 +218,14 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
   }, []);
 
   const speak = useCallback((text: string, clip = "Idel_Normal") => {
-    if (!text) return;
+    const nextText = text.trim();
+    if (!nextText) return;
     if (hideBubbleTimerRef.current) window.clearTimeout(hideBubbleTimerRef.current);
     if (typingTimerRef.current) window.clearInterval(typingTimerRef.current);
+    targetYawRef.current = 0;
     setMotion(clip);
     playAnimation(clip);
-    setMessage(text);
+    setMessage(nextText);
     setTypedMessage("");
     setBubbleVisible(true);
   }, [playAnimation]);
@@ -318,6 +336,18 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
               bodyMaterial.normalMap = bodyNormal;
               bodyMaterial.metalnessMap = bodyMetallic;
               bodyMaterial.roughnessMap = bodyGloss;
+              bodyMaterial.onBeforeCompile = (shader) => {
+                shader.fragmentShader = shader.fragmentShader.replace(
+                  "#include <roughnessmap_fragment>",
+                  [
+                    "float roughnessFactor = roughness;",
+                    "#ifdef USE_ROUGHNESSMAP",
+                    "  vec4 texelRoughness = texture2D( roughnessMap, vRoughnessMapUv );",
+                    "  roughnessFactor *= clamp(1.0 - texelRoughness.g, 0.18, 1.0);",
+                    "#endif",
+                  ].join("\n"),
+                );
+              };
               bodyMaterial.color = new THREE.Color(0xffffff);
               bodyMaterial.emissive = new THREE.Color(0x080000);
               bodyMaterial.emissiveMap = null;
@@ -392,7 +422,9 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
         const bob = Math.sin(elapsed * (isWalk ? 8.5 : isHit ? 10 : isIdleAggressive ? 5.5 : 2.4));
         modelRoot.position.y = -0.18 + (isWalk ? Math.abs(bob) * 0.035 : isHit ? Math.abs(bob) * 0.025 : bob * 0.01);
         modelRoot.rotation.z = Math.sin(elapsed * (isWalk ? 7 : isHit ? 9 : 1.8)) * (isWalk ? 0.025 : isHit ? 0.04 : 0.012);
-        modelRoot.rotation.y = Math.sin(elapsed * (isHit ? 8 : isIdleAggressive ? 3.8 : 1.2)) * (isHit ? 0.04 : isIdleAggressive ? 0.025 : 0.012);
+        currentYawRef.current += (targetYawRef.current - currentYawRef.current) * Math.min(1, delta * 4.2);
+        const expressiveYaw = Math.sin(elapsed * (isHit ? 8 : isIdleAggressive ? 3.8 : 1.2)) * (isHit ? 0.035 : isIdleAggressive ? 0.02 : 0.01);
+        modelRoot.rotation.y = currentYawRef.current + expressiveYaw;
         modelRoot.scale.set(
           1 + Math.abs(bob) * (isHit ? 0.012 : isWalk ? 0.008 : 0.004),
           1 - Math.abs(bob) * (isHit ? 0.01 : isWalk ? 0.006 : 0.003),
@@ -473,28 +505,36 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
         const roll = Math.random();
         if (roll < 0.28 && stage) {
           const maxX = Math.max(4, stage.clientWidth - MASCOT_WIDTH - 4);
-          const nextX = clamp(position.x + (Math.random() < 0.5 ? -1 : 1) * (80 + Math.random() * 120), 4, maxX);
+          const direction = Math.random() < 0.5 ? -1 : 1;
+          const nextX = clamp(position.x + direction * (80 + Math.random() * 120), 4, maxX);
+          targetYawRef.current = direction < 0 ? -0.42 : 0.42;
           setMotion("Walk-Cycle");
           playAnimation("Walk-Cycle");
           setPosition((current) => clampPosition(nextX, current.y));
           window.setTimeout(() => {
+            targetYawRef.current = (Math.random() < 0.5 ? -1 : 1) * (0.12 + Math.random() * 0.2);
             setMotion("Idel_Normal");
             playAnimation("Idel_Normal");
           }, 2400);
         } else if (roll < 0.36 && stage) {
           const maxX = Math.max(4, stage.clientWidth - MASCOT_WIDTH - 4);
-          const nextX = clamp(position.x + (Math.random() < 0.5 ? -1 : 1) * (110 + Math.random() * 150), 4, maxX);
+          const direction = Math.random() < 0.5 ? -1 : 1;
+          const nextX = clamp(position.x + direction * (110 + Math.random() * 150), 4, maxX);
+          targetYawRef.current = direction < 0 ? -0.5 : 0.5;
           setMotion("Run-Cycle");
           playAnimation("Run-Cycle");
           setPosition((current) => clampPosition(nextX, current.y));
           window.setTimeout(() => {
+            targetYawRef.current = (Math.random() < 0.5 ? -1 : 1) * (0.12 + Math.random() * 0.2);
             setMotion("Idel_Normal");
             playAnimation("Idel_Normal");
           }, 1600);
         } else if (roll < 0.9) {
           const clip = ALIEN_IDLE_ROTATION[Math.floor(Math.random() * ALIEN_IDLE_ROTATION.length)] || "Idel_Normal";
+          targetYawRef.current = (Math.random() < 0.5 ? -1 : 1) * (0.16 + Math.random() * 0.26);
           playTemporaryAnimation(clip);
         } else {
+          targetYawRef.current = (Math.random() < 0.5 ? -1 : 1) * (0.22 + Math.random() * 0.28);
           playTemporaryAnimation(Math.random() < 0.5 ? "Attack_Hit" : "Attack_Bite");
         }
         schedule();
@@ -520,6 +560,7 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
     setDragging(false);
     setSettling(true);
     setPosition((current) => clampPosition(current.x, groundY()));
+    targetYawRef.current = (Math.random() < 0.5 ? -1 : 1) * 0.18;
     setMotion("Idel_Normal");
     playAnimation("Idel_Normal");
     window.setTimeout(() => setSettling(false), 520);
@@ -538,6 +579,7 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
     };
     event.currentTarget.setPointerCapture?.(event.pointerId);
     setBubbleVisible(false);
+    targetYawRef.current = 0;
     setDragging(true);
     setSettling(false);
     setMotion("Bake_Pose");

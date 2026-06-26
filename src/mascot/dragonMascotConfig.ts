@@ -27,6 +27,13 @@ export type DragonMascotEventType =
   | "mute"
   | "unmute"
   | "music"
+  | "music_prev"
+  | "music_play_pause"
+  | "music_next"
+  | "music_volume_up"
+  | "music_volume_down"
+  | "music_mute"
+  | "music_playlist"
   | "error"
   | "idle"
   | "click";
@@ -74,6 +81,13 @@ export const dragonMascotEventAnimation: Record<DragonMascotEventType, DragonMas
   mute: "tongue",
   unmute: "happy",
   music: "talk",
+  music_prev: "judge",
+  music_play_pause: "talk",
+  music_next: "happy",
+  music_volume_up: "happy",
+  music_volume_down: "blink",
+  music_mute: "tongue",
+  music_playlist: "judge",
   error: "sad",
   idle: "blink",
   click: "laugh",
@@ -129,6 +143,34 @@ export const dragonMascotDialogues: Record<DragonMascotEventType, string[]> = {
     "Buena playlist. No lo arruines.",
     "Eso suena sospechosamente bien.",
     "Musica lista. Drama tambien.",
+  ],
+  music_prev: [
+    "Volviendo una pista. Nostalgia sospechosa.",
+    "Retrocediendo la senal.",
+  ],
+  music_play_pause: [
+    "Control musical recibido.",
+    "La nave ajusta el ritmo.",
+  ],
+  music_next: [
+    "Siguiente frecuencia.",
+    "Saltando a otra pista.",
+  ],
+  music_volume_up: [
+    "Subiendo volumen. Con moderacion, idealmente.",
+    "Mas potencia en los parlantes.",
+  ],
+  music_volume_down: [
+    "Bajando volumen. Mis oidos sobreviven.",
+    "Senal musical reducida.",
+  ],
+  music_mute: [
+    "Silencio musical aplicado.",
+    "Mute activado para la musica.",
+  ],
+  music_playlist: [
+    "Nueva lista seleccionada.",
+    "Cambiando la ruta musical.",
   ],
   error: [
     "Eso no salio bien.",

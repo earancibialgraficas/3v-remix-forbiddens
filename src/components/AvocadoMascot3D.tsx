@@ -49,6 +49,13 @@ const eventAnimation: Record<DragonMascotEventType, AvocadoAnimation> = {
   mute: "talk",
   unmute: "happy",
   music: "dance",
+  music_prev: "look",
+  music_play_pause: "dance",
+  music_next: "jump",
+  music_volume_up: "happy",
+  music_volume_down: "idle",
+  music_mute: "talk",
+  music_playlist: "wave",
   error: "sad",
   idle: "idle",
   click: "happy",
@@ -65,6 +72,13 @@ const avocadoDialogues: Record<DragonMascotEventType, string[]> = {
   mute: ["Modo silencioso.", "Shhh, palta zen."],
   unmute: ["Sonido de vuelta.", "Ya escucho la aventura."],
   music: ["Esa playlist combina.", "Musiquita lista."],
+  music_prev: ["Volvemos una cancion.", "Retrocediendo la playlist."],
+  music_play_pause: ["Controlando la musica.", "Ritmo pausado o servido."],
+  music_next: ["Siguiente temita.", "Cambiando de sabor musical."],
+  music_volume_up: ["Mas volumen.", "Subiendo el juguito sonoro."],
+  music_volume_down: ["Bajando volumen.", "Musica mas suave."],
+  music_mute: ["Musica en silencio.", "Mute musical aplicado."],
+  music_playlist: ["Lista cambiada.", "Nueva receta musical."],
   error: ["Eso salio medio machacado.", "Uy, eso no estaba maduro."],
   idle: ["Sigo aqui abajo.", "Estoy mirando el juego."],
   click: ["Suave, soy premium.", "Hey, cuidado con la palta."],
@@ -361,11 +375,12 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
   }, []);
 
   const speak = useCallback((text: string, nextAnimation: AvocadoAnimation = "talk") => {
-    if (!text) return;
+    const nextText = text.trim();
+    if (!nextText) return;
     if (hideBubbleTimerRef.current) window.clearTimeout(hideBubbleTimerRef.current);
     if (typingTimerRef.current) window.clearInterval(typingTimerRef.current);
     setAnimationName(nextAnimation === "sleep" ? "talk" : nextAnimation);
-    setMessage(text);
+    setMessage(nextText);
     setTypedMessage("");
     setBubbleVisible(true);
   }, []);
