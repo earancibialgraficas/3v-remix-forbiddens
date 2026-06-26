@@ -27,8 +27,8 @@ const BODY_NORMAL_URL = "/mascot/alien/textures/Alien-Animal-Base-Nor.jpg";
 const BODY_METALLIC_URL = "/mascot/alien/textures/Alien-Animal-Base-Metallic.jpg";
 const BODY_GLOSS_URL = "/mascot/alien/textures/Alien-Animal-Base-Gloss.jpg";
 const EYE_TEXTURE_URL = "/mascot/alien/textures/Alien-Animal_eye.jpg";
-const MASCOT_WIDTH = 292;
-const MASCOT_HEIGHT = 260;
+const MASCOT_WIDTH = 340;
+const MASCOT_HEIGHT = 292;
 const GROUND_GAP = 0;
 
 const ALIEN_ANIMATION_DURATIONS: Record<string, number> = {
@@ -55,8 +55,6 @@ const ALIEN_IDLE_ROTATION = [
   "Default",
   "Bake_Pose",
   "0",
-  "Die_1",
-  "Die_2",
 ];
 
 const animationByEvent: Record<DragonMascotEventType, string> = {
@@ -83,26 +81,26 @@ const animationByEvent: Record<DragonMascotEventType, string> = {
 };
 
 const alienDialogues: Record<DragonMascotEventType, string[]> = {
-  greeting: ["Unidad alienigena lista.", "Te acompano desde la orbita."],
-  play: ["Movimiento detectado.", "Vamos a cazar pixeles."],
-  pause: ["Pausa tactica.", "Me quedo vigilando."],
-  save: ["Datos preservados.", "Progreso guardado en la nave."],
-  load: ["Restaurando coordenadas.", "Volvemos al punto marcado."],
-  settings: ["Escaneando opciones.", "Configuracion abierta."],
-  reset: ["Reinicio orbital.", "Otra simulacion."],
-  mute: ["Silencio interestelar.", "Audio oculto."],
-  unmute: ["Senal recuperada.", "Volvio el sonido."],
-  music: ["Frecuencia musical detectada.", "Buen ritmo para una invasion."],
-  music_prev: ["Retrocediendo frecuencia.", "Volvemos a la pista anterior."],
-  music_play_pause: ["Control musical aceptado.", "Ritmo en modo alterno."],
-  music_next: ["Siguiente transmision.", "Saltando a otra frecuencia."],
-  music_volume_up: ["Amplificando senal musical.", "Subiendo potencia sonora."],
-  music_volume_down: ["Reduciendo senal musical.", "Bajando volumen de cabina."],
-  music_mute: ["Musica silenciada.", "Frecuencia musical oculta."],
-  music_playlist: ["Lista musical enlazada.", "Nueva orbita sonora seleccionada."],
-  error: ["Anomalia detectada.", "Eso no salio segun el plan."],
-  idle: ["Sigo observando.", "La nave esta en espera."],
-  click: ["Contacto recibido.", "Hey, cuidado con las antenas."],
+  greeting: ["Ya desperte. Mala decision para tus enemigos.", "Unidad rara lista. Prometo juzgar en silencio... mentira."],
+  play: ["Corre, humano. Yo hago cara de experto.", "Perfecto, empieza el show de decisiones cuestionables."],
+  pause: ["Pausa tactica. Tu miedo huele a menu.", "Congelado. Como tu habilidad bajo presion."],
+  save: ["Guardado. Por fin una neurona hizo contacto.", "Progreso preservado. La nave aplaude poquito."],
+  load: ["Cargando tu desastre favorito.", "Volvemos al punto donde todo empezo a salir raro."],
+  settings: ["Configuracion abierta. Toca algo y culpamos al universo.", "Menu tecnico. Aqui nacen los problemas caros."],
+  reset: ["Reinicio orbital. Borrando evidencia emocional.", "Otra vez desde cero. Valiente o terco, aun no decido."],
+  mute: ["Silencio. El cosmos acaba de mejorar.", "Mute activado. Tus vecinos me deben una."],
+  unmute: ["Volvio el ruido. Dramatico, pero aceptable.", "Audio restaurado. Que el caos tenga soundtrack."],
+  music: ["Musica detectada. Tu derrota tendra ritmo.", "Buen tema. Pesima estrategia, pero buen tema."],
+  music_prev: ["Retrocediendo. Nostalgia con tentaculos.", "Volvemos una pista. El pasado exige revancha."],
+  music_play_pause: ["Control musical hecho. Soy DJ y amenaza biologica.", "Ritmo alternado. Nadie pregunto, pero quedo epico."],
+  music_next: ["Siguiente pista. Esta nave no espera coros.", "Saltando tema. El anterior no sobrevivio al analisis."],
+  music_volume_up: ["Mas volumen. Que tiemble el planeta chico.", "Subiendo potencia. Cientificamente irresponsable."],
+  music_volume_down: ["Bajando volumen. Modo sigilo viscoso.", "Menos ruido. Ahora puedo escuchar tus errores."],
+  music_mute: ["Musica anulada. El silencio tambien juzga.", "Mute musical. Dramatico y barato."],
+  music_playlist: ["Nueva playlist. El ritual sonoro cambia.", "Lista enlazada. Procede el baile extraterrestre."],
+  error: ["Anomalia detectada. Yo no fui, pero me gustaria.", "Eso exploto bonito. Casi profesional."],
+  idle: ["Estoy quieto, pero sospechando fuerte.", "Si me miras mucho, cobro peaje cosmico."],
+  click: ["Ey. Con respeto, dedo terrestre.", "Tocame otra vez y te vendo a los grunts.", "Contacto recibido. Ahora somos enemigos cordiales."],
 };
 
 const pickLine = (type: DragonMascotEventType) => {
@@ -183,18 +181,30 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
       audioContextRef.current = context;
       if (context.state === "suspended") void context.resume();
       const oscillator = context.createOscillator();
+      const subOscillator = context.createOscillator();
+      const filter = context.createBiquadFilter();
       const gain = context.createGain();
-      const pitch = 430 + ((index * 71) % 280);
+      const pitch = 185 + ((index * 43) % 120);
       oscillator.type = "sawtooth";
+      subOscillator.type = "square";
       oscillator.frequency.setValueAtTime(pitch, context.currentTime);
-      oscillator.frequency.exponentialRampToValueAtTime(Math.max(210, pitch * 0.68), context.currentTime + 0.055);
+      subOscillator.frequency.setValueAtTime(Math.max(74, pitch * 0.48), context.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(Math.max(92, pitch * 0.64), context.currentTime + 0.07);
+      subOscillator.frequency.exponentialRampToValueAtTime(Math.max(58, pitch * 0.36), context.currentTime + 0.07);
+      filter.type = "lowpass";
+      filter.frequency.setValueAtTime(880, context.currentTime);
+      filter.Q.setValueAtTime(7.5, context.currentTime);
       gain.gain.setValueAtTime(0.0001, context.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.228, context.currentTime + 0.006);
-      gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.06);
-      oscillator.connect(gain);
+      gain.gain.exponentialRampToValueAtTime(0.42, context.currentTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.088);
+      oscillator.connect(filter);
+      subOscillator.connect(filter);
+      filter.connect(gain);
       gain.connect(context.destination);
       oscillator.start();
-      oscillator.stop(context.currentTime + 0.064);
+      subOscillator.start();
+      oscillator.stop(context.currentTime + 0.092);
+      subOscillator.stop(context.currentTime + 0.092);
     } catch {
       // Audio can be blocked until the user interacts with the page.
     }
@@ -205,9 +215,12 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
     const next = actions.get(name) || actions.get("Idel_Normal") || actions.values().next().value;
     if (!next) return;
     const previous = activeActionRef.current;
+    const isSleepPose = name.startsWith("Die_");
+    next.loop = isSleepPose ? THREE.LoopOnce : THREE.LoopRepeat;
+    next.clampWhenFinished = isSleepPose;
     next.enabled = true;
     next.reset();
-    next.setEffectiveTimeScale(name.includes("Run") ? 0.72 : 0.9);
+    next.setEffectiveTimeScale(isSleepPose ? 0.58 : name.includes("Run") ? 0.72 : 0.9);
     next.setEffectiveWeight(1);
     if (previous && previous !== next) {
       previous.fadeOut(fade);
@@ -226,7 +239,7 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
     setMotion(clip);
     playAnimation(clip);
     setMessage(nextText);
-    setTypedMessage("");
+    setTypedMessage(nextText.slice(0, 1));
     setBubbleVisible(true);
   }, [playAnimation]);
 
@@ -237,6 +250,17 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
       setMotion("Idel_Normal");
       playAnimation("Idel_Normal");
     }, duration ?? ALIEN_ANIMATION_DURATIONS[clip] ?? 1800);
+  }, [playAnimation]);
+
+  const startSleep = useCallback(() => {
+    if (hideBubbleTimerRef.current) window.clearTimeout(hideBubbleTimerRef.current);
+    if (typingTimerRef.current) window.clearInterval(typingTimerRef.current);
+    targetYawRef.current = -0.34;
+    setMotion("Die_1");
+    playAnimation("Die_1", 0.22);
+    setMessage("Zzzz...");
+    setTypedMessage("Z");
+    setBubbleVisible(true);
   }, [playAnimation]);
 
   useEffect(() => {
@@ -470,11 +494,12 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
       if (char && /[a-zA-Z0-9áéíóúñÁÉÍÓÚÑ]/.test(char)) playBlip(index);
       if (index >= message.length) {
         if (typingTimerRef.current) window.clearInterval(typingTimerRef.current);
+        const holdMs = /^Zzz/i.test(message) ? 10_000 + Math.random() * 5_000 : Math.min(5000, Math.max(2100, message.length * 78));
         hideBubbleTimerRef.current = window.setTimeout(() => {
           setBubbleVisible(false);
           setMotion("Idel_Normal");
           playAnimation("Idel_Normal");
-        }, Math.min(5000, Math.max(2100, message.length * 78)));
+        }, holdMs);
       }
     }, 38);
     return () => {
@@ -529,13 +554,15 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
             setMotion("Idel_Normal");
             playAnimation("Idel_Normal");
           }, 1600);
-        } else if (roll < 0.9) {
+        } else if (roll < 0.84) {
           const clip = ALIEN_IDLE_ROTATION[Math.floor(Math.random() * ALIEN_IDLE_ROTATION.length)] || "Idel_Normal";
           targetYawRef.current = (Math.random() < 0.5 ? -1 : 1) * (0.16 + Math.random() * 0.26);
           playTemporaryAnimation(clip);
-        } else {
+        } else if (roll < 0.94) {
           targetYawRef.current = (Math.random() < 0.5 ? -1 : 1) * (0.22 + Math.random() * 0.28);
           playTemporaryAnimation(Math.random() < 0.5 ? "Attack_Hit" : "Attack_Bite");
+        } else {
+          startSleep();
         }
         schedule();
       }, 5_500 + Math.random() * 8_000);
@@ -544,7 +571,7 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
     return () => {
       if (idleTimerRef.current) window.clearTimeout(idleTimerRef.current);
     };
-  }, [bubbleVisible, clampPosition, dragging, playAnimation, playTemporaryAnimation, position.x]);
+  }, [bubbleVisible, clampPosition, dragging, playAnimation, playTemporaryAnimation, position.x, startSleep]);
 
   useEffect(() => {
     return () => {
@@ -621,10 +648,16 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
         ? "left 2400ms linear"
         : "none",
     opacity: ready ? 1 : 0,
+    appearance: "none",
+    background: "transparent",
+    border: 0,
+    outline: "none",
+    padding: 0,
+    WebkitTapHighlightColor: "transparent",
   } as const;
 
   return (
-    <div ref={stageRef} className={cn("notranslate pointer-events-none absolute inset-0 overflow-hidden", className)} data-native-action translate="no">
+    <div ref={stageRef} className={cn("notranslate pointer-events-none absolute inset-0 overflow-visible", className)} data-native-action translate="no">
       {bubbleVisible && (
         <div
           className="pointer-events-none absolute z-[110] max-w-[min(300px,78vw)] rounded-[18px] border-2 border-[#17383a] bg-[#d9fff3] px-3.5 py-2.5 shadow-[5px_6px_0_rgba(23,56,58,0.55)]"
@@ -650,7 +683,7 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
         onPointerUp={finishDrag}
         onPointerCancel={finishDrag}
         className={cn(
-          "pointer-events-auto absolute z-[105] flex items-end justify-center bg-transparent outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70",
+          "pointer-events-auto absolute z-[105] flex items-end justify-center border-0 bg-transparent p-0 outline-none hover:bg-transparent active:bg-transparent focus:bg-transparent focus:outline-none focus-visible:bg-transparent focus-visible:outline-none focus-visible:ring-0",
           dragging ? "cursor-grabbing" : "cursor-grab",
         )}
         style={mascotStyle}
