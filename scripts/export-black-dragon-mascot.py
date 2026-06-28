@@ -12,89 +12,6 @@ MODEL_OUT = OUT / "dragon_black_model.glb"
 PREVIEW_OUT = OUT / "base.png"
 
 
-def pose_bone(armature, name, rotation=(0, 0, 0), scale=(1, 1, 1)):
-    bone = armature.pose.bones.get(name)
-    if not bone:
-        return
-    bone.rotation_mode = "XYZ"
-    bone.rotation_euler = tuple(math.radians(value) for value in rotation)
-    bone.scale = scale
-
-
-def key_all_pose_bones(armature, frame):
-    bpy.context.scene.frame_set(frame)
-    for bone in armature.pose.bones:
-        bone.keyframe_insert(data_path="rotation_euler", frame=frame)
-        bone.keyframe_insert(data_path="scale", frame=frame)
-
-
-def reset_pose(armature):
-    for bone in armature.pose.bones:
-        bone.rotation_mode = "XYZ"
-        bone.rotation_euler = (0, 0, 0)
-        bone.scale = (1, 1, 1)
-
-
-def apply_sleep_pose(armature, intensity=1.0, breathe=0.0):
-    def mul(values):
-        return tuple(value * intensity for value in values)
-
-    chest_scale = 1 + breathe * 0.035
-    belly_scale = 1 + breathe * 0.045
-
-    pose_bone(armature, "pelvic_1", mul((-18, 0, 0)))
-    pose_bone(armature, "pelvic_2", mul((-12, 0, 0)))
-    pose_bone(armature, "paunch", mul((-10, 0, 0)), (belly_scale, belly_scale, belly_scale))
-    pose_bone(armature, "breast", mul((18, 0, 0)), (chest_scale, chest_scale, chest_scale))
-
-    pose_bone(armature, "ACT_neck_4", mul((28, -8, 10)))
-    pose_bone(armature, "ACT_neck_3", mul((24, -7, 8)))
-    pose_bone(armature, "ACT_neck_2", mul((20, -5, 6)))
-    pose_bone(armature, "ACT_neck_1", mul((18, -4, 4)))
-    pose_bone(armature, "head", mul((16, 0, -10)))
-
-    pose_bone(armature, "tail_1", mul((0, 0, 42)))
-    pose_bone(armature, "tail_2", mul((0, 0, 54)))
-    pose_bone(armature, "tail_3", mul((0, 0, 62)))
-    pose_bone(armature, "ik_ACT_tail_5", mul((0, 0, 72)))
-
-    for side, sign in (("L", 1), ("R", -1)):
-        pose_bone(armature, f"Oberschenkel_{side}", mul((-34, 10 * sign, 18 * sign)))
-        pose_bone(armature, f"lowerleg_{side}", mul((54, 0, -14 * sign)))
-        pose_bone(armature, f"upper_arm_{side}", mul((22, 22 * sign, 36 * sign)))
-        pose_bone(armature, f"ik_underarm_{side}", mul((48, 6 * sign, -22 * sign)))
-        pose_bone(armature, f"Hand_{side}", mul((0, 0, 22 * sign)))
-        pose_bone(armature, f"w_C_{side}", mul((48, 0, 48 * sign)))
-        pose_bone(armature, f"w1_{side}", mul((28, 0, 34 * sign)))
-        pose_bone(armature, f"w2_{side}", mul((22, 0, 28 * sign)))
-        pose_bone(armature, f"w3_{side}", mul((18, 0, 22 * sign)))
-        pose_bone(armature, f"w4_{side}", mul((30, 0, 28 * sign)))
-        pose_bone(armature, f"w5_{side}", mul((24, 0, 20 * sign)))
-        pose_bone(armature, f"w6_{side}", mul((18, 0, 16 * sign)))
-        pose_bone(armature, f"w7_{side}", mul((34, 0, 22 * sign)))
-        pose_bone(armature, f"w8_{side}", mul((24, 0, 16 * sign)))
-        pose_bone(armature, f"w9_{side}", mul((16, 0, 10 * sign)))
-
-
-def create_sleep_actions(armature):
-    actions = [
-        ("FORBIDDENS_Lie_Down", ((1, 0.0, 0.0), (24, 0.35, 0.0), (52, 0.72, 0.0), (82, 1.0, 0.0))),
-        ("FORBIDDENS_Sleep_Loop", ((1, 1.0, 0.0), (34, 1.0, 1.0), (68, 1.0, 0.0), (102, 1.0, -0.65), (136, 1.0, 0.0))),
-        ("FORBIDDENS_Wake_Up", ((1, 1.0, 0.0), (24, 0.7, 0.0), (48, 0.28, 0.0), (72, 0.0, 0.0))),
-    ]
-
-    for action_name, keyframes in actions:
-        action = bpy.data.actions.new(action_name)
-        armature.animation_data_create()
-        armature.animation_data.action = action
-        for frame, intensity, breathe in keyframes:
-            reset_pose(armature)
-            apply_sleep_pose(armature, intensity=intensity, breathe=breathe)
-            key_all_pose_bones(armature, frame)
-        action.use_fake_user = True
-    reset_pose(armature)
-
-
 def clear_scene():
     bpy.ops.object.select_all(action="SELECT")
     bpy.ops.object.delete()
@@ -202,8 +119,7 @@ def render_preview(meshes):
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     clear_scene()
-    armature, meshes = import_dragon()
-    create_sleep_actions(armature)
+    _, meshes = import_dragon()
     export_glb()
 
     try:

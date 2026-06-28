@@ -33,17 +33,14 @@ const GROUND_GAP = 0;
 const DRAGON_CLIPS = {
   fly: "Armature|Armature|Fly_New",
   idle: "Armature|Armature|Idel_New",
-  lieDown: "FORBIDDENS_Lie_Down",
   run: "Armature|Armature|Run_New",
-  sleep: "FORBIDDENS_Sleep_Loop",
   walk: "Armature|Armature|Walk_New",
-  wake: "FORBIDDENS_Wake_Up",
 } as const;
 
 const clipByEvent: Record<DragonMascotEventType, string> = {
   greeting: DRAGON_CLIPS.fly,
   play: DRAGON_CLIPS.run,
-  pause: DRAGON_CLIPS.lieDown,
+  pause: DRAGON_CLIPS.idle,
   save: DRAGON_CLIPS.fly,
   load: DRAGON_CLIPS.walk,
   settings: DRAGON_CLIPS.idle,
@@ -99,7 +96,6 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
   const idleTimerRef = useRef<number | null>(null);
   const hideBubbleTimerRef = useRef<number | null>(null);
   const typingTimerRef = useRef<number | null>(null);
-  const sleepTimersRef = useRef<number[]>([]);
   const audioContextRef = useRef<AudioContext | null>(null);
   const lastBlipAtRef = useRef(0);
   const dragRef = useRef({ pointerId: -1, offsetX: 0, offsetY: 0 });
@@ -203,9 +199,8 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
     const next = actions.get(name) || actions.get(DRAGON_CLIPS.idle) || actions.values().next().value;
     if (!next) return;
     const previous = activeActionRef.current;
-    const oneShot = name === DRAGON_CLIPS.lieDown || name === DRAGON_CLIPS.wake;
-    next.loop = oneShot ? THREE.LoopOnce : THREE.LoopRepeat;
-    next.clampWhenFinished = oneShot;
+    next.loop = THREE.LoopRepeat;
+    next.clampWhenFinished = false;
     next.enabled = true;
     next.reset();
     next.setEffectiveTimeScale(name === DRAGON_CLIPS.idle ? 0.72 : name === DRAGON_CLIPS.run ? 0.82 : 0.78);
@@ -218,15 +213,9 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
     activeActionRef.current = next;
   }, []);
 
-  const clearSleepTimers = useCallback(() => {
-    sleepTimersRef.current.forEach((timer) => window.clearTimeout(timer));
-    sleepTimersRef.current = [];
-  }, []);
-
   const speak = useCallback((text: string, clip = DRAGON_CLIPS.fly) => {
     const nextText = text.trim();
     if (!nextText) return;
-    clearSleepTimers();
     if (hideBubbleTimerRef.current) window.clearTimeout(hideBubbleTimerRef.current);
     if (typingTimerRef.current) window.clearInterval(typingTimerRef.current);
     targetYawRef.current = 0;
@@ -235,38 +224,13 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
     setMessage(nextText);
     setTypedMessage(nextText.slice(0, 1));
     setBubbleVisible(true);
-  }, [clearSleepTimers, playAnimation]);
+  }, [playAnimation]);
 
   const setIdle = useCallback(() => {
-    clearSleepTimers();
     targetYawRef.current = (Math.random() < 0.5 ? -1 : 1) * (0.12 + Math.random() * 0.22);
     setMotion(DRAGON_CLIPS.idle);
     playAnimation(DRAGON_CLIPS.idle);
-  }, [clearSleepTimers, playAnimation]);
-
-  const startSleepSequence = useCallback(() => {
-    if (draggingRef.current) return;
-    clearSleepTimers();
-    targetYawRef.current = -0.18;
-    setMotion(DRAGON_CLIPS.lieDown);
-    playAnimation(DRAGON_CLIPS.lieDown, 0.22);
-
-    const sleepTimer = window.setTimeout(() => {
-      if (draggingRef.current) return;
-      setMotion(DRAGON_CLIPS.sleep);
-      playAnimation(DRAGON_CLIPS.sleep, 0.24);
-    }, 2700);
-    const wakeTimer = window.setTimeout(() => {
-      if (draggingRef.current) return;
-      setMotion(DRAGON_CLIPS.wake);
-      playAnimation(DRAGON_CLIPS.wake, 0.22);
-    }, 15_500);
-    const idleTimer = window.setTimeout(() => {
-      if (draggingRef.current) return;
-      setIdle();
-    }, 18_500);
-    sleepTimersRef.current = [sleepTimer, wakeTimer, idleTimer];
-  }, [clearSleepTimers, playAnimation, setIdle]);
+  }, [playAnimation]);
 
   const playTemporaryAnimation = useCallback((clip: string, duration = 1800) => {
     setMotion(clip);
@@ -531,10 +495,8 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
         } else if (roll < 0.56) {
           targetYawRef.current = (Math.random() < 0.5 ? -1 : 1) * (0.16 + Math.random() * 0.26);
           playTemporaryAnimation(DRAGON_CLIPS.fly, 9800);
-        } else if (roll < 0.72) {
+        } else if (roll < 0.78) {
           speak(pickDragonLine("idle"), DRAGON_CLIPS.idle);
-        } else if (roll < 0.88) {
-          startSleepSequence();
         } else {
           setIdle();
         }
@@ -545,7 +507,7 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
     return () => {
       if (idleTimerRef.current) window.clearTimeout(idleTimerRef.current);
     };
-  }, [bubbleVisible, clampPosition, dragging, playAnimation, playTemporaryAnimation, position.x, setIdle, speak, startSleepSequence]);
+  }, [bubbleVisible, clampPosition, dragging, playAnimation, playTemporaryAnimation, position.x, setIdle, speak]);
 
   useEffect(() => {
     return () => {
@@ -553,9 +515,8 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
       if (idleTimerRef.current) window.clearTimeout(idleTimerRef.current);
       if (hideBubbleTimerRef.current) window.clearTimeout(hideBubbleTimerRef.current);
       if (typingTimerRef.current) window.clearInterval(typingTimerRef.current);
-      clearSleepTimers();
     };
-  }, [clearSleepTimers]);
+  }, []);
 
   const finishDrag = useCallback(() => {
     if (!dragging) return;
@@ -581,7 +542,6 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
     };
     event.currentTarget.setPointerCapture?.(event.pointerId);
     setBubbleVisible(false);
-    clearSleepTimers();
     targetYawRef.current = 0;
     draggingRef.current = true;
     landingUntilRef.current = 0;
