@@ -101,6 +101,7 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
   const lastBlipAtRef = useRef(0);
   const dragRef = useRef({ pointerId: -1, offsetX: 0, offsetY: 0 });
   const dragFlyDirectionRef = useRef(1);
+  const dragFlyTimeRef = useRef(0.04);
   const targetYawRef = useRef(-0.2);
   const currentYawRef = useRef(-0.2);
   const motionRef = useRef(DRAGON_CLIPS.idle);
@@ -424,25 +425,37 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
     const render = () => {
       const delta = clock.getDelta();
       const elapsed = clock.elapsedTime;
-      mixerRef.current?.update(delta);
+      const mixer = mixerRef.current;
+      const dragFlyAction = activeActionRef.current;
+      const shouldScrubDragFly = draggingRef.current
+        && motionRef.current === DRAGON_CLIPS.fly
+        && dragFlyAction?.getClip().name === DRAGON_CLIPS.fly;
+      if (mixer && shouldScrubDragFly && dragFlyAction) {
+        const clipDuration = dragFlyAction.getClip().duration;
+        const minTime = Math.max(0.03, clipDuration * 0.08);
+        const maxTime = Math.max(minTime + 0.12, clipDuration * 0.46);
+        const nextTime = dragFlyTimeRef.current + delta * 0.82 * dragFlyDirectionRef.current;
+        if (nextTime >= maxTime) {
+          dragFlyDirectionRef.current = -1;
+          dragFlyTimeRef.current = maxTime;
+        } else if (nextTime <= minTime) {
+          dragFlyDirectionRef.current = 1;
+          dragFlyTimeRef.current = minTime;
+        } else {
+          dragFlyTimeRef.current = nextTime;
+        }
+        dragFlyAction.enabled = true;
+        dragFlyAction.paused = false;
+        dragFlyAction.time = dragFlyTimeRef.current;
+        dragFlyAction.setEffectiveTimeScale(0);
+        mixer.update(0);
+      } else {
+        mixer?.update(delta);
+      }
       if (modelRoot) {
         const currentMotion = motionRef.current;
         const isMoving = currentMotion === DRAGON_CLIPS.walk || currentMotion === DRAGON_CLIPS.run;
         const isFlying = currentMotion === DRAGON_CLIPS.fly;
-        if (draggingRef.current && isFlying) {
-          const action = activeActionRef.current;
-          if (action?.getClip().name === DRAGON_CLIPS.fly) {
-            const flyLimit = Math.max(0.18, action.getClip().duration * 0.52);
-            if (action.time >= flyLimit) {
-              dragFlyDirectionRef.current = -1;
-              action.time = flyLimit;
-            } else if (action.time <= 0.03) {
-              dragFlyDirectionRef.current = 1;
-              action.time = 0.03;
-            }
-            action.setEffectiveTimeScale(0.78 * dragFlyDirectionRef.current);
-          }
-        }
         const bob = Math.sin(elapsed * (isMoving ? 7.8 : isFlying ? 5.4 : 2.1));
         const landingLift = Math.max(0, landingUntilRef.current - performance.now()) / 950;
         const currentPosition = positionRef.current;
@@ -578,6 +591,7 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
     cancelGroundMove();
     draggingRef.current = false;
     dragFlyDirectionRef.current = 1;
+    dragFlyTimeRef.current = 0.04;
     setDragging(false);
     setSettling(true);
     setPosition((current) => clampPosition(current.x, groundY()));
@@ -603,6 +617,7 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
     targetYawRef.current = 0;
     draggingRef.current = true;
     dragFlyDirectionRef.current = 1;
+    dragFlyTimeRef.current = 0.04;
     landingUntilRef.current = 0;
     setDragging(true);
     setSettling(false);
