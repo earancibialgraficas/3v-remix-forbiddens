@@ -427,28 +427,36 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
       const elapsed = clock.elapsedTime;
       const mixer = mixerRef.current;
       const dragFlyAction = activeActionRef.current;
-      const shouldScrubDragFly = draggingRef.current
+      const shouldPingPongDragFly = draggingRef.current
         && motionRef.current === DRAGON_CLIPS.fly
         && dragFlyAction?.getClip().name === DRAGON_CLIPS.fly;
-      if (mixer && shouldScrubDragFly && dragFlyAction) {
+      if (mixer && shouldPingPongDragFly && dragFlyAction) {
         const clipDuration = dragFlyAction.getClip().duration;
         const minTime = Math.max(0.03, clipDuration * 0.08);
-        const maxTime = Math.max(minTime + 0.12, clipDuration * 0.46);
-        const nextTime = dragFlyTimeRef.current + delta * 0.82 * dragFlyDirectionRef.current;
-        if (nextTime >= maxTime) {
+        const maxTime = Math.max(minTime + 0.12, clipDuration * 0.42);
+        if (dragFlyAction.time >= maxTime) {
           dragFlyDirectionRef.current = -1;
-          dragFlyTimeRef.current = maxTime;
-        } else if (nextTime <= minTime) {
+          dragFlyAction.time = maxTime;
+        } else if (dragFlyAction.time <= minTime) {
           dragFlyDirectionRef.current = 1;
-          dragFlyTimeRef.current = minTime;
-        } else {
-          dragFlyTimeRef.current = nextTime;
+          dragFlyAction.time = minTime;
         }
         dragFlyAction.enabled = true;
         dragFlyAction.paused = false;
-        dragFlyAction.time = dragFlyTimeRef.current;
-        dragFlyAction.setEffectiveTimeScale(0);
-        mixer.update(0);
+        dragFlyAction.setEffectiveTimeScale(0.78 * dragFlyDirectionRef.current);
+        mixer.update(delta);
+        if (dragFlyAction.time >= maxTime) {
+          dragFlyDirectionRef.current = -1;
+          dragFlyAction.time = maxTime;
+          dragFlyAction.setEffectiveTimeScale(-0.78);
+          mixer.update(0.00001);
+        } else if (dragFlyAction.time <= minTime) {
+          dragFlyDirectionRef.current = 1;
+          dragFlyAction.time = minTime;
+          dragFlyAction.setEffectiveTimeScale(0.78);
+          mixer.update(0.00001);
+        }
+        dragFlyTimeRef.current = dragFlyAction.time;
       } else {
         mixer?.update(delta);
       }
