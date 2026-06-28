@@ -29,6 +29,9 @@ Armature|Armature|Fly_New
 Armature|Armature|Idel_New
 Armature|Armature|Run_New
 Armature|Armature|Walk_New
+FORBIDDENS_Lie_Down
+FORBIDDENS_Sleep_Loop
+FORBIDDENS_Wake_Up
 ```
 
 The companion maps these clips to launcher events in:
@@ -63,4 +66,3 @@ This regenerates:
 public/mascot/dragon/dragon_black_model.glb
 public/mascot/dragon/base.png
 ```
-

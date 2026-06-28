@@ -25,21 +25,25 @@ const BODY_TEXTURE_URL = "/mascot/dragon/textures/Dragon_Bump_Col2.jpg";
 const NORMAL_TEXTURE_URL = "/mascot/dragon/textures/Dragon_Nor_mirror2.jpg";
 const MASCOT_WIDTH = 420;
 const MASCOT_HEIGHT = 300;
-const CANVAS_WIDTH = 1100;
-const CANVAS_HEIGHT = 760;
+const FALLBACK_CANVAS_WIDTH = 620;
+const FALLBACK_CANVAS_HEIGHT = 450;
+const WORLD_UNITS_PER_PIXEL = 5.52 / 760;
 const GROUND_GAP = 0;
 
 const DRAGON_CLIPS = {
   fly: "Armature|Armature|Fly_New",
   idle: "Armature|Armature|Idel_New",
+  lieDown: "FORBIDDENS_Lie_Down",
   run: "Armature|Armature|Run_New",
+  sleep: "FORBIDDENS_Sleep_Loop",
   walk: "Armature|Armature|Walk_New",
+  wake: "FORBIDDENS_Wake_Up",
 } as const;
 
 const clipByEvent: Record<DragonMascotEventType, string> = {
   greeting: DRAGON_CLIPS.fly,
   play: DRAGON_CLIPS.run,
-  pause: DRAGON_CLIPS.idle,
+  pause: DRAGON_CLIPS.lieDown,
   save: DRAGON_CLIPS.fly,
   load: DRAGON_CLIPS.walk,
   settings: DRAGON_CLIPS.idle,
@@ -87,6 +91,7 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
   const stageRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+  const cameraRef = useRef<THREE.OrthographicCamera | null>(null);
   const mixerRef = useRef<THREE.AnimationMixer | null>(null);
   const actionsRef = useRef<Map<string, THREE.AnimationAction>>(new Map());
   const activeActionRef = useRef<THREE.AnimationAction | null>(null);
@@ -94,12 +99,15 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
   const idleTimerRef = useRef<number | null>(null);
   const hideBubbleTimerRef = useRef<number | null>(null);
   const typingTimerRef = useRef<number | null>(null);
+  const sleepTimersRef = useRef<number[]>([]);
   const audioContextRef = useRef<AudioContext | null>(null);
   const lastBlipAtRef = useRef(0);
   const dragRef = useRef({ pointerId: -1, offsetX: 0, offsetY: 0 });
   const targetYawRef = useRef(-0.2);
   const currentYawRef = useRef(-0.2);
   const motionRef = useRef(DRAGON_CLIPS.idle);
+  const positionRef = useRef<MascotPosition>({ x: 0, y: 0 });
+  const stageSizeRef = useRef({ width: FALLBACK_CANVAS_WIDTH, height: FALLBACK_CANVAS_HEIGHT });
   const draggingRef = useRef(false);
   const landingUntilRef = useRef(0);
 
@@ -107,6 +115,7 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
   const [typedMessage, setTypedMessage] = useState("");
   const [bubbleVisible, setBubbleVisible] = useState(false);
   const [position, setPosition] = useState<MascotPosition>({ x: 0, y: 0 });
+  const [stageSize, setStageSize] = useState({ width: FALLBACK_CANVAS_WIDTH, height: FALLBACK_CANVAS_HEIGHT });
   const [ready, setReady] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [settling, setSettling] = useState(false);
@@ -115,6 +124,14 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
   useEffect(() => {
     motionRef.current = motion;
   }, [motion]);
+
+  useEffect(() => {
+    positionRef.current = position;
+  }, [position]);
+
+  useEffect(() => {
+    stageSizeRef.current = stageSize;
+  }, [stageSize]);
 
   useEffect(() => {
     draggingRef.current = dragging;
@@ -186,8 +203,9 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
     const next = actions.get(name) || actions.get(DRAGON_CLIPS.idle) || actions.values().next().value;
     if (!next) return;
     const previous = activeActionRef.current;
-    next.loop = THREE.LoopRepeat;
-    next.clampWhenFinished = false;
+    const oneShot = name === DRAGON_CLIPS.lieDown || name === DRAGON_CLIPS.wake;
+    next.loop = oneShot ? THREE.LoopOnce : THREE.LoopRepeat;
+    next.clampWhenFinished = oneShot;
     next.enabled = true;
     next.reset();
     next.setEffectiveTimeScale(name === DRAGON_CLIPS.idle ? 0.72 : name === DRAGON_CLIPS.run ? 0.82 : 0.78);
@@ -200,9 +218,15 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
     activeActionRef.current = next;
   }, []);
 
+  const clearSleepTimers = useCallback(() => {
+    sleepTimersRef.current.forEach((timer) => window.clearTimeout(timer));
+    sleepTimersRef.current = [];
+  }, []);
+
   const speak = useCallback((text: string, clip = DRAGON_CLIPS.fly) => {
     const nextText = text.trim();
     if (!nextText) return;
+    clearSleepTimers();
     if (hideBubbleTimerRef.current) window.clearTimeout(hideBubbleTimerRef.current);
     if (typingTimerRef.current) window.clearInterval(typingTimerRef.current);
     targetYawRef.current = 0;
@@ -211,13 +235,38 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
     setMessage(nextText);
     setTypedMessage(nextText.slice(0, 1));
     setBubbleVisible(true);
-  }, [playAnimation]);
+  }, [clearSleepTimers, playAnimation]);
 
   const setIdle = useCallback(() => {
+    clearSleepTimers();
     targetYawRef.current = (Math.random() < 0.5 ? -1 : 1) * (0.12 + Math.random() * 0.22);
     setMotion(DRAGON_CLIPS.idle);
     playAnimation(DRAGON_CLIPS.idle);
-  }, [playAnimation]);
+  }, [clearSleepTimers, playAnimation]);
+
+  const startSleepSequence = useCallback(() => {
+    if (draggingRef.current) return;
+    clearSleepTimers();
+    targetYawRef.current = -0.18;
+    setMotion(DRAGON_CLIPS.lieDown);
+    playAnimation(DRAGON_CLIPS.lieDown, 0.22);
+
+    const sleepTimer = window.setTimeout(() => {
+      if (draggingRef.current) return;
+      setMotion(DRAGON_CLIPS.sleep);
+      playAnimation(DRAGON_CLIPS.sleep, 0.24);
+    }, 2700);
+    const wakeTimer = window.setTimeout(() => {
+      if (draggingRef.current) return;
+      setMotion(DRAGON_CLIPS.wake);
+      playAnimation(DRAGON_CLIPS.wake, 0.22);
+    }, 15_500);
+    const idleTimer = window.setTimeout(() => {
+      if (draggingRef.current) return;
+      setIdle();
+    }, 18_500);
+    sleepTimersRef.current = [sleepTimer, wakeTimer, idleTimer];
+  }, [clearSleepTimers, playAnimation, setIdle]);
 
   const playTemporaryAnimation = useCallback((clip: string, duration = 1800) => {
     setMotion(clip);
@@ -234,6 +283,9 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
     if (!stage) return;
 
     const sync = () => {
+      const width = Math.max(1, stage.clientWidth || FALLBACK_CANVAS_WIDTH);
+      const height = Math.max(1, stage.clientHeight || FALLBACK_CANVAS_HEIGHT);
+      setStageSize({ width, height });
       setPosition((current) => {
         const initialX = current.x || Math.max(4, stage.clientWidth - MASCOT_WIDTH - 12);
         return clampPosition(initialX, groundY());
@@ -258,11 +310,21 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
     const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
     renderer.setClearColor(0x000000, 0);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    renderer.setSize(CANVAS_WIDTH, CANVAS_HEIGHT, false);
+    renderer.setSize(stageSizeRef.current.width, stageSizeRef.current.height, false);
     rendererRef.current = renderer;
 
     const scene = new THREE.Scene();
-    const camera = new THREE.OrthographicCamera(-4.53, 4.53, 2.76, -2.76, 0.1, 100);
+    const initialWorldWidth = stageSizeRef.current.width * WORLD_UNITS_PER_PIXEL;
+    const initialWorldHeight = stageSizeRef.current.height * WORLD_UNITS_PER_PIXEL;
+    const camera = new THREE.OrthographicCamera(
+      -initialWorldWidth / 2,
+      initialWorldWidth / 2,
+      initialWorldHeight / 2,
+      -initialWorldHeight / 2,
+      0.1,
+      100,
+    );
+    cameraRef.current = camera;
     camera.position.set(0, 0.14, 6.4);
     camera.lookAt(0, -0.08, 0);
 
@@ -361,8 +423,13 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
         const isFlying = currentMotion === DRAGON_CLIPS.fly;
         const bob = Math.sin(elapsed * (isMoving ? 7.8 : isFlying ? 5.4 : 2.1));
         const landingLift = Math.max(0, landingUntilRef.current - performance.now()) / 950;
+        const currentPosition = positionRef.current;
+        const currentStage = stageSizeRef.current;
+        const rootX = (currentPosition.x + MASCOT_WIDTH / 2 - currentStage.width / 2) * WORLD_UNITS_PER_PIXEL;
+        const rootY = -(currentPosition.y + MASCOT_HEIGHT / 2 - currentStage.height / 2) * WORLD_UNITS_PER_PIXEL;
         currentYawRef.current += (targetYawRef.current - currentYawRef.current) * Math.min(1, delta * 4.0);
-        modelRoot.position.y = -0.03
+        modelRoot.position.x = rootX;
+        modelRoot.position.y = rootY - 0.03
           + (isMoving ? Math.abs(bob) * 0.025 : isFlying ? Math.sin(elapsed * 4.2) * 0.05 : bob * 0.008)
           + landingLift * 0.12;
         modelRoot.rotation.y = currentYawRef.current + Math.sin(elapsed * (isFlying ? 3.2 : 1.4)) * (isFlying ? 0.035 : 0.012);
@@ -391,8 +458,23 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
       bodyTexture.dispose();
       normalTexture.dispose();
       rendererRef.current = null;
+      cameraRef.current = null;
     };
   }, [playAnimation]);
+
+  useEffect(() => {
+    const renderer = rendererRef.current;
+    const camera = cameraRef.current;
+    if (!renderer || !camera) return;
+    renderer.setSize(stageSize.width, stageSize.height, false);
+    const worldWidth = stageSize.width * WORLD_UNITS_PER_PIXEL;
+    const worldHeight = stageSize.height * WORLD_UNITS_PER_PIXEL;
+    camera.left = -worldWidth / 2;
+    camera.right = worldWidth / 2;
+    camera.top = worldHeight / 2;
+    camera.bottom = -worldHeight / 2;
+    camera.updateProjectionMatrix();
+  }, [stageSize]);
 
   useEffect(() => {
     if (!message) return;
@@ -435,7 +517,7 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
         }
         const stage = stageRef.current;
         const roll = Math.random();
-        if (stage && roll < 0.36) {
+        if (stage && roll < 0.32) {
           const maxX = Math.max(4, stage.clientWidth - MASCOT_WIDTH - 4);
           const direction = Math.random() < 0.5 ? -1 : 1;
           const nextX = clamp(position.x + direction * (70 + Math.random() * 120), 4, maxX);
@@ -443,10 +525,16 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
           setMotion(roll < 0.18 ? DRAGON_CLIPS.walk : DRAGON_CLIPS.run);
           playAnimation(roll < 0.18 ? DRAGON_CLIPS.walk : DRAGON_CLIPS.run);
           setPosition((current) => clampPosition(nextX, current.y));
-          window.setTimeout(setIdle, roll < 0.18 ? 2600 : 1650);
-        } else if (roll < 0.62) {
+          window.setTimeout(() => {
+            if (!draggingRef.current) setIdle();
+          }, roll < 0.18 ? 2600 : 1650);
+        } else if (roll < 0.56) {
           targetYawRef.current = (Math.random() < 0.5 ? -1 : 1) * (0.16 + Math.random() * 0.26);
-          playTemporaryAnimation(DRAGON_CLIPS.fly, 6200);
+          playTemporaryAnimation(DRAGON_CLIPS.fly, 9800);
+        } else if (roll < 0.72) {
+          speak(pickDragonLine("idle"), DRAGON_CLIPS.idle);
+        } else if (roll < 0.88) {
+          startSleepSequence();
         } else {
           setIdle();
         }
@@ -457,7 +545,7 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
     return () => {
       if (idleTimerRef.current) window.clearTimeout(idleTimerRef.current);
     };
-  }, [bubbleVisible, clampPosition, dragging, playAnimation, playTemporaryAnimation, position.x, setIdle]);
+  }, [bubbleVisible, clampPosition, dragging, playAnimation, playTemporaryAnimation, position.x, setIdle, speak, startSleepSequence]);
 
   useEffect(() => {
     return () => {
@@ -465,11 +553,13 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
       if (idleTimerRef.current) window.clearTimeout(idleTimerRef.current);
       if (hideBubbleTimerRef.current) window.clearTimeout(hideBubbleTimerRef.current);
       if (typingTimerRef.current) window.clearInterval(typingTimerRef.current);
+      clearSleepTimers();
     };
-  }, []);
+  }, [clearSleepTimers]);
 
   const finishDrag = useCallback(() => {
     if (!dragging) return;
+    draggingRef.current = false;
     setDragging(false);
     setSettling(true);
     setPosition((current) => clampPosition(current.x, groundY()));
@@ -491,7 +581,10 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
     };
     event.currentTarget.setPointerCapture?.(event.pointerId);
     setBubbleVisible(false);
+    clearSleepTimers();
     targetYawRef.current = 0;
+    draggingRef.current = true;
+    landingUntilRef.current = 0;
     setDragging(true);
     setSettling(false);
     setMotion(DRAGON_CLIPS.fly);
@@ -565,19 +658,6 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
         style={mascotStyle}
         aria-label={title}
       >
-        <canvas
-          ref={canvasRef}
-          width={CANVAS_WIDTH}
-          height={CANVAS_HEIGHT}
-          draggable={false}
-          className="pointer-events-none absolute z-10 drop-shadow-[0_14px_20px_rgba(0,0,0,0.55)]"
-          style={{
-            width: CANVAS_WIDTH,
-            height: CANVAS_HEIGHT,
-            left: -(CANVAS_WIDTH - MASCOT_WIDTH) / 2,
-            top: -(CANVAS_HEIGHT - MASCOT_HEIGHT) / 2,
-          }}
-        />
         <div
           role="button"
           tabIndex={0}
@@ -594,6 +674,17 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
           aria-label={title}
         />
       </div>
+      <canvas
+        ref={canvasRef}
+        width={stageSize.width}
+        height={stageSize.height}
+        draggable={false}
+        className="pointer-events-none absolute inset-0 z-[104] h-full w-full drop-shadow-[0_14px_20px_rgba(0,0,0,0.55)]"
+        style={{
+          width: stageSize.width,
+          height: stageSize.height,
+        }}
+      />
     </div>
   );
 }
