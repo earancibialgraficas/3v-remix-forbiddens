@@ -36,7 +36,11 @@ type AvocadoAnimation =
 const MASCOT_EVENT = "forbiddens:dragon-mascot";
 const MASCOT_WIDTH = 236;
 const MASCOT_HEIGHT = 268;
+const FALLBACK_CANVAS_WIDTH = 620;
+const FALLBACK_CANVAS_HEIGHT = 450;
+const WORLD_UNITS_PER_PIXEL = 3.5 / MASCOT_WIDTH;
 const GROUND_GAP = 2;
+const SETTLING_MS = 1250;
 
 const eventAnimation: Record<DragonMascotEventType, AvocadoAnimation> = {
   greeting: "happy",
@@ -90,6 +94,18 @@ const pickLine = (type: DragonMascotEventType) => {
 };
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+
+const isInsideAvocadoHitArea = (event: React.PointerEvent<HTMLElement> | React.MouseEvent<HTMLElement>) => {
+  const rect = event.currentTarget.getBoundingClientRect();
+  if (!rect.width || !rect.height) return false;
+  const x = (event.clientX - rect.left) / rect.width;
+  const y = (event.clientY - rect.top) / rect.height;
+  const body = ((x - 0.5) / 0.42) ** 2 + ((y - 0.42) / 0.42) ** 2 <= 1;
+  const lower = ((x - 0.5) / 0.47) ** 2 + ((y - 0.62) / 0.34) ** 2 <= 1;
+  const arms = y > 0.34 && y < 0.72 && x > 0.04 && x < 0.96;
+  const feet = y > 0.78 && y < 0.98 && x > 0.18 && x < 0.82;
+  return body || lower || arms || feet;
+};
 
 const makeAvocadoGeometry = (scale = 1) => {
   const points = [
@@ -305,17 +321,22 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
   const stageRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+  const cameraRef = useRef<THREE.OrthographicCamera | null>(null);
   const modelRef = useRef<ReturnType<typeof makeAvocadoModel> | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const idleTimerRef = useRef<number | null>(null);
   const hideBubbleTimerRef = useRef<number | null>(null);
   const typingTimerRef = useRef<number | null>(null);
+  const moveFrameRef = useRef<number | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const dragRef = useRef({ pointerId: -1, offsetX: 0, offsetY: 0 });
   const dragTargetRef = useRef({ x: 0, y: 1.05 });
   const animationNameRef = useRef<AvocadoAnimation>("idle");
+  const positionRef = useRef<MascotPosition>({ x: 0, y: 0 });
+  const stageSizeRef = useRef({ width: FALLBACK_CANVAS_WIDTH, height: FALLBACK_CANVAS_HEIGHT });
 
   const [position, setPosition] = useState<MascotPosition>({ x: 0, y: 0 });
+  const [stageSize, setStageSize] = useState({ width: FALLBACK_CANVAS_WIDTH, height: FALLBACK_CANVAS_HEIGHT });
   const [ready, setReady] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [settling, setSettling] = useState(false);
@@ -327,6 +348,14 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
   useEffect(() => {
     animationNameRef.current = animationName;
   }, [animationName]);
+
+  useEffect(() => {
+    positionRef.current = position;
+  }, [position]);
+
+  useEffect(() => {
+    stageSizeRef.current = stageSize;
+  }, [stageSize]);
 
   const title = useMemo(() => {
     const trimmed = String(gameName || "").trim();
@@ -346,6 +375,13 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
       x: clamp(x, 4, Math.max(4, stage.clientWidth - MASCOT_WIDTH - 4)),
       y: clamp(y, 4, Math.max(4, stage.clientHeight - MASCOT_HEIGHT - GROUND_GAP)),
     };
+  }, []);
+
+  const cancelGroundMove = useCallback(() => {
+    if (moveFrameRef.current) {
+      window.cancelAnimationFrame(moveFrameRef.current);
+      moveFrameRef.current = null;
+    }
   }, []);
 
   const playBlip = useCallback((index: number) => {
@@ -377,19 +413,51 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
   const speak = useCallback((text: string, nextAnimation: AvocadoAnimation = "talk") => {
     const nextText = text.trim();
     if (!nextText) return;
+    cancelGroundMove();
     if (hideBubbleTimerRef.current) window.clearTimeout(hideBubbleTimerRef.current);
     if (typingTimerRef.current) window.clearInterval(typingTimerRef.current);
     setAnimationName(nextAnimation === "sleep" ? "talk" : nextAnimation);
     setMessage(nextText);
     setTypedMessage("");
     setBubbleVisible(true);
-  }, []);
+  }, [cancelGroundMove]);
+
+  const startGroundMove = useCallback((targetX: number, duration: number) => {
+    cancelGroundMove();
+    const start = clampPosition(positionRef.current.x, groundY());
+    const target = clampPosition(targetX, groundY());
+    const startedAt = performance.now();
+    const distance = target.x - start.x;
+    if (Math.abs(distance) < 4) {
+      setAnimationName("idle");
+      return;
+    }
+
+    setPosition(start);
+    setAnimationName("walk");
+
+    const step = (now: number) => {
+      const progress = clamp((now - startedAt) / duration, 0, 1);
+      setPosition({ x: start.x + distance * progress, y: target.y });
+      if (progress < 1) {
+        moveFrameRef.current = window.requestAnimationFrame(step);
+      } else {
+        moveFrameRef.current = null;
+        setAnimationName("idle");
+      }
+    };
+
+    moveFrameRef.current = window.requestAnimationFrame(step);
+  }, [cancelGroundMove, clampPosition, groundY]);
 
   useEffect(() => {
     const stage = stageRef.current;
     if (!stage) return;
 
     const sync = () => {
+      const width = Math.max(1, stage.clientWidth || FALLBACK_CANVAS_WIDTH);
+      const height = Math.max(1, stage.clientHeight || FALLBACK_CANVAS_HEIGHT);
+      setStageSize({ width, height });
       setPosition((current) => {
         const initialX = current.x || Math.max(4, stage.clientWidth - MASCOT_WIDTH - 12);
         return clampPosition(initialX, groundY());
@@ -414,11 +482,21 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
     const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
     renderer.setClearColor(0x000000, 0);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    renderer.setSize(MASCOT_WIDTH, MASCOT_HEIGHT, false);
+    renderer.setSize(stageSizeRef.current.width, stageSizeRef.current.height, false);
     rendererRef.current = renderer;
 
     const scene = new THREE.Scene();
-    const camera = new THREE.OrthographicCamera(-1.75, 1.75, 1.95, -1.95, 0.1, 100);
+    const initialWorldWidth = stageSizeRef.current.width * WORLD_UNITS_PER_PIXEL;
+    const initialWorldHeight = stageSizeRef.current.height * WORLD_UNITS_PER_PIXEL;
+    const camera = new THREE.OrthographicCamera(
+      -initialWorldWidth / 2,
+      initialWorldWidth / 2,
+      initialWorldHeight / 2,
+      -initialWorldHeight / 2,
+      0.1,
+      100,
+    );
+    cameraRef.current = camera;
     camera.position.set(0, 0.1, 5.2);
     camera.lookAt(0, -0.25, 0);
 
@@ -432,7 +510,9 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
 
     const model = makeAvocadoModel();
     model.root.scale.setScalar(1.05);
-    scene.add(model.root);
+    const sceneRoot = new THREE.Group();
+    sceneRoot.add(model.root);
+    scene.add(sceneRoot);
     modelRef.current = model;
 
     const aimArmAt = (
@@ -461,6 +541,10 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
       const state = animationNameRef.current;
       const avocado = modelRef.current;
       if (avocado) {
+        const currentPosition = positionRef.current;
+        const currentStage = stageSizeRef.current;
+        sceneRoot.position.x = (currentPosition.x + MASCOT_WIDTH / 2 - currentStage.width / 2) * WORLD_UNITS_PER_PIXEL;
+        sceneRoot.position.y = -(currentPosition.y + MASCOT_HEIGHT / 2 - currentStage.height / 2) * WORLD_UNITS_PER_PIXEL;
         const mode = state;
         const walkCycle = Math.sin(elapsed * 11);
         const fastCycle = Math.sin(elapsed * 12.5);
@@ -637,9 +721,24 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
       });
       renderer.dispose();
       rendererRef.current = null;
+      cameraRef.current = null;
       modelRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    const renderer = rendererRef.current;
+    const camera = cameraRef.current;
+    if (!renderer || !camera) return;
+    renderer.setSize(stageSize.width, stageSize.height, false);
+    const worldWidth = stageSize.width * WORLD_UNITS_PER_PIXEL;
+    const worldHeight = stageSize.height * WORLD_UNITS_PER_PIXEL;
+    camera.left = -worldWidth / 2;
+    camera.right = worldWidth / 2;
+    camera.top = worldHeight / 2;
+    camera.bottom = -worldHeight / 2;
+    camera.updateProjectionMatrix();
+  }, [stageSize]);
 
   useEffect(() => {
     if (!message) return;
@@ -677,7 +776,7 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
     const schedule = () => {
       if (idleTimerRef.current) window.clearTimeout(idleTimerRef.current);
       idleTimerRef.current = window.setTimeout(() => {
-        if (dragging || bubbleVisible) {
+        if (dragging || settling || bubbleVisible) {
           schedule();
           return;
         }
@@ -686,10 +785,8 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
           const stage = stageRef.current;
           if (stage) {
             const maxX = Math.max(4, stage.clientWidth - MASCOT_WIDTH - 4);
-            const nextX = clamp(position.x + (Math.random() < 0.5 ? -1 : 1) * (80 + Math.random() * 118), 4, maxX);
-            setAnimationName("walk");
-            setPosition((current) => clampPosition(nextX, current.y));
-            window.setTimeout(() => setAnimationName("idle"), 2400);
+            const nextX = clamp(positionRef.current.x + (Math.random() < 0.5 ? -1 : 1) * (80 + Math.random() * 118), 4, maxX);
+            startGroundMove(nextX, 2400);
           }
         } else if (roll < 0.4) {
           setAnimationName("sleep");
@@ -716,7 +813,7 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
     return () => {
       if (idleTimerRef.current) window.clearTimeout(idleTimerRef.current);
     };
-  }, [bubbleVisible, clampPosition, dragging, position.x]);
+  }, [bubbleVisible, dragging, settling, startGroundMove]);
 
   useEffect(() => {
     return () => {
@@ -724,21 +821,23 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
       if (idleTimerRef.current) window.clearTimeout(idleTimerRef.current);
       if (hideBubbleTimerRef.current) window.clearTimeout(hideBubbleTimerRef.current);
       if (typingTimerRef.current) window.clearInterval(typingTimerRef.current);
+      if (moveFrameRef.current) window.cancelAnimationFrame(moveFrameRef.current);
     };
   }, []);
 
   const finishDrag = useCallback(() => {
     if (!dragging) return;
+    cancelGroundMove();
     setDragging(false);
     setSettling(true);
     setPosition((current) => clampPosition(current.x, groundY()));
     window.setTimeout(() => {
       setSettling(false);
       setAnimationName("idle");
-    }, 520);
-  }, [clampPosition, dragging, groundY]);
+    }, SETTLING_MS);
+  }, [cancelGroundMove, clampPosition, dragging, groundY]);
 
-  const updateDragTarget = (event: React.PointerEvent<HTMLButtonElement>) => {
+  const updateDragTarget = (event: React.PointerEvent<HTMLDivElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
     const localX = clamp(event.clientX - rect.left, 0, rect.width);
     const localY = clamp(event.clientY - rect.top, 0, rect.height);
@@ -748,9 +847,10 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
     };
   };
 
-  const startDrag = (event: React.PointerEvent<HTMLButtonElement>) => {
+  const startDrag = (event: React.PointerEvent<HTMLDivElement>) => {
     event.preventDefault();
     event.stopPropagation();
+    if (!isInsideAvocadoHitArea(event)) return;
     const stageRect = stageRef.current?.getBoundingClientRect();
     if (!stageRect) return;
     updateDragTarget(event);
@@ -760,13 +860,14 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
       offsetY: event.clientY - stageRect.top - position.y,
     };
     event.currentTarget.setPointerCapture?.(event.pointerId);
+    cancelGroundMove();
     setBubbleVisible(false);
     setDragging(true);
     setSettling(false);
     setAnimationName("drag");
   };
 
-  const moveDrag = (event: React.PointerEvent<HTMLButtonElement>) => {
+  const moveDrag = (event: React.PointerEvent<HTMLDivElement>) => {
     if (!dragging || event.pointerId !== dragRef.current.pointerId) return;
     const stageRect = stageRef.current?.getBoundingClientRect();
     if (!stageRect) return;
@@ -776,8 +877,9 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
     setPosition(clampPosition(x, y));
   };
 
-  const handleClick = () => {
+  const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
     if (dragging || settling) return;
+    if (!isInsideAvocadoHitArea(event)) return;
     speak(pickLine("click"), "happy");
   };
 
@@ -787,15 +889,19 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
     width: MASCOT_WIDTH,
     height: MASCOT_HEIGHT,
     transition: settling
-      ? "top 520ms cubic-bezier(.18,.86,.22,1.08), left 260ms ease-out"
-      : animationName === "walk"
-        ? "left 2400ms linear"
-        : "none",
+      ? `top ${SETTLING_MS}ms cubic-bezier(.18,.86,.22,1), left 360ms ease-out`
+      : "none",
     opacity: ready ? 1 : 0,
   } as const;
 
+  const hitAreaStyle = {
+    clipPath: "polygon(18% 12%, 39% 3%, 61% 9%, 80% 28%, 89% 55%, 78% 85%, 57% 98%, 34% 95%, 14% 74%, 8% 43%)",
+    WebkitClipPath: "polygon(18% 12%, 39% 3%, 61% 9%, 80% 28%, 89% 55%, 78% 85%, 57% 98%, 34% 95%, 14% 74%, 8% 43%)",
+    WebkitTapHighlightColor: "transparent",
+  } as const;
+
   return (
-    <div ref={stageRef} className={cn("notranslate pointer-events-none absolute inset-0 overflow-hidden", className)} data-native-action translate="no">
+    <div ref={stageRef} className={cn("notranslate pointer-events-none absolute inset-0 overflow-visible", className)} data-native-action translate="no">
       {bubbleVisible && (
         <div
           className="pointer-events-none absolute z-[110] max-w-[min(300px,78vw)] rounded-[18px] border-2 border-[#22380d] bg-[#f7ffd8] px-3.5 py-2.5 shadow-[5px_6px_0_rgba(34,56,13,0.55)]"
@@ -813,29 +919,38 @@ export default function AvocadoMascot3D({ gameName, className }: AvocadoMascot3D
         </div>
       )}
 
-      <button
-        type="button"
-        onClick={handleClick}
-        onPointerDown={startDrag}
-        onPointerMove={moveDrag}
-        onPointerUp={finishDrag}
-        onPointerCancel={finishDrag}
-        className={cn(
-          "pointer-events-auto absolute z-[105] flex items-end justify-center bg-transparent outline-none focus-visible:ring-2 focus-visible:ring-lime-200/70",
-          dragging ? "cursor-grabbing" : "cursor-grab",
-        )}
+      <div
+        className="pointer-events-none absolute z-[105] flex items-end justify-center border-0 bg-transparent p-0 outline-none"
         style={mascotStyle}
-        title={title}
         aria-label={title}
       >
-        <canvas
-          ref={canvasRef}
-          width={MASCOT_WIDTH}
-          height={MASCOT_HEIGHT}
-          draggable={false}
-          className="pointer-events-none relative z-10 h-full w-full drop-shadow-[0_12px_18px_rgba(0,0,0,0.52)]"
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={handleClick}
+          onPointerDown={startDrag}
+          onPointerMove={moveDrag}
+          onPointerUp={finishDrag}
+          onPointerCancel={finishDrag}
+          className={cn(
+            "pointer-events-auto absolute inset-0 z-20 border-0 bg-transparent p-0 outline-none hover:bg-transparent active:bg-transparent focus:bg-transparent focus:outline-none focus-visible:bg-transparent focus-visible:outline-none focus-visible:ring-0",
+            dragging ? "cursor-grabbing" : "cursor-grab",
+          )}
+          style={hitAreaStyle}
+          aria-label={title}
         />
-      </button>
+      </div>
+      <canvas
+        ref={canvasRef}
+        width={stageSize.width}
+        height={stageSize.height}
+        draggable={false}
+        className="pointer-events-none absolute inset-0 z-[104] h-full w-full drop-shadow-[0_12px_18px_rgba(0,0,0,0.52)]"
+        style={{
+          width: stageSize.width,
+          height: stageSize.height,
+        }}
+      />
     </div>
   );
 }

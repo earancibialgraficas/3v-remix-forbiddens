@@ -29,6 +29,8 @@ const FALLBACK_CANVAS_WIDTH = 620;
 const FALLBACK_CANVAS_HEIGHT = 450;
 const WORLD_UNITS_PER_PIXEL = 5.52 / 760;
 const GROUND_GAP = 0;
+const LANDING_MS = 1650;
+const SETTLING_MS = 1500;
 
 const DRAGON_CLIPS = {
   fly: "Armature|Armature|Fly_New",
@@ -108,6 +110,7 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
   const positionRef = useRef<MascotPosition>({ x: 0, y: 0 });
   const stageSizeRef = useRef({ width: FALLBACK_CANVAS_WIDTH, height: FALLBACK_CANVAS_HEIGHT });
   const draggingRef = useRef(false);
+  const dragHoldRef = useRef(false);
   const landingUntilRef = useRef(0);
 
   const [message, setMessage] = useState("");
@@ -249,7 +252,7 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
     playAnimation(clip);
     window.setTimeout(() => {
       if (draggingRef.current) return;
-      if (clip === DRAGON_CLIPS.fly) landingUntilRef.current = performance.now() + 950;
+      if (clip === DRAGON_CLIPS.fly) landingUntilRef.current = performance.now() + LANDING_MS;
       setIdle();
     }, duration);
   }, [cancelGroundMove, playAnimation, setIdle]);
@@ -427,7 +430,7 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
       const elapsed = clock.elapsedTime;
       const mixer = mixerRef.current;
       const dragFlyAction = activeActionRef.current;
-      const shouldPingPongDragFly = draggingRef.current
+      const shouldPingPongDragFly = dragHoldRef.current
         && motionRef.current === DRAGON_CLIPS.fly
         && dragFlyAction?.getClip().name === DRAGON_CLIPS.fly;
       if (mixer && shouldPingPongDragFly && dragFlyAction) {
@@ -465,7 +468,7 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
         const isMoving = currentMotion === DRAGON_CLIPS.walk || currentMotion === DRAGON_CLIPS.run;
         const isFlying = currentMotion === DRAGON_CLIPS.fly;
         const bob = Math.sin(elapsed * (isMoving ? 7.8 : isFlying ? 5.4 : 2.1));
-        const landingLift = Math.max(0, landingUntilRef.current - performance.now()) / 950;
+        const landingLift = Math.max(0, landingUntilRef.current - performance.now()) / LANDING_MS;
         const currentPosition = positionRef.current;
         const currentStage = stageSizeRef.current;
         const rootX = (currentPosition.x + MASCOT_WIDTH / 2 - currentStage.width / 2) * WORLD_UNITS_PER_PIXEL;
@@ -554,7 +557,7 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
     const schedule = () => {
       if (idleTimerRef.current) window.clearTimeout(idleTimerRef.current);
       idleTimerRef.current = window.setTimeout(() => {
-        if (dragging || bubbleVisible) {
+        if (dragging || settling || bubbleVisible) {
           schedule();
           return;
         }
@@ -582,7 +585,7 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
     return () => {
       if (idleTimerRef.current) window.clearTimeout(idleTimerRef.current);
     };
-  }, [bubbleVisible, dragging, playTemporaryAnimation, setIdle, speak, startGroundMove]);
+  }, [bubbleVisible, dragging, playTemporaryAnimation, setIdle, settling, speak, startGroundMove]);
 
   useEffect(() => {
     return () => {
@@ -598,14 +601,18 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
     if (!dragging) return;
     cancelGroundMove();
     draggingRef.current = false;
-    dragFlyDirectionRef.current = 1;
-    dragFlyTimeRef.current = 0.04;
     setDragging(false);
     setSettling(true);
     setPosition((current) => clampPosition(current.x, groundY()));
-    landingUntilRef.current = performance.now() + 950;
-    setIdle();
-    window.setTimeout(() => setSettling(false), 520);
+    landingUntilRef.current = performance.now() + LANDING_MS;
+    setMotion(DRAGON_CLIPS.fly);
+    window.setTimeout(() => {
+      dragHoldRef.current = false;
+      dragFlyDirectionRef.current = 1;
+      dragFlyTimeRef.current = 0.04;
+      setSettling(false);
+      setIdle();
+    }, SETTLING_MS);
   }, [cancelGroundMove, clampPosition, dragging, groundY, setIdle]);
 
   const startDrag = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -624,6 +631,7 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
     setBubbleVisible(false);
     targetYawRef.current = 0;
     draggingRef.current = true;
+    dragHoldRef.current = true;
     dragFlyDirectionRef.current = 1;
     dragFlyTimeRef.current = 0.04;
     landingUntilRef.current = 0;
@@ -654,7 +662,7 @@ export default function DragonMascot({ gameName, className }: DragonMascotProps)
     width: MASCOT_WIDTH,
     height: MASCOT_HEIGHT,
     transition: settling
-      ? "top 520ms cubic-bezier(.18,.86,.22,1.08), left 260ms ease-out"
+      ? `top ${SETTLING_MS}ms cubic-bezier(.18,.86,.22,1), left 420ms ease-out`
       : "none",
     opacity: ready ? 1 : 0,
     appearance: "none",

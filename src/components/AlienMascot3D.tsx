@@ -30,8 +30,11 @@ const EYE_TEXTURE_URL = "/mascot/alien/textures/Alien-Animal_eye.jpg";
 const MASCOT_WIDTH = 340;
 const MASCOT_HEIGHT = 292;
 const CANVAS_WIDTH = 460;
-const CANVAS_HEIGHT = 390;
+const FALLBACK_CANVAS_WIDTH = 620;
+const FALLBACK_CANVAS_HEIGHT = 450;
+const WORLD_UNITS_PER_PIXEL = 6 / CANVAS_WIDTH;
 const GROUND_GAP = 0;
+const SETTLING_MS = 1250;
 
 const ALIEN_ANIMATION_DURATIONS: Record<string, number> = {
   "0": 700,
@@ -128,6 +131,7 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
   const stageRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+  const cameraRef = useRef<THREE.OrthographicCamera | null>(null);
   const mixerRef = useRef<THREE.AnimationMixer | null>(null);
   const actionsRef = useRef<Map<string, THREE.AnimationAction>>(new Map());
   const activeActionRef = useRef<THREE.AnimationAction | null>(null);
@@ -135,13 +139,17 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
   const idleTimerRef = useRef<number | null>(null);
   const hideBubbleTimerRef = useRef<number | null>(null);
   const typingTimerRef = useRef<number | null>(null);
+  const moveFrameRef = useRef<number | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const dragRef = useRef({ pointerId: -1, offsetX: 0, offsetY: 0 });
   const motionRef = useRef("Idel_Normal");
+  const positionRef = useRef<MascotPosition>({ x: 0, y: 0 });
+  const stageSizeRef = useRef({ width: FALLBACK_CANVAS_WIDTH, height: FALLBACK_CANVAS_HEIGHT });
   const targetYawRef = useRef(-0.18);
   const currentYawRef = useRef(-0.18);
 
   const [position, setPosition] = useState<MascotPosition>({ x: 0, y: 0 });
+  const [stageSize, setStageSize] = useState({ width: FALLBACK_CANVAS_WIDTH, height: FALLBACK_CANVAS_HEIGHT });
   const [ready, setReady] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [settling, setSettling] = useState(false);
@@ -153,6 +161,14 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
   useEffect(() => {
     motionRef.current = motion;
   }, [motion]);
+
+  useEffect(() => {
+    positionRef.current = position;
+  }, [position]);
+
+  useEffect(() => {
+    stageSizeRef.current = stageSize;
+  }, [stageSize]);
 
   const title = useMemo(() => {
     const trimmed = String(gameName || "").trim();
@@ -172,6 +188,13 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
       x: clamp(x, 4, Math.max(4, stage.clientWidth - MASCOT_WIDTH - 4)),
       y: clamp(y, 4, Math.max(4, stage.clientHeight - MASCOT_HEIGHT - GROUND_GAP)),
     };
+  }, []);
+
+  const cancelGroundMove = useCallback(() => {
+    if (moveFrameRef.current) {
+      window.cancelAnimationFrame(moveFrameRef.current);
+      moveFrameRef.current = null;
+    }
   }, []);
 
   const playBlip = useCallback((index: number) => {
@@ -235,6 +258,7 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
   const speak = useCallback((text: string, clip = "Idel_Normal") => {
     const nextText = text.trim();
     if (!nextText) return;
+    cancelGroundMove();
     if (hideBubbleTimerRef.current) window.clearTimeout(hideBubbleTimerRef.current);
     if (typingTimerRef.current) window.clearInterval(typingTimerRef.current);
     targetYawRef.current = 0;
@@ -243,18 +267,20 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
     setMessage(nextText);
     setTypedMessage(nextText.slice(0, 1));
     setBubbleVisible(true);
-  }, [playAnimation]);
+  }, [cancelGroundMove, playAnimation]);
 
   const playTemporaryAnimation = useCallback((clip: string, duration?: number) => {
+    cancelGroundMove();
     setMotion(clip);
     playAnimation(clip);
     window.setTimeout(() => {
       setMotion("Idel_Normal");
       playAnimation("Idel_Normal");
     }, duration ?? ALIEN_ANIMATION_DURATIONS[clip] ?? 1800);
-  }, [playAnimation]);
+  }, [cancelGroundMove, playAnimation]);
 
   const startSleep = useCallback(() => {
+    cancelGroundMove();
     if (hideBubbleTimerRef.current) window.clearTimeout(hideBubbleTimerRef.current);
     if (typingTimerRef.current) window.clearInterval(typingTimerRef.current);
     targetYawRef.current = -0.34;
@@ -263,13 +289,49 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
     setMessage("Zzzz...");
     setTypedMessage("Z");
     setBubbleVisible(true);
-  }, [playAnimation]);
+  }, [cancelGroundMove, playAnimation]);
+
+  const startGroundMove = useCallback((targetX: number, clip: string, duration: number) => {
+    cancelGroundMove();
+    const start = clampPosition(positionRef.current.x, groundY());
+    const target = clampPosition(targetX, groundY());
+    const startedAt = performance.now();
+    const distance = target.x - start.x;
+    if (Math.abs(distance) < 4) {
+      targetYawRef.current = (Math.random() < 0.5 ? -1 : 1) * 0.18;
+      setMotion("Idel_Normal");
+      playAnimation("Idel_Normal");
+      return;
+    }
+
+    setPosition(start);
+    setMotion(clip);
+    playAnimation(clip);
+
+    const step = (now: number) => {
+      const progress = clamp((now - startedAt) / duration, 0, 1);
+      setPosition({ x: start.x + distance * progress, y: target.y });
+      if (progress < 1) {
+        moveFrameRef.current = window.requestAnimationFrame(step);
+      } else {
+        moveFrameRef.current = null;
+        targetYawRef.current = (Math.random() < 0.5 ? -1 : 1) * 0.18;
+        setMotion("Idel_Normal");
+        playAnimation("Idel_Normal");
+      }
+    };
+
+    moveFrameRef.current = window.requestAnimationFrame(step);
+  }, [cancelGroundMove, clampPosition, groundY, playAnimation]);
 
   useEffect(() => {
     const stage = stageRef.current;
     if (!stage) return;
 
     const sync = () => {
+      const width = Math.max(1, stage.clientWidth || FALLBACK_CANVAS_WIDTH);
+      const height = Math.max(1, stage.clientHeight || FALLBACK_CANVAS_HEIGHT);
+      setStageSize({ width, height });
       setPosition((current) => {
         const initialX = current.x || Math.max(4, stage.clientWidth - MASCOT_WIDTH - 12);
         return clampPosition(initialX, groundY());
@@ -294,11 +356,21 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
     const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
     renderer.setClearColor(0x000000, 0);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    renderer.setSize(CANVAS_WIDTH, CANVAS_HEIGHT, false);
+    renderer.setSize(stageSizeRef.current.width, stageSizeRef.current.height, false);
     rendererRef.current = renderer;
 
     const scene = new THREE.Scene();
-    const camera = new THREE.OrthographicCamera(-3.0, 3.0, 2.32, -2.02, 0.1, 100);
+    const initialWorldWidth = stageSizeRef.current.width * WORLD_UNITS_PER_PIXEL;
+    const initialWorldHeight = stageSizeRef.current.height * WORLD_UNITS_PER_PIXEL;
+    const camera = new THREE.OrthographicCamera(
+      -initialWorldWidth / 2,
+      initialWorldWidth / 2,
+      initialWorldHeight / 2,
+      -initialWorldHeight / 2,
+      0.1,
+      100,
+    );
+    cameraRef.current = camera;
     camera.position.set(0, 0.08, 5.4);
     camera.lookAt(0, -0.15, 0);
 
@@ -446,7 +518,12 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
         const isHit = currentMotion.includes("Attack") || currentMotion.includes("Action");
         const isIdleAggressive = currentMotion.includes("Aggressive");
         const bob = Math.sin(elapsed * (isWalk ? 8.5 : isHit ? 10 : isIdleAggressive ? 5.5 : 2.4));
-        modelRoot.position.y = -0.18 + (isWalk ? Math.abs(bob) * 0.035 : isHit ? Math.abs(bob) * 0.025 : bob * 0.01);
+        const currentPosition = positionRef.current;
+        const currentStage = stageSizeRef.current;
+        const rootX = (currentPosition.x + MASCOT_WIDTH / 2 - currentStage.width / 2) * WORLD_UNITS_PER_PIXEL;
+        const rootY = -(currentPosition.y + MASCOT_HEIGHT / 2 - currentStage.height / 2) * WORLD_UNITS_PER_PIXEL;
+        modelRoot.position.x = rootX;
+        modelRoot.position.y = rootY - 0.18 + (isWalk ? Math.abs(bob) * 0.035 : isHit ? Math.abs(bob) * 0.025 : bob * 0.01);
         modelRoot.rotation.z = Math.sin(elapsed * (isWalk ? 7 : isHit ? 9 : 1.8)) * (isWalk ? 0.025 : isHit ? 0.04 : 0.012);
         currentYawRef.current += (targetYawRef.current - currentYawRef.current) * Math.min(1, delta * 4.2);
         const expressiveYaw = Math.sin(elapsed * (isHit ? 8 : isIdleAggressive ? 3.8 : 1.2)) * (isHit ? 0.035 : isIdleAggressive ? 0.02 : 0.01);
@@ -483,8 +560,23 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
       eyeTexture.dispose();
       renderer.dispose();
       rendererRef.current = null;
+      cameraRef.current = null;
     };
   }, [playAnimation]);
+
+  useEffect(() => {
+    const renderer = rendererRef.current;
+    const camera = cameraRef.current;
+    if (!renderer || !camera) return;
+    renderer.setSize(stageSize.width, stageSize.height, false);
+    const worldWidth = stageSize.width * WORLD_UNITS_PER_PIXEL;
+    const worldHeight = stageSize.height * WORLD_UNITS_PER_PIXEL;
+    camera.left = -worldWidth / 2;
+    camera.right = worldWidth / 2;
+    camera.top = worldHeight / 2;
+    camera.bottom = -worldHeight / 2;
+    camera.updateProjectionMatrix();
+  }, [stageSize]);
 
   useEffect(() => {
     if (!message) return;
@@ -524,7 +616,7 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
     const schedule = () => {
       if (idleTimerRef.current) window.clearTimeout(idleTimerRef.current);
       idleTimerRef.current = window.setTimeout(() => {
-        if (dragging || bubbleVisible) {
+        if (dragging || settling || bubbleVisible) {
           schedule();
           return;
         }
@@ -533,29 +625,15 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
         if (roll < 0.28 && stage) {
           const maxX = Math.max(4, stage.clientWidth - MASCOT_WIDTH - 4);
           const direction = Math.random() < 0.5 ? -1 : 1;
-          const nextX = clamp(position.x + direction * (80 + Math.random() * 120), 4, maxX);
+          const nextX = clamp(positionRef.current.x + direction * (80 + Math.random() * 120), 4, maxX);
           targetYawRef.current = direction < 0 ? -0.42 : 0.42;
-          setMotion("Walk-Cycle");
-          playAnimation("Walk-Cycle");
-          setPosition((current) => clampPosition(nextX, current.y));
-          window.setTimeout(() => {
-            targetYawRef.current = (Math.random() < 0.5 ? -1 : 1) * (0.12 + Math.random() * 0.2);
-            setMotion("Idel_Normal");
-            playAnimation("Idel_Normal");
-          }, 2400);
+          startGroundMove(nextX, "Walk-Cycle", 2400);
         } else if (roll < 0.36 && stage) {
           const maxX = Math.max(4, stage.clientWidth - MASCOT_WIDTH - 4);
           const direction = Math.random() < 0.5 ? -1 : 1;
-          const nextX = clamp(position.x + direction * (110 + Math.random() * 150), 4, maxX);
+          const nextX = clamp(positionRef.current.x + direction * (110 + Math.random() * 150), 4, maxX);
           targetYawRef.current = direction < 0 ? -0.5 : 0.5;
-          setMotion("Run-Cycle");
-          playAnimation("Run-Cycle");
-          setPosition((current) => clampPosition(nextX, current.y));
-          window.setTimeout(() => {
-            targetYawRef.current = (Math.random() < 0.5 ? -1 : 1) * (0.12 + Math.random() * 0.2);
-            setMotion("Idel_Normal");
-            playAnimation("Idel_Normal");
-          }, 1600);
+          startGroundMove(nextX, "Run-Cycle", 1600);
         } else if (roll < 0.84) {
           const clip = ALIEN_IDLE_ROTATION[Math.floor(Math.random() * ALIEN_IDLE_ROTATION.length)] || "Idel_Normal";
           targetYawRef.current = (Math.random() < 0.5 ? -1 : 1) * (0.16 + Math.random() * 0.26);
@@ -573,7 +651,7 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
     return () => {
       if (idleTimerRef.current) window.clearTimeout(idleTimerRef.current);
     };
-  }, [bubbleVisible, clampPosition, dragging, playAnimation, playTemporaryAnimation, position.x, startSleep]);
+  }, [bubbleVisible, dragging, playTemporaryAnimation, settling, startGroundMove, startSleep]);
 
   useEffect(() => {
     return () => {
@@ -581,19 +659,25 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
       if (idleTimerRef.current) window.clearTimeout(idleTimerRef.current);
       if (hideBubbleTimerRef.current) window.clearTimeout(hideBubbleTimerRef.current);
       if (typingTimerRef.current) window.clearInterval(typingTimerRef.current);
+      if (moveFrameRef.current) window.cancelAnimationFrame(moveFrameRef.current);
     };
   }, []);
 
   const finishDrag = useCallback(() => {
     if (!dragging) return;
+    cancelGroundMove();
     setDragging(false);
     setSettling(true);
     setPosition((current) => clampPosition(current.x, groundY()));
-    targetYawRef.current = (Math.random() < 0.5 ? -1 : 1) * 0.18;
-    setMotion("Idel_Normal");
-    playAnimation("Idel_Normal");
-    window.setTimeout(() => setSettling(false), 520);
-  }, [clampPosition, dragging, groundY, playAnimation]);
+    targetYawRef.current = 0;
+    setMotion("Bake_Pose");
+    window.setTimeout(() => {
+      targetYawRef.current = (Math.random() < 0.5 ? -1 : 1) * 0.18;
+      setSettling(false);
+      setMotion("Idel_Normal");
+      playAnimation("Idel_Normal");
+    }, SETTLING_MS);
+  }, [cancelGroundMove, clampPosition, dragging, groundY, playAnimation]);
 
   const startDrag = (event: React.PointerEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -607,6 +691,7 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
       offsetY: event.clientY - stageRect.top - position.y,
     };
     event.currentTarget.setPointerCapture?.(event.pointerId);
+    cancelGroundMove();
     setBubbleVisible(false);
     targetYawRef.current = 0;
     setDragging(true);
@@ -645,10 +730,8 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
     width: MASCOT_WIDTH,
     height: MASCOT_HEIGHT,
     transition: settling
-      ? "top 520ms cubic-bezier(.18,.86,.22,1.08), left 260ms ease-out"
-      : motion === "Walk-Cycle"
-        ? "left 2400ms linear"
-        : "none",
+      ? `top ${SETTLING_MS}ms cubic-bezier(.18,.86,.22,1), left 360ms ease-out`
+      : "none",
     opacity: ready ? 1 : 0,
     appearance: "none",
     background: "transparent",
@@ -691,19 +774,6 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
         style={mascotStyle}
         aria-label={title}
       >
-        <canvas
-          ref={canvasRef}
-          width={CANVAS_WIDTH}
-          height={CANVAS_HEIGHT}
-          draggable={false}
-          className="pointer-events-none absolute z-10 drop-shadow-[0_12px_18px_rgba(0,0,0,0.5)]"
-          style={{
-            width: CANVAS_WIDTH,
-            height: CANVAS_HEIGHT,
-            left: -(CANVAS_WIDTH - MASCOT_WIDTH) / 2,
-            top: -(CANVAS_HEIGHT - MASCOT_HEIGHT) / 2,
-          }}
-        />
         <div
           role="button"
           tabIndex={0}
@@ -720,6 +790,17 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
           aria-label={title}
         />
       </div>
+      <canvas
+        ref={canvasRef}
+        width={stageSize.width}
+        height={stageSize.height}
+        draggable={false}
+        className="pointer-events-none absolute inset-0 z-[104] h-full w-full drop-shadow-[0_12px_18px_rgba(0,0,0,0.5)]"
+        style={{
+          width: stageSize.width,
+          height: stageSize.height,
+        }}
+      />
     </div>
   );
 }
