@@ -13,6 +13,7 @@ dist-ssr
 desktop-launcher/node_modules
 desktop-launcher/src-tauri/target
 desktop-launcher/src-tauri/gen
+widgets/
 *.local
 
 # Editor directories and files
