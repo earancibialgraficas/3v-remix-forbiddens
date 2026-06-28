@@ -34,7 +34,7 @@ const FALLBACK_CANVAS_WIDTH = 620;
 const FALLBACK_CANVAS_HEIGHT = 450;
 const WORLD_UNITS_PER_PIXEL = 6 / CANVAS_WIDTH;
 const GROUND_GAP = 0;
-const SETTLING_MS = 1250;
+const SETTLING_MS = 3200;
 
 const ALIEN_ANIMATION_DURATIONS: Record<string, number> = {
   "0": 700,
@@ -323,6 +323,32 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
 
     moveFrameRef.current = window.requestAnimationFrame(step);
   }, [cancelGroundMove, clampPosition, groundY, playAnimation]);
+
+  const startDropToGround = useCallback((onComplete: () => void) => {
+    cancelGroundMove();
+    const start = positionRef.current;
+    const target = clampPosition(start.x, groundY());
+    const startedAt = performance.now();
+    setPosition(start);
+
+    const step = (now: number) => {
+      const progress = clamp((now - startedAt) / SETTLING_MS, 0, 1);
+      const eased = progress * progress * (3 - 2 * progress);
+      setPosition({
+        x: start.x + (target.x - start.x) * eased,
+        y: start.y + (target.y - start.y) * eased,
+      });
+      if (progress < 1) {
+        moveFrameRef.current = window.requestAnimationFrame(step);
+      } else {
+        moveFrameRef.current = null;
+        setPosition(target);
+        onComplete();
+      }
+    };
+
+    moveFrameRef.current = window.requestAnimationFrame(step);
+  }, [cancelGroundMove, clampPosition, groundY]);
 
   useEffect(() => {
     const stage = stageRef.current;
@@ -665,19 +691,17 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
 
   const finishDrag = useCallback(() => {
     if (!dragging) return;
-    cancelGroundMove();
     setDragging(false);
     setSettling(true);
-    setPosition((current) => clampPosition(current.x, groundY()));
     targetYawRef.current = 0;
     setMotion("Bake_Pose");
-    window.setTimeout(() => {
+    startDropToGround(() => {
       targetYawRef.current = (Math.random() < 0.5 ? -1 : 1) * 0.18;
       setSettling(false);
       setMotion("Idel_Normal");
       playAnimation("Idel_Normal");
-    }, SETTLING_MS);
-  }, [cancelGroundMove, clampPosition, dragging, groundY, playAnimation]);
+    });
+  }, [dragging, playAnimation, startDropToGround]);
 
   const startDrag = (event: React.PointerEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -729,9 +753,7 @@ export default function AlienMascot3D({ gameName, className }: AlienMascot3DProp
     top: position.y,
     width: MASCOT_WIDTH,
     height: MASCOT_HEIGHT,
-    transition: settling
-      ? `top ${SETTLING_MS}ms cubic-bezier(.18,.86,.22,1), left 360ms ease-out`
-      : "none",
+    transition: "none",
     opacity: ready ? 1 : 0,
     appearance: "none",
     background: "transparent",
