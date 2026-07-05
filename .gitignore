@@ -13,7 +13,11 @@ dist-ssr
 desktop-launcher/node_modules
 desktop-launcher/src-tauri/target
 desktop-launcher/src-tauri/gen
+
+# Local widget projects live outside the website repo:
+# C:\Users\Orphen\Desktop\widgets
 widgets/
+/widgets/
 *.local
 
 # Editor directories and files
