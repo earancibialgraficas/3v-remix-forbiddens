@@ -6,7 +6,7 @@ use std::{
     path::{Path, PathBuf},
     process::{Command, Stdio},
     sync::{
-        atomic::{AtomicU32, Ordering},
+        atomic::{AtomicBool, AtomicU32, Ordering},
         Mutex, OnceLock,
     },
     thread,
@@ -134,6 +134,7 @@ struct NativeDownloadProgressEvent {
 const WEBSITE_URL: &str = "https://forbiddens.net/?launcher_version=0.1.40";
 const LAUNCHER_DOWNLOAD_URL: &str = "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.40_x64-setup.exe";
 static ACTIVE_NATIVE_PROCESS_ID: AtomicU32 = AtomicU32::new(0);
+static NATIVE_COMPANION_HIDDEN: AtomicBool = AtomicBool::new(false);
 static SUPPRESSED_NATIVE_EXIT_PROCESS_IDS: OnceLock<Mutex<HashSet<u32>>> = OnceLock::new();
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 
@@ -383,8 +384,28 @@ fn launcher_window_action(app: AppHandle, action: String) -> Result<(), String> 
     match action.trim().to_lowercase().as_str() {
         "minimize" => window.minimize().map_err(|error| error.to_string()),
         "restore" | "show" => {
-            let _ = window.unminimize();
-            window.set_focus().map_err(|error| error.to_string())
+            NATIVE_COMPANION_HIDDEN.store(false, Ordering::SeqCst);
+            let process_id = ACTIVE_NATIVE_PROCESS_ID.load(Ordering::SeqCst);
+            if process_id != 0 {
+                enter_native_companion_layout(&app, Some(process_id))
+            } else {
+                let _ = window.unminimize();
+                window.set_focus().map_err(|error| error.to_string())
+            }
+        }
+        "hide_native_companion" => {
+            NATIVE_COMPANION_HIDDEN.store(true, Ordering::SeqCst);
+            window.minimize().map_err(|error| error.to_string())
+        }
+        "restore_native_companion" => {
+            NATIVE_COMPANION_HIDDEN.store(false, Ordering::SeqCst);
+            let process_id = ACTIVE_NATIVE_PROCESS_ID.load(Ordering::SeqCst);
+            if process_id != 0 {
+                enter_native_companion_layout(&app, Some(process_id))
+            } else {
+                let _ = window.unminimize();
+                window.set_focus().map_err(|error| error.to_string())
+            }
         }
         "toggle_maximize" | "maximize" => {
             if window.is_maximized().map_err(|error| error.to_string())? {
@@ -416,8 +437,17 @@ fn monitor_launcher_window_state(app: AppHandle) {
             let state = if is_minimized { "minimized" } else { "restored" };
             let process_id = ACTIVE_NATIVE_PROCESS_ID.load(Ordering::SeqCst);
             if process_id != 0 {
-                let action = if is_minimized { "minimize" } else { "restore" };
-                let _ = set_native_emulator_state(process_id, action.to_string());
+                if is_minimized {
+                    if !NATIVE_COMPANION_HIDDEN.load(Ordering::SeqCst) {
+                        let _ = set_native_emulator_state(process_id, "minimize".to_string());
+                    }
+                } else {
+                    let was_hidden = NATIVE_COMPANION_HIDDEN.swap(false, Ordering::SeqCst);
+                    if was_hidden {
+                        let _ = enter_native_companion_layout(&app, Some(process_id));
+                    }
+                    let _ = set_native_emulator_state(process_id, "restore".to_string());
+                }
             }
             let _ = app.emit(
                 "forbiddens-launcher-window-state",
@@ -1681,6 +1711,7 @@ fn enter_native_companion_layout(app: &AppHandle, process_id: Option<u32>) -> Re
 }
 
 fn restore_launcher_layout(app: &AppHandle) {
+    NATIVE_COMPANION_HIDDEN.store(false, Ordering::SeqCst);
     let Some(window) = app.get_webview_window("main") else {
         return;
     };
@@ -1915,11 +1946,17 @@ fn monitor_native_emulator_window(
                             process_id,
                             "minimized",
                         );
-                        if let Some(window) = app.get_webview_window("main") {
-                            let _ = window.minimize();
+                        if !NATIVE_COMPANION_HIDDEN.load(Ordering::SeqCst) {
+                            if let Some(window) = app.get_webview_window("main") {
+                                let _ = window.minimize();
+                            }
                         }
                     } else {
-                        arrange_emulator_window(app.clone(), process_id);
+                        if NATIVE_COMPANION_HIDDEN.load(Ordering::SeqCst) {
+                            let _ = set_native_emulator_state(process_id, "maximize".to_string());
+                        } else {
+                            arrange_emulator_window(app.clone(), process_id);
+                        }
                         emit_native_window_state(
                             &app,
                             &console_id,
@@ -2196,6 +2233,7 @@ fn open_native_emulator(
     let mut child = command.spawn().map_err(|error| error.to_string())?;
     let process_id = child.id();
     ACTIVE_NATIVE_PROCESS_ID.store(process_id, Ordering::SeqCst);
+    NATIVE_COMPANION_HIDDEN.store(false, Ordering::SeqCst);
     let rom_path_for_event = rom_path
         .as_deref()
         .map(str::trim)
@@ -2252,6 +2290,7 @@ fn close_native_emulator(process_id: u32) -> Result<(), String> {
 }
 
 fn close_native_emulator_process(process_id: u32) -> Result<(), String> {
+    NATIVE_COMPANION_HIDDEN.store(false, Ordering::SeqCst);
     let script = "$ErrorActionPreference='SilentlyContinue'; \
       $processId = [int]$env:FORBIDDENS_EMU_PID; \
       $ids = New-Object System.Collections.Generic.List[int]; \
@@ -2308,7 +2347,8 @@ fn set_native_emulator_state(process_id: u32, action: String) -> Result<(), Stri
     let normalized = action.trim().to_lowercase();
     let show_command = match normalized.as_str() {
         "minimize" => 6,
-        "restore" | "show" | "maximize" => 9,
+        "restore" | "show" => 9,
+        "maximize" => 3,
         _ => return Err("Accion de ventana no soportada.".to_string()),
     };
 

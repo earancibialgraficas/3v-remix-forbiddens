@@ -580,19 +580,23 @@ export default function NativeGameBubble() {
     const current = latestSessionRef.current;
     const bridge = getLauncherBridge();
     if (current?.processId) {
-      await bridge?.setNativeEmulatorState?.(current.processId, "minimize").catch(() => {});
+      await bridge?.setNativeEmulatorState?.(current.processId, "maximize").catch(() => {});
     }
     minimizeNativeSession();
-    await bridge?.launcherWindowAction?.("minimize").catch(() => {});
+    await bridge?.launcherWindowAction?.("hide_native_companion").catch(async () => {
+      await bridge?.launcherWindowAction?.("minimize").catch(() => {});
+    });
   };
 
   const restoreSession = async (index?: number) => {
     const current = latestSessionRef.current;
     const bridge = getLauncherBridge();
+    await bridge?.launcherWindowAction?.("restore_native_companion").catch(async () => {
+      await bridge?.launcherWindowAction?.("restore").catch(() => {});
+    });
     if (current?.processId) {
       await bridge?.setNativeEmulatorState?.(current.processId, "restore").catch(() => {});
     }
-    await bridge?.launcherWindowAction?.("restore").catch(() => {});
     maximizeNativeSession(index);
   };
 
@@ -853,7 +857,7 @@ export default function NativeGameBubble() {
         </div>
         <div className="flex shrink-0 items-center gap-1">
           {!launcherPanelMode && <Move className="h-3.5 w-3.5 text-white/35" />}
-          <Button data-native-action size="icon" variant="ghost" className={cn(nativeIconButtonClass, "h-6 w-6")} style={skinSoftButtonStyle} onClick={minimizeSession} aria-label="Minimizar sesion">
+          <Button data-native-action size="icon" variant="ghost" className={cn(nativeIconButtonClass, "h-6 w-6")} style={skinSoftButtonStyle} onClick={minimizeSession} aria-label="Ocultar companion y ampliar juego" title="Ocultar companion y ampliar juego">
             <Minus className="h-3.5 w-3.5" />
           </Button>
           <Button data-native-action size="icon" variant="ghost" className={cn(nativeIconButtonClass, "h-6 w-6 text-destructive hover:text-destructive")} style={skinSoftButtonStyle} onClick={finishSession} aria-label="Cerrar sesion">
