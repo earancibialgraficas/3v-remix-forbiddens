@@ -900,3 +900,22 @@ html[data-skin-slug] body[data-skin-slug] #photo-wall-page.photo-wall-page :is(
 ) {
   border-color: transparent !important;
 }
+
+/* Media safety layer: las skins pueden pintar el escenario, pero nunca tapar el video. */
+html[data-skin-slug] body[data-skin-slug] #social-hub-page.social-hub-page .social-video-stage {
+  isolation: isolate !important;
+}
+
+html[data-skin-slug] body[data-skin-slug] #social-hub-page.social-hub-page .social-video-stage > :is(div, iframe, video, img) {
+  position: relative;
+  z-index: 2 !important;
+}
+
+html[data-skin-slug] body[data-skin-slug] #social-hub-page.social-hub-page .social-video-stage :is(iframe, video, img) {
+  position: relative;
+  z-index: 3 !important;
+}
+
+html[data-skin-slug] body[data-skin-slug] #social-hub-page.social-hub-page .social-video-stage :is(.social-cinema-toggle, .social-cinema-bottom-bar, .social-mobile-controls) {
+  z-index: 100 !important;
+}
