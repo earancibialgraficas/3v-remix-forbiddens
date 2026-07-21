@@ -131,8 +131,8 @@ struct NativeDownloadProgressEvent {
     error: Option<String>,
 }
 
-const WEBSITE_URL: &str = "https://forbiddens.net/?launcher_version=0.1.40";
-const LAUNCHER_DOWNLOAD_URL: &str = "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.40_x64-setup.exe";
+const WEBSITE_URL: &str = "https://forbiddens.net/?launcher_version=0.1.42";
+const LAUNCHER_DOWNLOAD_URL: &str = "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.42_x64-setup.exe";
 static ACTIVE_NATIVE_PROCESS_ID: AtomicU32 = AtomicU32::new(0);
 static NATIVE_COMPANION_HIDDEN: AtomicBool = AtomicBool::new(false);
 static SUPPRESSED_NATIVE_EXIT_PROCESS_IDS: OnceLock<Mutex<HashSet<u32>>> = OnceLock::new();
@@ -3399,3 +3399,4 @@ pub fn run() {
         .run(tauri::generate_context!())
         .expect("error while running FORBIDDENS launcher");
 }
+

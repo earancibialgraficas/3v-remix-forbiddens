@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+﻿import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown, ChevronUp, ListVideo, Pause, Play, Plus, Settings, SkipBack, SkipForward, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,7 @@ interface WatchTogetherPlayerProps {
   avatarUrl?: string;
   controlsTargetId?: string;
   fullscreen?: boolean;
+  hideDetachedControls?: boolean;
   onPresencePlayers?: (players: Array<{ userId: string; playerId: string; name: string; avatarUrl: string; joinedAt: number; updatedAt: number }>) => void;
 }
 
@@ -110,7 +111,7 @@ const CAPTION_LANGUAGES = [
 
 const WATCH_PLAYLIST_OPEN_KEY = "forbiddens.watchTogether.playlistOpen";
 
-export default function WatchTogetherPlayer({ roomCode, userName, userId, playerId, avatarUrl = "", controlsTargetId, fullscreen = false, onPresencePlayers }: WatchTogetherPlayerProps) {
+export default function WatchTogetherPlayer({ roomCode, userName, userId, playerId, avatarUrl = "", controlsTargetId, fullscreen = false, hideDetachedControls = false, onPresencePlayers }: WatchTogetherPlayerProps) {
   const [playlist, setPlaylist] = useState<WatchSong[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -232,6 +233,11 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
     iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ event: "command", func, args }), "*");
   }, []);
 
+  const forceCaptionsOff = useCallback(() => {
+    sendCommand("setOption", ["captions", "track", {}]);
+    sendCommand("unloadModule", ["captions"]);
+  }, [sendCommand]);
+
   const requestYoutubeStatus = useCallback(() => {
     iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ event: "listening", id: clientIdRef.current }), "*");
     sendCommand("getCurrentTime");
@@ -251,9 +257,9 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
       sendCommand("loadModule", ["captions"]);
       sendCommand("setOption", ["captions", "track", { languageCode: localCaptionLanguage }]);
     } else {
-      sendCommand("unloadModule", ["captions"]);
+      forceCaptionsOff();
     }
-  }, [sendCommand]);
+  }, [forceCaptionsOff, sendCommand]);
 
   const getSnapshot = useCallback((): WatchState => ({
     playlist,
@@ -432,6 +438,13 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
     applyYoutubePreferences();
   }, [applyYoutubePreferences]);
 
+  useEffect(() => {
+    if (!current?.youtubeId || captionsEnabled) return;
+    forceCaptionsOff();
+    const timers = [350, 1100, 2400].map((delay) => window.setTimeout(forceCaptionsOff, delay));
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
+  }, [captionsEnabled, current?.youtubeId, forceCaptionsOff]);
+
   const playPause = () => {
     if (!current) return;
     const nextPlaying = !isPlaying;
@@ -482,7 +495,7 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
       sendCommand("loadModule", ["captions"]);
       sendCommand("setOption", ["captions", "track", { languageCode: captionLanguage }]);
     } else {
-      sendCommand("unloadModule", ["captions"]);
+      forceCaptionsOff();
     }
   };
 
@@ -708,20 +721,33 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
         </div>
       )}
 
-      {volumeOpen && (
-        <div className="absolute bottom-full left-1/2 mb-2 flex w-[220px] -translate-x-1/2 items-center gap-2 rounded-full border border-white/10 bg-black/70 px-3 py-2 backdrop-blur-md">
-          <button type="button" onClick={() => setMuted((value) => !value)} className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-muted-foreground hover:text-white" title="Silenciar" aria-label="Silenciar">{muted || volume <= 0 ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}</button>
-          <Slider value={[volume]} min={0} max={100} step={1} onValueChange={([next]) => { const safeNext = Number(next || 0); setVolume(safeNext); if (safeNext > 0) setMuted(false); }} className="min-w-0 flex-1" aria-label="Volumen local" />
-          <span className="w-7 text-right font-pixel text-[6px] text-neon-cyan">{effectiveVolume}</span>
-        </div>
-      )}
-
       <div className="flex items-center gap-1.5">
         <div className="flex shrink-0 items-center gap-0.5">
           <Button size="icon" variant="ghost" className="h-6 w-6 rounded-full" onClick={() => jumpTo(currentIndex - 1)} disabled={!playlist.length} title="Anterior" aria-label="Anterior"><SkipBack className="h-3 w-3" /></Button>
           <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full" onClick={playPause} disabled={!current} title={isPlaying ? "Pausar" : "Reproducir"} aria-label={isPlaying ? "Pausar" : "Reproducir"}>{isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}</Button>
           <Button size="icon" variant="ghost" className="h-6 w-6 rounded-full" onClick={() => jumpTo(currentIndex + 1)} disabled={!playlist.length} title="Siguiente" aria-label="Siguiente"><SkipForward className="h-3 w-3" /></Button>
-          <Button size="icon" variant="ghost" className="h-6 w-6 rounded-full" onClick={() => { setVolumeOpen((value) => !value); setSettingsOpen(false); }} title="Volumen" aria-label="Volumen">{muted || volume <= 0 ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}</Button>
+          <div
+            className="relative shrink-0"
+            onMouseEnter={() => {
+              setVolumeOpen(true);
+              setSettingsOpen(false);
+              revealVideoHud();
+            }}
+            onMouseLeave={() => setVolumeOpen(false)}
+            onFocus={() => {
+              setVolumeOpen(true);
+              setSettingsOpen(false);
+            }}
+          >
+            {volumeOpen && (
+              <div className="absolute bottom-full left-1/2 mb-2 flex w-[220px] -translate-x-1/2 items-center gap-2 rounded-full border border-white/10 bg-black/70 px-3 py-2 backdrop-blur-md">
+                <button type="button" onClick={() => setMuted((value) => !value)} className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-muted-foreground hover:text-white" title="Silenciar" aria-label="Silenciar">{muted || volume <= 0 ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}</button>
+                <Slider value={[volume]} min={0} max={100} step={1} onValueChange={([next]) => { const safeNext = Number(next || 0); setVolume(safeNext); if (safeNext > 0) setMuted(false); }} className="min-w-0 flex-1" aria-label="Volumen local" />
+                <span className="w-7 text-right font-pixel text-[6px] text-neon-cyan">{effectiveVolume}</span>
+              </div>
+            )}
+            <Button size="icon" variant="ghost" className="h-6 w-6 rounded-full" onClick={() => setMuted((value) => !value)} title="Volumen" aria-label="Volumen">{muted || volume <= 0 ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}</Button>
+          </div>
           <Button size="icon" variant="ghost" className="h-6 w-6 rounded-full" onClick={() => { setSettingsOpen((value) => !value); setVolumeOpen(false); }} title="Configuracion YouTube" aria-label="Configuracion YouTube"><Settings className="h-3 w-3" /></Button>
         </div>
         <span className="w-8 shrink-0 font-pixel text-[6px] text-neon-cyan">{formatTime(currentTime)}</span>
@@ -750,12 +776,13 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
             key={current.youtubeId}
             ref={iframeRef}
             title={current.title}
-            src={`https://www.youtube.com/embed/${current.youtubeId}?enablejsapi=1&autoplay=0&playsinline=1&controls=0&disablekb=1&fs=0&rel=0&modestbranding=1&origin=${encodeURIComponent(window.location.origin)}`}
+            src={`https://www.youtube.com/embed/${current.youtubeId}?enablejsapi=1&autoplay=0&playsinline=1&controls=0&disablekb=1&fs=0&rel=0&modestbranding=1&cc_load_policy=0&iv_load_policy=3&cc_lang_pref=${encodeURIComponent(captionLanguage)}&origin=${encodeURIComponent(window.location.origin)}`}
             allow="autoplay; encrypted-media; fullscreen"
             className="h-full w-full"
             onLoad={() => {
               requestYoutubeStatus();
               applyYoutubePreferences();
+              if (!captionsEnabledRef.current) forceCaptionsOff();
               if (hasAuthoritativeRoomStateRef.current) applyState(stateRef.current);
             }}
           />
@@ -784,7 +811,7 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
         {bottomHud}
       </div>
 
-      {controlsElement ? createPortal(controls, controlsElement) : (
+      {controlsElement ? createPortal(controls, controlsElement) : hideDetachedControls ? null : (
         <div className="absolute right-3 top-3 z-30 w-[min(300px,calc(100%-24px))] overflow-hidden rounded border border-white/10 bg-black/70 backdrop-blur-md">
           {controls}
         </div>
@@ -792,3 +819,4 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
     </div>
   );
 }
+

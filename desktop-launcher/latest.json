@@ -1,15 +1,15 @@
 {
-  "version": "0.1.40",
-  "notes": "FORBIDDENS Launcher 0.1.40: corrige el layout del companion nativo en pantallas pequenas y mejora la mascota Alien.",
-  "pub_date": "2026-06-26T02:37:46Z",
-  "platforms": {
-    "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRRXZQQXVxYjV4VWk3c2dQOU1tYlh0cWRrdktLZnhoUGgzSmRQMkIvVVgyWVJaQ0pDOUMwcWVUcnJ2MmpmeDJrRStod2dUMHVFeG8vY1paUDExQ3NjNjVSemdRdk42OXd3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyNDQxNDQ4CWZpbGU6Rk9SQklEREVOU18wLjEuNDBfeDY0LXNldHVwLmV4ZQpsYm5tSjQ5TjdIbWxlN1UxRTJtMG9LVXk3MjdpUVV2NWV1aW1CdFRTOUdjOUQ4anl6MmNiSTdFMmxZaUNzc0FRaW1lakhQQU9VYnVrMTZzQ3V0UytDQT09Cg==",
-      "url": "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.40_x64-setup.exe"
-    },
-    "windows-x86_64-pc-windows-msvc": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRRXZQQXVxYjV4VWk3c2dQOU1tYlh0cWRrdktLZnhoUGgzSmRQMkIvVVgyWVJaQ0pDOUMwcWVUcnJ2MmpmeDJrRStod2dUMHVFeG8vY1paUDExQ3NjNjVSemdRdk42OXd3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyNDQxNDQ4CWZpbGU6Rk9SQklEREVOU18wLjEuNDBfeDY0LXNldHVwLmV4ZQpsYm5tSjQ5TjdIbWxlN1UxRTJtMG9LVXk3MjdpUVV2NWV1aW1CdFRTOUdjOUQ4anl6MmNiSTdFMmxZaUNzc0FRaW1lakhQQU9VYnVrMTZzQ3V0UytDQT09Cg==",
-      "url": "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.40_x64-setup.exe"
-    }
-  }
+    "version":  "0.1.42",
+    "notes":  "FORBIDDENS Launcher 0.1.42: mejora Watch Together con volumen por hover, barra lateral limpia al ocultarla, pantalla completa sin borde y subtitulos apagados por defecto.",
+    "pub_date":  "2026-07-21T20:41:58Z",
+    "platforms":  {
+                      "windows-x86_64":  {
+                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTbVdYVU9DdFN0bTdLTlh5K0VHaTY1VzJCQ2J4SGhwU3Y2UE5GL2FEZjVsSUpJZEVjbjFnVDdJZ04yS2lLZ1lCRWVZdWk3THV4ODREdzdaRnFYMHVNOC9td0kzOXAxTGdjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg0NjY2NDkyCWZpbGU6Rk9SQklEREVOU18wLjEuNDJfeDY0LXNldHVwLmV4ZQo4ckFDblQvYi81blgxZVVJaU8yWlFDaEtVS2Z0M0V1aU9LWldxRnpST3NzZWVlME15R3FtWVgvNGthNGR5V0tlQk10T2JhV3hYMXdaTkRyQkU1bGZDQT09Cg==",
+                                             "url":  "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.42_x64-setup.exe"
+                                         },
+                      "windows-x86_64-pc-windows-msvc":  {
+                                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTbVdYVU9DdFN0bTdLTlh5K0VHaTY1VzJCQ2J4SGhwU3Y2UE5GL2FEZjVsSUpJZEVjbjFnVDdJZ04yS2lLZ1lCRWVZdWk3THV4ODREdzdaRnFYMHVNOC9td0kzOXAxTGdjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg0NjY2NDkyCWZpbGU6Rk9SQklEREVOU18wLjEuNDJfeDY0LXNldHVwLmV4ZQo4ckFDblQvYi81blgxZVVJaU8yWlFDaEtVS2Z0M0V1aU9LWldxRnpST3NzZWVlME15R3FtWVgvNGthNGR5V0tlQk10T2JhV3hYMXdaTkRyQkU1bGZDQT09Cg==",
+                                                             "url":  "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.42_x64-setup.exe"
+                                                         }
+                  }
 }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+﻿import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   ChevronLeft,
@@ -649,7 +649,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     };
   }, [activeGameId, canCreateSpecialRooms]);
 
-  // 📡 Escuchar actualizaciones del Leaderboard desde el juego (iframe)
+  // ðŸ“¡ Escuchar actualizaciones del Leaderboard desde el juego (iframe)
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.data?.type === "game:sessionScore") {
@@ -1644,7 +1644,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
                 )}
                 {isReady && isOnline && (
                   <div className="absolute -right-1 -bottom-1 grid h-4 w-4 place-items-center rounded-full border border-neon-green bg-black/90 text-[9px] font-bold text-neon-green shadow-[0_0_8px_rgba(57,255,20,0.55)]">
-                    ✓
+                    âœ“
                   </div>
                 )}
               </div>
@@ -1754,7 +1754,8 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
       <div
         ref={popupRef}
         className={cn(
-          "fixed z-[320] overflow-hidden border border-neon-magenta/40 bg-card shadow-2xl shadow-black/60",
+          "fixed z-[320] overflow-hidden",
+          fullscreen ? "border-0 bg-black shadow-none" : "border border-neon-magenta/40 bg-card shadow-2xl shadow-black/60",
           minimized ? "bottom-4 right-4 h-24 w-44 rounded-xl cursor-pointer" : fullscreen ? "inset-0 rounded-none" : "left-1/2 top-1/2 rounded-xl",
           (dragging || resizing) && "select-none",
         )}
@@ -1762,7 +1763,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
           minimized
             ? undefined
             : fullscreen
-              ? { width: "100vw", height: "100dvh", transform: "none" }
+              ? { width: "100%", height: "100%", transform: "none" }
             : {
                 width: `${size.w}px`,
                 height: `${size.h}px`,
@@ -1890,7 +1891,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
 
         {!minimized && (
           <div className={cn("flex w-full relative", fullscreen ? "h-full" : "h-[calc(100%-44px)]", compactGameFrame && !fullscreen && "flex-col")}>
-            {/* Área del Juego */}
+            {/* Ãrea del Juego */}
             {!gameLaunched ? (
               <div className="min-h-0 min-w-0 flex-1">
                 {lobbyPanel}
@@ -1905,6 +1906,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
                 avatarUrl={localAvatarUrl}
                 controlsTargetId={(fullscreen || !windowInfoCollapsed) ? watchControlsTargetId : undefined}
                 fullscreen={fullscreen}
+                hideDetachedControls={!fullscreen && windowInfoCollapsed}
                 onPresencePlayers={syncWatchTogetherPresencePlayers}
               />
             </div>
@@ -1955,7 +1957,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
               </div>
             )}
             
-            {/* 🏆 Panel de Jugadores (Leaderboard) en el Marco */}
+            {/* ðŸ† Panel de Jugadores (Leaderboard) en el Marco */}
             {(gameLaunched || isMassiveDecks) && (fullscreen || !windowInfoCollapsed) && leaderboardPanel}
           </div>
         )}
@@ -1971,3 +1973,4 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     document.body,
   );
 }
+
