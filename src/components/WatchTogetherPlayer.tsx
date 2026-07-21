@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown, ChevronUp, ListVideo, Pause, Play, Plus, Settings, SkipBack, SkipForward, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -137,6 +137,7 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
   const playlistListRef = useRef<HTMLDivElement>(null);
   const activeVideoRef = useRef<HTMLButtonElement>(null);
   const hudTimerRef = useRef<number | null>(null);
+  const volumeHideTimerRef = useRef<number | null>(null);
   const channelRef = useRef<any>(null);
   const pollRef = useRef<number | null>(null);
   const stateRef = useRef<WatchState>(emptyState());
@@ -169,11 +170,27 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
     window.localStorage.setItem(WATCH_PLAYLIST_OPEN_KEY, playlistOpen ? "1" : "0");
   }, [playlistOpen]);
 
+  const clearVolumeHideTimer = useCallback(() => {
+    if (volumeHideTimerRef.current) {
+      window.clearTimeout(volumeHideTimerRef.current);
+      volumeHideTimerRef.current = null;
+    }
+  }, []);
+
+  const scheduleVolumeHide = useCallback((delay = 2000) => {
+    clearVolumeHideTimer();
+    volumeHideTimerRef.current = window.setTimeout(() => {
+      setVolumeOpen(false);
+      volumeHideTimerRef.current = null;
+    }, delay);
+  }, [clearVolumeHideTimer]);
+
   const closeTransientPanels = useCallback(() => {
+    clearVolumeHideTimer();
     setVolumeOpen(false);
     setAddOpen(false);
     setSettingsOpen(false);
-  }, []);
+  }, [clearVolumeHideTimer]);
 
   const revealVideoHud = useCallback(() => {
     setVideoHudVisible(true);
@@ -183,6 +200,32 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
       setVideoHudVisible(false);
     }, 2600);
   }, [closeTransientPanels]);
+  const showVolumeControls = useCallback(() => {
+    setVolumeOpen(true);
+    setSettingsOpen(false);
+    revealVideoHud();
+    scheduleVolumeHide(2000);
+  }, [revealVideoHud, scheduleVolumeHide]);
+
+  const handleVolumeChange = useCallback(([next]: number[]) => {
+    clearVolumeHideTimer();
+    revealVideoHud();
+    const safeNext = Number(next || 0);
+    setVolume(safeNext);
+    if (safeNext > 0) setMuted(false);
+  }, [clearVolumeHideTimer, revealVideoHud]);
+
+  const handleVolumeCommit = useCallback(() => {
+    scheduleVolumeHide(900);
+  }, [scheduleVolumeHide]);
+
+  const toggleMute = useCallback(() => {
+    setMuted((value) => !value);
+    revealVideoHud();
+    scheduleVolumeHide(1200);
+  }, [revealVideoHud, scheduleVolumeHide]);
+
+  useEffect(() => () => clearVolumeHideTimer(), [clearVolumeHideTimer]);
 
   useEffect(() => {
     revealVideoHud();
@@ -728,25 +771,31 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
           <Button size="icon" variant="ghost" className="h-6 w-6 rounded-full" onClick={() => jumpTo(currentIndex + 1)} disabled={!playlist.length} title="Siguiente" aria-label="Siguiente"><SkipForward className="h-3 w-3" /></Button>
           <div
             className="relative shrink-0"
-            onMouseEnter={() => {
-              setVolumeOpen(true);
-              setSettingsOpen(false);
-              revealVideoHud();
-            }}
-            onMouseLeave={() => setVolumeOpen(false)}
-            onFocus={() => {
-              setVolumeOpen(true);
-              setSettingsOpen(false);
-            }}
+            onMouseEnter={showVolumeControls}
+            onFocus={showVolumeControls}
           >
             {volumeOpen && (
-              <div className="absolute bottom-full left-1/2 mb-2 flex w-[220px] -translate-x-1/2 items-center gap-2 rounded-full border border-white/10 bg-black/70 px-3 py-2 backdrop-blur-md">
-                <button type="button" onClick={() => setMuted((value) => !value)} className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-muted-foreground hover:text-white" title="Silenciar" aria-label="Silenciar">{muted || volume <= 0 ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}</button>
-                <Slider value={[volume]} min={0} max={100} step={1} onValueChange={([next]) => { const safeNext = Number(next || 0); setVolume(safeNext); if (safeNext > 0) setMuted(false); }} className="min-w-0 flex-1" aria-label="Volumen local" />
-                <span className="w-7 text-right font-pixel text-[6px] text-neon-cyan">{effectiveVolume}</span>
+              <div
+                className="absolute bottom-full left-1/2 mb-2 flex h-36 w-12 -translate-x-1/2 flex-col items-center gap-2 rounded-2xl border border-white/10 bg-black/75 px-2 py-2 shadow-2xl shadow-black/50 backdrop-blur-md"
+                onPointerDown={clearVolumeHideTimer}
+                onClick={(event) => event.stopPropagation()}
+              >
+                <span className="font-pixel text-[6px] leading-none text-neon-cyan">{effectiveVolume}</span>
+                <Slider
+                  orientation="vertical"
+                  value={[volume]}
+                  min={0}
+                  max={100}
+                  step={1}
+                  onValueChange={handleVolumeChange}
+                  onValueCommit={handleVolumeCommit}
+                  className="h-24"
+                  aria-label="Volumen local"
+                />
+                <button type="button" onClick={toggleMute} className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:text-white" title="Silenciar" aria-label="Silenciar">{muted || volume <= 0 ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}</button>
               </div>
             )}
-            <Button size="icon" variant="ghost" className="h-6 w-6 rounded-full" onClick={() => setMuted((value) => !value)} title="Volumen" aria-label="Volumen">{muted || volume <= 0 ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}</Button>
+            <Button size="icon" variant="ghost" className="h-6 w-6 rounded-full" onClick={toggleMute} title="Volumen" aria-label="Volumen">{muted || volume <= 0 ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}</Button>
           </div>
           <Button size="icon" variant="ghost" className="h-6 w-6 rounded-full" onClick={() => { setSettingsOpen((value) => !value); setVolumeOpen(false); }} title="Configuracion YouTube" aria-label="Configuracion YouTube"><Settings className="h-3 w-3" /></Button>
         </div>
